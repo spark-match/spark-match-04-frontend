@@ -1,0 +1,54 @@
+/* =============================================================================
+ * Spark Match - Global Theme
+ * =============================================================================
+ * Basado en Angular Material 21 azure-blue, con personalizaciones SCSS.
+ * ============================================================================= */
+
+@use '@angular/material' as mat;
+
+/* Paleta principal - inspirada en azul Spark (carrera + confianza) */
+html {
+  color-scheme: light;
+  @include mat.theme((
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$cyan-palette
+    ),
+    typography: Roboto,
+    density: 0
+  ));
+}
+
+/* CSS custom properties para uso directo en componentes */
+:root {
+  --spark-primary: #1976d2;
+  --spark-primary-light: #42a5f5;
+  --spark-accent: #00acc1;
+  --spark-bg: #fafafa;
+  --spark-surface: #ffffff;
+  --spark-text: rgba(0, 0, 0, 0.87);
+  --spark-text-secondary: rgba(0, 0, 0, 0.6);
+}
+
+/* Reset + base */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background: var(--spark-bg);
+  color: var(--spark-text);
+}
+
+/* Utility classes */
+.spacer { flex: 1; }
+.text-center { text-align: center; }
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }

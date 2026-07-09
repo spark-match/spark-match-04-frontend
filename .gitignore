@@ -1,0 +1,105 @@
+# =============================================================================
+# Spark Match Frontend (04-frontend) - .gitignore
+# =============================================================================
+# Generado por Angular CLI 21.2 + ajustes segun ADR-003 branch-based deployment.
+# Version: 1.0.0 - 2026-07-09
+# Stack: Angular 21 standalone, Vitest, Angular Material + SCSS, i18n nativo
+# =============================================================================
+
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# Node
+/node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+pnpm-debug.log*
+.pnpm-store/
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/mcp.json
+.history/*
+
+# Miscellaneous
+/.angular/cache
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+__screenshots__/
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environments / secrets
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+!.env.example
+/src/environments/environment.ts
+!/src/environments/environment.example.ts
+
+# i18n build artifacts (generados por ng extract-i18n)
+/src/locale/*.xlf
+/src/locale/*.xlf.json
+!/src/locale/messages.xlf
+!/src/locale/messages.es.xlf
+!/src/locale/messages.en.xlf
+
+# Storybook (futuro)
+.storybook-static/
+
+# E2E tests
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+e2e/playwright/.cache/
+playwright-report/
+test-results/
+cypress/videos/
+cypress/screenshots/
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.turbo/
+
+# Misc
+*.tgz
+*.tar.gz
+*.zip
+*.dmg
+*.exe
+*.msi

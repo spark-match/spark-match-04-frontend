@@ -1,8 +1,58 @@
-# CODEOWNERS - Spark Match
-# Aprobaciones requeridas para PRs en este repositorio.
+# =============================================================================
+# Spark Match Frontend (04-frontend) - CODEOWNERS
+# =============================================================================
+# Define quién revisa los PRs en cada área del repositorio.
+# =============================================================================
 
-# Propietarios por defecto (Product Owners aprueban cualquier cambio)
-*       @spark-match/product-owners
+# Catch-all: cualquier archivo no listado abajo requiere 1 aprobación
+*                                       @spark-match/product-owners
 
-# Equipo principal responsable de este repositorio
-/*      @spark-match/frontend-devs
+# Configuración de CI/CD y GitHub
+/.github/                               @spark-match/devops
+/.github/**/*                           @spark-match/devops
+/.github/CODEOWNERS                     @spark-match/devops
+/.github/pull_request_template.md       @spark-match/devops
+
+# Configuración del proyecto
+/angular.json                           @spark-match/frontend-devs @spark-match/devops
+/tsconfig*.json                         @spark-match/frontend-devs
+/package.json                           @spark-match/frontend-devs
+/.editorconfig                          @spark-match/frontend-devs
+/.prettierrc                            @spark-match/frontend-devs
+
+# Bounded contexts (features)
+/src/app/features/                      @spark-match/frontend-devs
+/src/app/features/**/*                  @spark-match/frontend-devs
+
+# Core (auth, http, config)
+/src/app/core/                          @spark-match/frontend-devs @spark-match/backend-devs
+/src/app/core/**/*                      @spark-match/frontend-devs @spark-match/backend-devs
+/src/app/core/auth/                     @spark-match/frontend-devs @spark-match/backend-devs
+/src/app/core/http/                     @spark-match/frontend-devs @spark-match/backend-devs
+
+# Shared (componentes, pipes, directivas)
+/src/app/shared/                        @spark-match/frontend-devs
+/src/app/shared/**/*                    @spark-match/frontend-devs
+
+# Layout (shell, header, sidenav, footer)
+/src/app/layout/                        @spark-match/frontend-devs
+/src/app/layout/**/*                    @spark-match/frontend-devs
+
+# Rutas principales
+/src/app/app.routes.ts                  @spark-match/frontend-devs
+/src/app/app.config.ts                  @spark-match/frontend-devs
+/src/app/app.ts                         @spark-match/frontend-devs
+
+# i18n (traducciones)
+/src/locale/                            @spark-match/frontend-devs
+
+# Environments
+/src/environments/                      @spark-match/frontend-devs @spark-match/devops
+/src/environments/environment.ts        @spark-match/frontend-devs @spark-match/devops
+
+# Tests
+/src/**/*.spec.ts                       @spark-match/frontend-devs @spark-match/qa
+
+# Documentación
+/docs/                                  @spark-match/frontend-devs @spark-match/product-owners
+/README.md                              @spark-match/frontend-devs @spark-match/product-owners
