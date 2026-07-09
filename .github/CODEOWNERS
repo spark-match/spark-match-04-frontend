@@ -1,58 +1,22 @@
-# =============================================================================
-# Spark Match Frontend (04-frontend) - CODEOWNERS
-# =============================================================================
-# Define quién revisa los PRs en cada área del repositorio.
-# =============================================================================
+# CODEOWNERS — Spark Match Frontend (04-frontend)
+#
+# Política de aprobación (ADR-003 branch-based deployment):
+# - dev: 1 aprobación del CODE OWNER técnico (frontend-devs) es suficiente.
+#   El autor NO puede aprobar su propio PR (regla GitHub). Si nadie más del
+#   team puede aprobar, solicitar manualmente un CODE OWNER de otro team
+#   (devops, backend-devs) como reviewer adicional.
+# - main: 1 CODE OWNER review (frontend-devs) + reviewer manual de
+#   @spark-match/product-owners (solicitado por el autor al abrir el PR).
+#
+# ¿Por qué solo frontend-devs (sin reglas granulares)?
+# 1. El repo es responsabilidad de frontend-devs (ahincho + BriyitHT).
+#    No hay sub-teams con ownership exclusivo.
+# 2. Reduce el ruido en PRs: 1 solo team como CODE OWNER review.
+# 3. Si frontend-devs necesita apoyo de devops/backend-devs/qa, lo solicita
+#    MANUALMENTE como reviewer adicional (no CODE OWNER).
+#
+# CODE OWNERS del repo: @spark-match/frontend-devs
+#   Miembros actuales: ahincho, BriyitHT
 
-# Catch-all: cualquier archivo no listado abajo requiere 1 aprobación
-*                                       @spark-match/product-owners
-
-# Configuración de CI/CD y GitHub
-/.github/                               @spark-match/devops
-/.github/**/*                           @spark-match/devops
-/.github/CODEOWNERS                     @spark-match/devops
-/.github/pull_request_template.md       @spark-match/devops
-
-# Configuración del proyecto
-/angular.json                           @spark-match/frontend-devs @spark-match/devops
-/tsconfig*.json                         @spark-match/frontend-devs
-/package.json                           @spark-match/frontend-devs
-/.editorconfig                          @spark-match/frontend-devs
-/.prettierrc                            @spark-match/frontend-devs
-
-# Bounded contexts (features)
-/src/app/features/                      @spark-match/frontend-devs
-/src/app/features/**/*                  @spark-match/frontend-devs
-
-# Core (auth, http, config)
-/src/app/core/                          @spark-match/frontend-devs @spark-match/backend-devs
-/src/app/core/**/*                      @spark-match/frontend-devs @spark-match/backend-devs
-/src/app/core/auth/                     @spark-match/frontend-devs @spark-match/backend-devs
-/src/app/core/http/                     @spark-match/frontend-devs @spark-match/backend-devs
-
-# Shared (componentes, pipes, directivas)
-/src/app/shared/                        @spark-match/frontend-devs
-/src/app/shared/**/*                    @spark-match/frontend-devs
-
-# Layout (shell, header, sidenav, footer)
-/src/app/layout/                        @spark-match/frontend-devs
-/src/app/layout/**/*                    @spark-match/frontend-devs
-
-# Rutas principales
-/src/app/app.routes.ts                  @spark-match/frontend-devs
-/src/app/app.config.ts                  @spark-match/frontend-devs
-/src/app/app.ts                         @spark-match/frontend-devs
-
-# i18n (traducciones)
-/src/locale/                            @spark-match/frontend-devs
-
-# Environments
-/src/environments/                      @spark-match/frontend-devs @spark-match/devops
-/src/environments/environment.ts        @spark-match/frontend-devs @spark-match/devops
-
-# Tests
-/src/**/*.spec.ts                       @spark-match/frontend-devs @spark-match/qa
-
-# Documentación
-/docs/                                  @spark-match/frontend-devs @spark-match/product-owners
-/README.md                              @spark-match/frontend-devs @spark-match/product-owners
+# Catch-all: cualquier archivo es responsabilidad de frontend-devs
+*       @spark-match/frontend-devs
