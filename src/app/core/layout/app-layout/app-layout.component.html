@@ -1,0 +1,26 @@
+<div class="app-layout">
+  <!-- Tu nuevo menú lateral personalizado -->
+  <app-sidebar></app-sidebar>
+
+  <!-- Contenedor principal derecho -->
+  <div class="main-wrapper">
+    <!-- Barra superior flotante (solo para Iniciar Sesión / Perfil) -->
+    <header class="top-header">
+      <div class="spacer"></div>
+
+      @if (auth.isAuthenticated()) {
+        <a routerLink="/profile" class="btn-outline">
+          <span i18n="@@app.profile">Mi perfil</span>
+        </a>
+      } @else {
+        <a routerLink="/auth/login" class="btn-text" i18n="@@app.login">Iniciar sesión</a>
+        <a routerLink="/auth/register" class="btn-primary" i18n="@@app.register">Registrarse</a>
+      }
+    </header>
+
+    <!-- Aquí renderizará el chat, filtros o landing -->
+    <main class="main-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
