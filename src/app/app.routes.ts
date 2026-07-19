@@ -19,8 +19,7 @@ export const routes: Routes = [
       {
         path: 'home',
         canActivate: [authGuard],
-        loadComponent: () =>
-          import('./features/landing/landing.page').then((m) => m.LandingPage),
+        loadComponent: () => import('./features/landing/landing.page').then((m) => m.LandingPage),
       },
       {
         path: 'filters',

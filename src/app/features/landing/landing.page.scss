@@ -154,6 +154,10 @@
 
 @media (max-width: 560px) {
   .home__cards,
-  .home__stats { grid-template-columns: 1fr; }
-  .home__eyebrow { white-space: normal; }
+  .home__stats {
+    grid-template-columns: 1fr;
+  }
+  .home__eyebrow {
+    white-space: normal;
+  }
 }
