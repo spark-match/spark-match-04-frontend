@@ -33,8 +33,15 @@
 }
 
 .sidebar__logo {
-  font-size: 1.2rem;
+  display: flex;
+  width: 24px;
+  height: 24px;
+
+  svg { width: 24px; height: 24px; }
 }
+
+.sidebar__mlops-title { display: flex; align-items: center; gap: 0.4rem; }
+.sidebar__mlops-title svg { width: 15px; height: 15px; }
 
 .sidebar__brand-name {
   flex: 1;

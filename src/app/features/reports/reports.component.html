@@ -22,7 +22,7 @@
     <p class="report__loading">Generando tu reporte de orientación...</p>
   } @else {
     <div class="report__banner">
-      <span class="report__banner-icon">🎓</span>
+      <span class="report__banner-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-5 9 5-9 5-9-5zm4 2.2V16l5 3 5-3v-4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       <p>
         <span class="report__banner-eyebrow">Basado en tu perfil</span><br />
         Se encontraron <strong>{{ careersFound }} carreras</strong> con alta compatibilidad · Datos:
@@ -34,35 +34,39 @@
       <article class="report__card">
         <div class="report__card-top">
           <span class="report__rank" [class.report__rank--top]="career.isTopMatch">
-            {{ career.isTopMatch ? '★' : '#' + career.rank }}
+            @if (career.isTopMatch) {
+              <svg aria-label="Mejor coincidencia" viewBox="0 0 24 24" fill="none"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            } @else {
+              {{ '#' + career.rank }}
+            }
           </span>
           <div class="report__card-heading">
             <h2>{{ career.title }}</h2>
             <p>{{ career.institution }}</p>
           </div>
-          <span class="report__match">↗ {{ career.matchPct }}% match</span>
+          <span class="report__match"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M5 17 17 5m-7 0h7v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>{{ career.matchPct }}% match</span>
         </div>
 
         <p class="report__insight">{{ career.insight }}</p>
 
         <div class="report__metrics">
           <div class="report__metric">
-            <span class="report__metric-label">🕓 Duración</span>
+            <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4l2.8 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Duración</span>
             <strong>{{ career.metrics.durationYears }} años</strong>
             <span class="report__metric-sub">años de carrera</span>
           </div>
           <div class="report__metric">
-            <span class="report__metric-label">% Tasa de Admisión</span>
+            <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M5 19 19 5M7.5 7.5h.01m9 9h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="16.5" cy="16.5" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>Tasa de Admisión</span>
             <strong>{{ career.metrics.admissionRatePct }}%</strong>
             <span class="report__metric-sub">de postulantes ingresan</span>
           </div>
           <div class="report__metric">
-            <span class="report__metric-label">$ Ingreso Mensual Prom.</span>
+            <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 9.5c-.5-.7-1.4-1.1-2.5-1.1-1.4 0-2.5.7-2.5 1.8 0 2.7 5 1.1 5 4 0 1.1-1.1 1.8-2.5 1.8-1.1 0-2-.4-2.5-1.1M12 7v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Ingreso Mensual Prom.</span>
             <strong>S/. {{ career.metrics.monthlyIncomeAvg.toLocaleString('es-PE') }}</strong>
             <span class="report__metric-sub">sueldo promedio</span>
           </div>
           <div class="report__metric">
-            <span class="report__metric-label">◈ Costo Anual</span>
+            <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M6 4h9l4 4v12H6V4zM15 4v4h4M9 13h6m-6 3h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Costo Anual</span>
             <strong>S/. {{ career.metrics.annualCostAvg.toLocaleString('es-PE') }}</strong>
             <span class="report__metric-sub">por año académico</span>
           </div>
@@ -77,14 +81,14 @@
               [class.active]="career.userFeedback === 'up'"
               (click)="rate(career.id, 'up')"
             >
-              👍 Sí
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M7 10v10H4V10h3zm2 10h7.2a2 2 0 001.9-1.4l1.6-5A2 2 0 0016.8 11H14l.5-3a2.5 2.5 0 00-2.4-3L9 10v10z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Sí
             </button>
             <button
               type="button"
               [class.active]="career.userFeedback === 'down'"
               (click)="rate(career.id, 'down')"
             >
-              👎 No
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M7 4v10H4V4h3zm2 0h7.2a2 2 0 011.9 1.4l1.6 5a2 2 0 01-1.9 2.6H14l.5 3a2.5 2.5 0 01-2.4 3L9 14V4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>No
             </button>
           </div>
         </div>

@@ -129,6 +129,13 @@
   border-radius: var(--radius);
   padding: 0.9rem 1.1rem;
 
+  > svg {
+    width: 18px;
+    height: 18px;
+    color: oklch(0.5 0.1 80);
+    flex: 0 0 auto;
+  }
+
   p {
     margin: 0;
     font-size: 0.82rem;

@@ -4,7 +4,12 @@ import { Observable, of, tap } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
-import { AuthResponse, AuthUser, LoginPayload, RegisterPayload } from '../models/user.model';
+import {
+  AuthResponse,
+  AuthUser,
+  LoginPayload,
+  RegisterPayload,
+} from '../../shared/models/user.model';
 
 const TOKEN_KEY = 'spark-match:token';
 const USER_KEY = 'spark-match:user';

@@ -19,9 +19,18 @@
 }
 
 .filters__label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-weight: 600;
   font-size: 0.95rem;
   margin-bottom: 0.6rem;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    color: var(--teal-deep);
+  }
 }
 
 .filters__select {

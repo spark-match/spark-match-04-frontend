@@ -75,6 +75,8 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+
+  svg { width: 21px; height: 21px; }
 }
 
 .report__banner-eyebrow {
@@ -111,6 +113,8 @@
   font-weight: 700;
   flex: 0 0 auto;
 
+  svg { width: 19px; height: 19px; }
+
   &--top {
     background: oklch(0.85 0.12 90);
     color: oklch(0.35 0.1 70);
@@ -136,6 +140,9 @@
 }
 
 .report__match {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
   flex: 0 0 auto;
   background: oklch(0.9 0.1 150 / 0.5);
   color: oklch(0.35 0.1 150);
@@ -144,6 +151,8 @@
   padding: 0.3rem 0.65rem;
   border-radius: 999px;
   white-space: nowrap;
+
+  svg { width: 14px; height: 14px; }
 }
 
 .report__insight {
@@ -175,8 +184,13 @@
 }
 
 .report__metric-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.72rem;
   color: oklch(0.5 0.02 240);
+
+  svg { width: 15px; height: 15px; }
 }
 
 .report__metric-sub {
@@ -206,11 +220,16 @@
   color: oklch(0.5 0.02 240);
 
   button {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
     border: 1px solid var(--border);
     background: var(--card);
     border-radius: 999px;
     padding: 0.3rem 0.75rem;
     font-size: 0.78rem;
+
+    svg { width: 14px; height: 14px; }
     cursor: pointer;
 
     &.active {

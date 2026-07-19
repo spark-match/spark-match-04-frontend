@@ -22,6 +22,8 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
+
+  svg { width: 20px; height: 20px; color: var(--teal-deep); }
 }
 
 .chat__header-info {
@@ -116,7 +118,9 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  font-size: 0.85rem;
+  color: var(--teal-deep);
+
+  svg { width: 16px; height: 16px; }
 }
 
 .chat__bubble {

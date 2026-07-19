@@ -1,6 +1,6 @@
 <div class="chat">
   <header class="chat__header">
-    <span class="chat__header-icon">✨</span>
+    <span class="chat__header-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
     <div class="chat__header-info">
       <h1>Orientador IA</h1>
       <p><span class="chat__dot"></span> En línea · {{ profileSummary }}</p>
@@ -19,7 +19,7 @@
       *ngFor="let msg of messages()"
       [class.chat__bubble-row--user]="msg.role === 'user'"
     >
-      <span class="chat__avatar" *ngIf="msg.role === 'ai'">✨</span>
+      <span class="chat__avatar" *ngIf="msg.role === 'ai'" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
       <div class="chat__bubble">
         <p>{{ msg.text }}</p>
         <span class="chat__time">{{ timeLabel(msg.timestamp) }}</span>
@@ -27,7 +27,7 @@
     </div>
 
     <div class="chat__bubble-row" *ngIf="sending()">
-      <span class="chat__avatar">✨</span>
+      <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
       <div class="chat__bubble chat__bubble--typing">
         <span></span><span></span><span></span>
       </div>
