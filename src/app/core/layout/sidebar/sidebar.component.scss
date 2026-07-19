@@ -1,0 +1,62 @@
+:host {
+  /* :host se refiere a la etiqueta <app-sidebar> en sí misma */
+  height: 100%;
+}
+
+.sidebar-container {
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-fg);
+  width: 280px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  border-right: 1px solid oklch(0.22 0.04 220 / 0.5); /* Un borde sutil */
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    font-family: var(--font-sans);
+  }
+}
+
+.main-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1; /* Empuja lo de abajo hacia el fondo */
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: var(--sidebar-muted);
+    text-decoration: none;
+    border-radius: var(--radius);
+    transition: all 0.2s ease;
+    font-weight: 500;
+
+    &:hover,
+    &.active {
+      background-color: var(--sidebar-active);
+      color: var(--sidebar-fg);
+    }
+  }
+}
+
+/* Oculta los detalles técnicos del HTML por ahora para no saturar */
+.recent-section,
+.mlops-section {
+  margin-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1rem;
+}

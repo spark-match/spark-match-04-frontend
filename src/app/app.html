@@ -1,44 +1,26 @@
-<mat-sidenav-container class="app-container">
-  <mat-sidenav #sidenav mode="side" [opened]="true" class="app-sidenav">
-    <mat-toolbar color="primary" class="sidenav-toolbar">
-      <mat-icon>auto_awesome</mat-icon>
-      <span class="brand" i18n="@@app.brand">Spark Match</span>
-    </mat-toolbar>
+<div class="app-layout">
+  <!-- Tu nuevo menú lateral personalizado -->
+  <app-sidebar></app-sidebar>
 
-    <mat-nav-list>
-      @for (item of navItems; track item.path) {
-        @if (!item.protected || auth.isAuthenticated()) {
-          <a mat-list-item
-             [routerLink]="item.path"
-             routerLinkActive="active"
-             [routerLinkActiveOptions]="{ exact: item.path === '/' }">
-            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-            <span matListItemTitle>{{ item.label }}</span>
-          </a>
-        }
-      }
-    </mat-nav-list>
-  </mat-sidenav>
+  <!-- Contenedor principal derecho -->
+  <div class="main-wrapper">
+    <!-- Barra superior flotante (solo para Iniciar Sesión / Perfil) -->
+    <header class="top-header">
+      <div class="spacer"></div>
 
-  <mat-sidenav-content>
-    <mat-toolbar color="primary" class="app-toolbar">
-      <button mat-icon-button (click)="sidenav.toggle()" aria-label="Toggle navigation">
-        <mat-icon>menu</mat-icon>
-      </button>
-      <span class="spacer"></span>
       @if (auth.isAuthenticated()) {
-        <a mat-button routerLink="/profile">
-          <mat-icon>account_circle</mat-icon>
-          <span class="user-label" i18n="@@app.profile">Mi perfil</span>
+        <a routerLink="/profile" class="btn-outline">
+          <span i18n="@@app.profile">Mi perfil</span>
         </a>
       } @else {
-        <a mat-button routerLink="/auth/login" i18n="@@app.login">Iniciar sesión</a>
-        <a mat-flat-button routerLink="/auth/register" i18n="@@app.register">Registrarse</a>
+        <a routerLink="/auth/login" class="btn-text" i18n="@@app.login">Iniciar sesión</a>
+        <a routerLink="/auth/register" class="btn-primary" i18n="@@app.register">Registrarse</a>
       }
-    </mat-toolbar>
+    </header>
 
-    <main class="app-main">
-      <router-outlet />
+    <!-- Aquí renderizará el chat, filtros o landing -->
+    <main class="main-content">
+      <router-outlet></router-outlet>
     </main>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+  </div>
+</div>

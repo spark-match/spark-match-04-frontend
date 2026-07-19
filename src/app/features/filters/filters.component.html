@@ -1,0 +1,140 @@
+<div class="filters-page">
+  <header class="page-header">
+    <h1 class="font-display">Configura tu búsqueda</h1>
+    <p class="subtitle">
+      Estos filtros precargan el contexto del chat para que la IA te dé resultados precisos desde el
+      primer mensaje.
+    </p>
+  </header>
+
+  <form [formGroup]="filtersForm" (ngSubmit)="onSubmit()" class="filters-form">
+    <!-- Filtro 1: Región -->
+    <div class="filter-group">
+      <label class="group-label"> <span class="icon">📍</span> Región de estudio </label>
+      <select formControlName="region" class="custom-select">
+        <option value="" disabled selected>Selecciona tu región</option>
+        @for (region of regiones; track region) {
+          <option [value]="region">{{ region }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Filtro 2: Pública o Privada -->
+    <div class="filter-group">
+      <label class="group-label"> <span class="icon">🏛️</span> ¿Pública o privada? </label>
+      <div class="cards-grid">
+        <label
+          class="option-card"
+          [class.active]="filtersForm.get('fundingType')?.value === 'publica'"
+        >
+          <input type="radio" formControlName="fundingType" value="publica" class="hidden-radio" />
+          <span class="card-title">Pública</span>
+          <span class="card-desc">Menor costo</span>
+        </label>
+
+        <label
+          class="option-card"
+          [class.active]="filtersForm.get('fundingType')?.value === 'privada'"
+        >
+          <input type="radio" formControlName="fundingType" value="privada" class="hidden-radio" />
+          <span class="card-title">Privada</span>
+          <span class="card-desc">Más opciones</span>
+        </label>
+
+        <label
+          class="option-card"
+          [class.active]="filtersForm.get('fundingType')?.value === 'ambas'"
+        >
+          <input type="radio" formControlName="fundingType" value="ambas" class="hidden-radio" />
+          <span class="card-title">Ambas</span>
+          <span class="card-desc">Sin filtro</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Filtro 3: Universidad o Instituto -->
+    <div class="filter-group">
+      <label class="group-label"> <span class="icon">🎓</span> ¿Universidad o instituto? </label>
+      <div class="cards-grid">
+        <label
+          class="option-card"
+          [class.active]="filtersForm.get('institutionType')?.value === 'universidad'"
+        >
+          <input
+            type="radio"
+            formControlName="institutionType"
+            value="universidad"
+            class="hidden-radio"
+          />
+          <span class="card-title">Universidad</span>
+          <span class="card-desc">Carreras de 5 años</span>
+        </label>
+
+        <label
+          class="option-card"
+          [class.active]="filtersForm.get('institutionType')?.value === 'instituto'"
+        >
+          <input
+            type="radio"
+            formControlName="institutionType"
+            value="instituto"
+            class="hidden-radio"
+          />
+          <span class="card-title">Instituto</span>
+          <span class="card-desc">Carreras técnicas</span>
+        </label>
+
+        <label
+          class="option-card"
+          [class.active]="filtersForm.get('institutionType')?.value === 'ambos'"
+        >
+          <input
+            type="radio"
+            formControlName="institutionType"
+            value="ambos"
+            class="hidden-radio"
+          />
+          <span class="card-title">Ambos</span>
+          <span class="card-desc">Sin filtro</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Filtro 4: Presupuesto (Slider) -->
+    <div class="filter-group">
+      <label class="group-label"> <span class="icon">💰</span> Presupuesto anual máximo </label>
+
+      <div class="budget-container">
+        <div class="budget-display">
+          <span class="currency">S/.</span>
+          <span class="amount font-display">{{ formattedBudget }}</span>
+          <span class="period">/ año • Moderado</span>
+        </div>
+
+        <input
+          type="range"
+          formControlName="budget"
+          min="0"
+          max="35000"
+          step="500"
+          class="custom-slider"
+        />
+
+        <div class="slider-labels">
+          <span>S/. 0 (gratuito / público)</span>
+          <span>S/. 35,000</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="form-actions">
+      <button type="submit" class="btn-submit" [disabled]="!isFormComplete">
+        Iniciar chat de orientación <span class="arrow">→</span>
+      </button>
+      @if (!isFormComplete) {
+        <span class="helper-text">Completa los 3 filtros</span>
+      }
+    </div>
+  </form>
+</div>

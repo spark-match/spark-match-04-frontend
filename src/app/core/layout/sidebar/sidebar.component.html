@@ -1,0 +1,37 @@
+<aside class="sidebar-container">
+  <!-- Logo y Título -->
+  <div class="sidebar-header">
+    <div class="logo-icon">✨</div>
+    <h2 i18n="@@app.brand">Spark Match</h2>
+  </div>
+
+  <!-- Navegación Principal Dinámica -->
+  <nav class="main-nav">
+    @for (item of navItems; track item.path) {
+      @if (!item.protected || auth.isAuthenticated()) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+          class="nav-item"
+        >
+          <!-- Como ya no usamos mat-icon, usamos el icono que viene en tu array -->
+          <span class="icon">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    }
+  </nav>
+
+  <!-- Sección de Recientes (Estática por ahora) -->
+  <div class="recent-section">
+    <h3 class="section-title">RECIENTES</h3>
+    <ul class="recent-list">
+      <li>
+        <span class="title">Ingeniería vs Medicina</span>
+        <span class="time">Hoy</span>
+      </li>
+    </ul>
+    <button class="btn-new-chat">+ Nuevo chat</button>
+  </div>
+</aside>
