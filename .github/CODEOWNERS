@@ -18,5 +18,12 @@
 # CODE OWNERS del repo: @spark-match/frontend-devs
 #   Miembros actuales: ahincho, BriyitHT
 
-# Catch-all: cualquier archivo es responsabilidad de frontend-devs
-*       @spark-match/frontend-devs
+# =============================================================================
+# Paths criticos: product-owners revisa governance y docs raiz
+# =============================================================================
+/decisions/                                @spark-match/product-owners
+/onboarding/                               @spark-match/product-owners
+/postmortems/                              @spark-match/product-owners
+/README.md                                 @spark-match/product-owners
+/CONTRIBUTING.md                           @spark-match/product-owners
+/LICENSE                                   @spark-match/product-owners
