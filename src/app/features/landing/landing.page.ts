@@ -1,32 +1,42 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
+import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+interface HomeCard {
+  icon: string;
+  title: string;
+  example: string;
+}
+
 @Component({
-  selector: 'app-landing',
-  imports: [MatButtonModule, MatCardModule, MatIconModule, RouterLink],
+  selector: 'app-landing-page',
+  standalone: true,
+  imports: [RouterLink],
   templateUrl: './landing.page.html',
   styleUrl: './landing.page.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LandingPage {
-  protected readonly features = signal([
+  cards: HomeCard[] = [
     {
-      icon: 'psychology',
-      title: 'Cuestionario RIASEC',
-      description: 'Descubre tus intereses profesionales con el modelo Holland validado científicamente.'
+      icon: 'chart',
+      title: 'Datos del mercado',
+      example: 'Me gustan las matemáticas y quiero ganar bien después de graduarme.',
     },
     {
-      icon: 'school',
-      title: 'Catálogo de carreras',
-      description: 'Explora más de 800 carreras en universidades e institutos de Perú.'
+      icon: 'chat',
+      title: 'Chat con IA',
+      example: 'Me interesa la tecnología y la salud, ¿qué carreras combinan ambas?',
     },
     {
-      icon: 'auto_awesome',
-      title: 'Matching con IA',
-      description: 'Recomendaciones personalizadas basadas en tu perfil vocacional único.'
-    }
-  ]);
+      icon: 'book',
+      title: 'Comparativa',
+      example: 'Compara universidades públicas vs privadas para Ingeniería en Lima.',
+    },
+  ];
+
+  // TODO: estos totales vendrán de GET /api/stats (backend aún no disponible)
+  stats = [
+    { value: '550+', label: 'Carreras analizadas' },
+    { value: '1.000+', label: 'Instituciones' },
+    { value: '98%', label: 'Satisfacción' },
+  ];
 }
