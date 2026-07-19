@@ -1,17 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
-
-import { AuthService } from './core/auth/auth.service';
-import { SidebarComponent } from './core/layout/sidebar/sidebar.component';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, SidebarComponent],
-  templateUrl: './app.html',
-  styleUrl: './app.scss',
+  standalone: true,
+  imports: [RouterOutlet],
+  template: `<router-outlet></router-outlet>`,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class App {
-  // Solo necesitamos el auth aquí para los botones de "Iniciar Sesión" y "Mi Perfil" del header
-  protected readonly auth = inject(AuthService);
-}
+export class App {}
