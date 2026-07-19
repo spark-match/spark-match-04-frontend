@@ -1,1 +1,94 @@
-<p>reports works!</p>
+<div class="report">
+  <header class="report__header">
+    <div>
+      <h1 class="font-display">Reporte de Orientación</h1>
+      <p class="report__profile">Perfil: {{ profile }}</p>
+    </div>
+    <button type="button" class="report__export" (click)="exportPdf()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      Exportar a PDF
+    </button>
+  </header>
+
+  @if (loading()) {
+    <p class="report__loading">Generando tu reporte de orientación...</p>
+  } @else {
+    <div class="report__banner">
+      <span class="report__banner-icon">🎓</span>
+      <p>
+        <span class="report__banner-eyebrow">Basado en tu perfil</span><br />
+        Se encontraron <strong>{{ careersFound }} carreras</strong> con alta compatibilidad · Datos:
+        Ponte en Carrera 2024
+      </p>
+    </div>
+
+    @for (career of careers; track career.id) {
+      <article class="report__card">
+        <div class="report__card-top">
+          <span class="report__rank" [class.report__rank--top]="career.isTopMatch">
+            {{ career.isTopMatch ? '★' : '#' + career.rank }}
+          </span>
+          <div class="report__card-heading">
+            <h2>{{ career.title }}</h2>
+            <p>{{ career.institution }}</p>
+          </div>
+          <span class="report__match">↗ {{ career.matchPct }}% match</span>
+        </div>
+
+        <p class="report__insight">{{ career.insight }}</p>
+
+        <div class="report__metrics">
+          <div class="report__metric">
+            <span class="report__metric-label">🕓 Duración</span>
+            <strong>{{ career.metrics.durationYears }} años</strong>
+            <span class="report__metric-sub">años de carrera</span>
+          </div>
+          <div class="report__metric">
+            <span class="report__metric-label">% Tasa de Admisión</span>
+            <strong>{{ career.metrics.admissionRatePct }}%</strong>
+            <span class="report__metric-sub">de postulantes ingresan</span>
+          </div>
+          <div class="report__metric">
+            <span class="report__metric-label">$ Ingreso Mensual Prom.</span>
+            <strong>S/. {{ career.metrics.monthlyIncomeAvg.toLocaleString('es-PE') }}</strong>
+            <span class="report__metric-sub">sueldo promedio</span>
+          </div>
+          <div class="report__metric">
+            <span class="report__metric-label">◈ Costo Anual</span>
+            <strong>S/. {{ career.metrics.annualCostAvg.toLocaleString('es-PE') }}</strong>
+            <span class="report__metric-sub">por año académico</span>
+          </div>
+        </div>
+
+        <div class="report__card-footer">
+          <span class="report__source">Fuente: {{ career.source }}</span>
+          <div class="report__feedback">
+            <span>¿Útil?</span>
+            <button
+              type="button"
+              [class.active]="career.userFeedback === 'up'"
+              (click)="rate(career.id, 'up')"
+            >
+              👍 Sí
+            </button>
+            <button
+              type="button"
+              [class.active]="career.userFeedback === 'down'"
+              (click)="rate(career.id, 'down')"
+            >
+              👎 No
+            </button>
+          </div>
+        </div>
+      </article>
+    }
+  }
+</div>
