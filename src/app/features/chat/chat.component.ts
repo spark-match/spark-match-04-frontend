@@ -2,9 +2,9 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ChatService } from '../../core/services/chat.service';
-import { FiltersService } from '../../core/services/filters.service';
-import { ChatMessage } from '../../core/models/chat.model';
+import { ChatService } from './chat.service';
+import { FiltersService } from '../filters/filters.service';
+import { ChatMessage } from './chat.model';
 
 @Component({
   selector: 'app-chat',

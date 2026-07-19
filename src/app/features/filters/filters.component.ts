@@ -2,13 +2,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { FiltersService } from '../../core/services/filters.service';
-import {
-  AcademicType,
-  InstitutionType,
-  OrientationFilters,
-  RegionOption,
-} from '../../core/models/filters.model';
+import { FiltersService } from './filters.service';
+import { AcademicType, InstitutionType, OrientationFilters, RegionOption } from './filters.model';
 
 interface ChoiceOption<T extends string> {
   value: T;

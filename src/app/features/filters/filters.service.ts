@@ -4,7 +4,7 @@ import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
-import { OrientationFilters, RegionOption } from '../models/filters.model';
+import { OrientationFilters, RegionOption } from './filters.model';
 
 const MOCK_REGIONS: RegionOption[] = [
   { code: 'amazonas', name: 'Amazonas' },

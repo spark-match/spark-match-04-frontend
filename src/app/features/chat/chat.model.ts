@@ -4,7 +4,7 @@
  * asistente venga por streaming (SSE) en vez de un único ChatMessage; en ese
  * caso solo cambia la implementación interna de ChatService.sendMessage().
  */
-import { OrientationFilters } from './filters.model';
+import { OrientationFilters } from '../filters/filters.model';
 
 export type ChatRole = 'ai' | 'user';
 

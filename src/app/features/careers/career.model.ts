@@ -3,7 +3,7 @@
  * de Orientación"). Los nombres de campos siguen lo que Ponte en Carrera (MINEDU)
  * suele exponer, pero deben confirmarse contra el Swagger real del backend.
  */
-import { OrientationFilters } from './filters.model';
+import { OrientationFilters } from '../filters/filters.model';
 
 export interface CareerMetrics {
   durationYears: number;

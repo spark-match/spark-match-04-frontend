@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { ReportsService } from '../../core/services/reports.service';
-import { FiltersService } from '../../core/services/filters.service';
-import { CareerMatch, FeedbackValue, OrientationReport } from '../../core/models/career.model';
+import { ReportsService } from './reports.service';
+import { FiltersService } from '../filters/filters.service';
+import { CareerMatch, FeedbackValue, OrientationReport } from '../careers/career.model';
 
 @Component({
   selector: 'app-reports',

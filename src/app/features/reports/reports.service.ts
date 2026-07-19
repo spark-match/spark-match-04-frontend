@@ -2,9 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
-import { environment } from '../../../../spark-match-services/spark-match/src/environments/environment';
-import { FeedbackValue, OrientationReport } from '../models/career.model';
-import { OrientationFilters } from '../models/filters.model';
+import { environment } from '../../../environments/environment';
+import { FeedbackValue, OrientationReport } from '../careers/career.model';
+import { OrientationFilters } from '../filters/filters.model';
 
 function buildMockReport(filters: OrientationFilters | null): OrientationReport {
   const budget = filters?.budget ?? 8000;

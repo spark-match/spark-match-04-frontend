@@ -2,9 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
-import { environment } from '../../../../spark-match-services/spark-match/src/environments/environment';
-import { ChatMessage, ChatSession } from '../models/chat.model';
-import { OrientationFilters } from '../models/filters.model';
+import { environment } from '../../../environments/environment';
+import { ChatMessage, ChatSession } from './chat.model';
+import { OrientationFilters } from '../filters/filters.model';
 
 // Respuestas mock rotativas, solo para que el chat se sienta vivo mientras no hay backend.
 const MOCK_AI_REPLIES = [
