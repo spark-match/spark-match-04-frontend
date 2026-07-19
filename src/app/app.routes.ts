@@ -14,7 +14,13 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: '/filters', // <-- Redirige forzosamente al login al entrar a la app
+        redirectTo: '/home',
+      },
+      {
+        path: 'home',
+        canActivate: [authGuard],
+        loadComponent: () =>
+          import('./features/landing/landing.page').then((m) => m.LandingPage),
       },
       {
         path: 'filters',

@@ -107,3 +107,9 @@ h2 {
     text-decoration: none;
   }
 }
+
+@media (max-width: 420px) {
+  .auth-card__tabs { display: flex; width: 100%; }
+  .auth-card__tab { flex: 1; padding-inline: 0.65rem; text-align: center; }
+  .auth-card__row { grid-template-columns: 1fr; gap: 0; }
+}

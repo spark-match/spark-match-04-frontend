@@ -295,3 +295,35 @@
     color: var(--sidebar-fg);
   }
 }
+
+@media (max-width: 860px) {
+  :host { width: 100%; height: auto; }
+
+  .sidebar,
+  .sidebar.collapsed {
+    width: 100%;
+    height: auto;
+    min-height: 58px;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .sidebar__brand { margin: 0; flex: 0 0 auto; }
+  .sidebar__brand-name,
+  .sidebar__collapse-btn,
+  .sidebar__recent,
+  .sidebar__new-chat,
+  .sidebar__admin,
+  .sidebar__spacer,
+  .sidebar__user-info { display: none; }
+
+  .sidebar__nav { flex-direction: row; margin: 0; gap: 0.25rem; }
+  .sidebar__nav-item { flex: 0 0 auto; padding: 0.5rem 0.6rem; }
+  .sidebar__nav-item span { display: none; }
+  .sidebar__user { margin: 0 0 0 auto; padding: 0; border: 0; flex: 0 0 auto; }
+  .sidebar__logout { padding: 0.35rem; }
+}

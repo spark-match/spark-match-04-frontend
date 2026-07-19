@@ -72,26 +72,7 @@
           </div>
         </div>
 
-        <div class="report__card-footer">
-          <span class="report__source">Fuente: {{ career.source }}</span>
-          <div class="report__feedback">
-            <span>¿Útil?</span>
-            <button
-              type="button"
-              [class.active]="career.userFeedback === 'up'"
-              (click)="rate(career.id, 'up')"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M7 10v10H4V10h3zm2 10h7.2a2 2 0 001.9-1.4l1.6-5A2 2 0 0016.8 11H14l.5-3a2.5 2.5 0 00-2.4-3L9 10v10z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Sí
-            </button>
-            <button
-              type="button"
-              [class.active]="career.userFeedback === 'down'"
-              (click)="rate(career.id, 'down')"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M7 4v10H4V4h3zm2 0h7.2a2 2 0 011.9 1.4l1.6 5a2 2 0 01-1.9 2.6H14l.5 3a2.5 2.5 0 01-2.4 3L9 14V4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>No
-            </button>
-          </div>
-        </div>
+        <div class="report__card-footer"><span class="report__source">Fuente: {{ career.source }}</span></div>
       </article>
     }
   }

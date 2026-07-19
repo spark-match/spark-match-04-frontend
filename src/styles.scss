@@ -56,6 +56,12 @@
   border-color: var(--border);
 }
 
+html,
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background-color: var(--background);
@@ -63,6 +69,12 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: 'ss01', 'cv11';
   -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
 }
 
 /* Títulos con tipografía con serifas */

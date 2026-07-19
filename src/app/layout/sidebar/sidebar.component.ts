@@ -32,10 +32,11 @@ export class SidebarComponent {
 
   // reemplazar por datos reales de /api/chats cuando el backend esté listo
   navItems: NavItem[] = [
-    { label: 'Inicio', icon: 'sparkles', path: '/' },
+    { label: 'Inicio', icon: 'sparkles', path: '/home' },
     { label: 'Filtros', icon: 'sliders', path: '/filters' },
     { label: 'Chat', icon: 'chat', path: '/assessment' },
     { label: 'Reporte', icon: 'file', path: '/results' },
+    { label: 'Mi perfil', icon: 'user', path: '/profile' },
   ];
 
   recentChats: RecentChat[] = [

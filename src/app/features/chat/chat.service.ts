@@ -7,10 +7,13 @@ import { ChatMessage, ChatSession } from './chat.model';
 import { OrientationFilters } from '../filters/filters.model';
 
 // Respuestas mock rotativas, solo para que el chat se sienta vivo mientras no hay backend.
-const MOCK_AI_REPLIES = [
-  'Estoy comparando tu perfil con las carreras de Ponte en Carrera que más se ajustan a tu presupuesto y región.',
-  'Según los datos disponibles, esa opción tiene buena empleabilidad. ¿Quieres que la incluya en tu reporte?',
-  'Puedo mostrarte el detalle de sueldo promedio y tasa de admisión de esa carrera si te interesa.',
+const MOCK_AI_REPLIES: Array<{ text: string; isFinalRecommendation?: boolean }> = [
+  { text: 'Estoy comparando tu perfil con las carreras de Ponte en Carrera que más se ajustan a tu presupuesto y región.' },
+  { text: 'Según los datos disponibles, esa opción tiene buena empleabilidad. Estoy terminando tu propuesta personalizada.' },
+  {
+    text: 'Mi recomendación principal es Ingeniería de Sistemas e Informática, seguida de Ciencia de Datos e Ingeniería Biomédica. Estas opciones combinan alta compatibilidad con tu perfil, empleabilidad y presupuesto.',
+    isFinalRecommendation: true,
+  },
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -47,11 +50,20 @@ export class ChatService {
       const message: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'ai',
-        text: reply,
+        text: reply.text,
         timestamp: new Date().toISOString(),
+        isFinalRecommendation: reply.isFinalRecommendation,
       };
       return of(message).pipe(delay(900));
     }
     return this.http.post<ChatMessage>(`${this.base}/sessions/${sessionId}/messages`, { text });
+  }
+
+  /** Registra una única valoración de la recomendación final, de 1 a 5 estrellas. */
+  submitRecommendationRating(sessionId: string, rating: number): Observable<void> {
+    if (environment.useMocks) {
+      return of(void 0).pipe(delay(200));
+    }
+    return this.http.post<void>(`${this.base}/sessions/${sessionId}/feedback`, { rating });
   }
 }

@@ -1,11 +1,11 @@
 :host {
   display: block;
-  height: 100vh;
+  min-height: 100dvh;
 }
 
 .auth-shell {
   display: flex;
-  height: 100%;
+  min-height: 100dvh;
 }
 
 .auth-shell__brand {
@@ -110,4 +110,6 @@
     flex: 0 0 auto;
     padding: 2rem;
   }
+
+  .auth-shell__panel { padding: 2rem 1.25rem; align-items: flex-start; }
 }

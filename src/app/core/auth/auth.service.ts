@@ -84,9 +84,9 @@ export class AuthService {
         id: crypto.randomUUID(),
         fullName: partial.fullName ?? 'Usuario Spark Match',
         email: partial.email,
-        age: partial.age,
-        region: partial.region,
-        interestArea: partial.interestArea,
+        age: partial.age ?? 17,
+        region: partial.region ?? 'Lima Metropolitana',
+        interestArea: partial.interestArea ?? 'Tecnología e innovación',
       },
       token: `mock-token-${crypto.randomUUID()}`,
     };
@@ -108,7 +108,9 @@ export class AuthService {
         id: 'mock-id',
         fullName: 'Estudiante Explorador',
         email: 'estudiante@sparkmatch.pe',
-        region: 'lima',
+        age: 17,
+        region: 'Lima Metropolitana',
+        interestArea: 'Tecnología e innovación',
       };
     }
     return raw ? (JSON.parse(raw) as AuthUser) : null;

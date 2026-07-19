@@ -14,8 +14,6 @@ export interface CareerMetrics {
   annualCostAvg: number;
 }
 
-export type FeedbackValue = 'up' | 'down';
-
 export interface CareerMatch {
   id: string;
   rank: number;
@@ -27,7 +25,6 @@ export interface CareerMatch {
   metrics: CareerMetrics;
   /** Ej. "Ponte en Carrera 2024" */
   source: string;
-  userFeedback: FeedbackValue | null;
 }
 
 export interface OrientationReport {

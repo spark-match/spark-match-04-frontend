@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { FeedbackValue, OrientationReport } from '../careers/career.model';
+import { OrientationReport } from '../careers/career.model';
 import { OrientationFilters } from '../filters/filters.model';
 
 function buildMockReport(filters: OrientationFilters | null): OrientationReport {
@@ -38,7 +38,6 @@ function buildMockReport(filters: OrientationFilters | null): OrientationReport 
           annualCostAvg: 1200,
         },
         source: 'Ponte en Carrera 2024',
-        userFeedback: null,
       },
       {
         id: 'career-2',
@@ -56,7 +55,6 @@ function buildMockReport(filters: OrientationFilters | null): OrientationReport 
           annualCostAvg: 1400,
         },
         source: 'Ponte en Carrera 2024',
-        userFeedback: null,
       },
       {
         id: 'career-3',
@@ -73,7 +71,6 @@ function buildMockReport(filters: OrientationFilters | null): OrientationReport 
           annualCostAvg: 1300,
         },
         source: 'Ponte en Carrera 2024',
-        userFeedback: null,
       },
     ],
   };
@@ -92,10 +89,4 @@ export class ReportsService {
     return this.http.get<OrientationReport>(`${this.base}/latest`, { params });
   }
 
-  submitFeedback(reportId: string, careerId: string, value: FeedbackValue): Observable<void> {
-    if (environment.useMocks) {
-      return of(void 0).pipe(delay(200));
-    }
-    return this.http.post<void>(`${this.base}/${reportId}/careers/${careerId}/feedback`, { value });
-  }
 }

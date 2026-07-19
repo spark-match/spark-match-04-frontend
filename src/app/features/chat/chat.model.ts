@@ -14,6 +14,8 @@ export interface ChatMessage {
   text: string;
   /** ISO 8601 */
   timestamp: string;
+  /** Indica que el agente terminó su propuesta de carreras y habilita la valoración. */
+  isFinalRecommendation?: boolean;
 }
 
 export interface ChatSession {

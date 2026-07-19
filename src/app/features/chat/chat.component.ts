@@ -22,6 +22,10 @@ export class ChatComponent implements OnInit {
   sending = signal(false);
   loadingSession = signal(true);
   messages = signal<ChatMessage[]>([]);
+  showRecommendationRating = signal(false);
+  rating = signal(0);
+  submittingRating = signal(false);
+  ratingSubmitted = signal(false);
 
   get profileSummary(): string {
     const filters = this.filtersService.currentFilters();
@@ -53,8 +57,29 @@ export class ChatComponent implements OnInit {
 
     this.chatService.sendMessage(this.sessionId, text).subscribe((reply) => {
       this.messages.update((msgs) => [...msgs, reply]);
+      if (reply.isFinalRecommendation) {
+        this.showRecommendationRating.set(true);
+      }
       this.sending.set(false);
     });
+  }
+
+  rateRecommendation(rating: number): void {
+    if (this.submittingRating() || this.ratingSubmitted()) return;
+
+    this.rating.set(rating);
+    this.submittingRating.set(true);
+    this.chatService.submitRecommendationRating(this.sessionId, rating).subscribe({
+      next: () => {
+        this.ratingSubmitted.set(true);
+        this.submittingRating.set(false);
+      },
+      error: () => this.submittingRating.set(false),
+    });
+  }
+
+  dismissRecommendationRating(): void {
+    this.showRecommendationRating.set(false);
   }
 
   timeLabel(iso: string): string {

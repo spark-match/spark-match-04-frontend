@@ -1,6 +1,7 @@
 .home {
-  max-width: 760px;
-  padding: 3rem 2.5rem 4rem;
+  width: min(100%, 1120px);
+  margin-inline: auto;
+  padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem) 4rem;
 }
 
 .home__eyebrow {
@@ -144,9 +145,15 @@
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .home__cards,
   .home__stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
+}
+
+@media (max-width: 560px) {
+  .home__cards,
+  .home__stats { grid-template-columns: 1fr; }
+  .home__eyebrow { white-space: normal; }
 }
