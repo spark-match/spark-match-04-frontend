@@ -1,97 +1,105 @@
 # =============================================================================
 # Spark Match Frontend (04-frontend) - .gitignore
 # =============================================================================
-# Stack: Angular 21 (standalone) + TypeScript + SCSS + npm + Vitest + i18n
+# Generado por Angular CLI 21.2 + ajustes segun ADR-003 branch-based deployment.
+# Version: 1.0.0 - 2026-07-09
+# Stack: Angular 21 standalone, Vitest, Angular Material + SCSS, i18n nativo
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-# Node.js / npm
-# -----------------------------------------------------------------------------
-node_modules/
-**/node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# Node
+/node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
 pnpm-debug.log*
 .pnpm-store/
 
-# -----------------------------------------------------------------------------
-# Angular build artifacts
-# -----------------------------------------------------------------------------
-dist/
-**/dist/
-.angular/
-**/.angular/
-out-tsc/
-**/out-tsc/
-
-# -----------------------------------------------------------------------------
-# TypeScript
-# -----------------------------------------------------------------------------
-*.tsbuildinfo
-**/*.tsbuildinfo
-.tsbuildinfo
-
-# -----------------------------------------------------------------------------
-# i18n (archivos generados, NO los de traduccion)
-# -----------------------------------------------------------------------------
-src/locale/messages.xlf
-src/locale/messages.*.xlf
-# Mantener en repo:
-# - messages.es-PE.xlf
-# - messages.en-US.xlf
-# - messages.es.xlf
-
-# -----------------------------------------------------------------------------
-# Environments (NUNCA commitear el de produccion con secretos)
-# -----------------------------------------------------------------------------
-src/environments/environment.ts
-src/environments/environment.prod.ts
-!src/environments/environment.example.ts
-!src/environments/environment.ts.example
-
-# -----------------------------------------------------------------------------
-# Testing (Vitest)
-# -----------------------------------------------------------------------------
-coverage/
-**/coverage/
-*.lcov
-.nyc_output/
-
-# -----------------------------------------------------------------------------
-# ESLint / Prettier cache
-# -----------------------------------------------------------------------------
-.eslintcache
-**/.eslintcache
-.prettiercache
-**/.prettiercache
-
-# -----------------------------------------------------------------------------
-# Variables de entorno
-# -----------------------------------------------------------------------------
-.env
-.env.local
-.env.*.local
-!.env.example
-
-# -----------------------------------------------------------------------------
-# IDE
-# -----------------------------------------------------------------------------
+# IDEs and editors
 .idea/
-.vscode/
-*.swp
-*.swo
-*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
 
-# -----------------------------------------------------------------------------
-# OS
-# -----------------------------------------------------------------------------
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/mcp.json
+.history/*
+
+# Miscellaneous
+/.angular/cache
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+__screenshots__/
+
+# System files
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# -----------------------------------------------------------------------------
+# Environments / secrets
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+!.env.example
+/src/environments/environment.ts
+!/src/environments/environment.example.ts
+
+# i18n build artifacts (generados por ng extract-i18n)
+/src/locale/*.xlf
+/src/locale/*.xlf.json
+!/src/locale/messages.xlf
+!/src/locale/messages.es.xlf
+!/src/locale/messages.en.xlf
+
+# Storybook (futuro)
+.storybook-static/
+
+# E2E tests
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+e2e/playwright/.cache/
+playwright-report/
+test-results/
+cypress/videos/
+cypress/screenshots/
+
 # Logs
-# -----------------------------------------------------------------------------
-*.log
 logs/
+*.log
+*.log.*
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.turbo/
+
+# Misc
+*.tgz
+*.tar.gz
+*.zip
+*.dmg
+*.exe
+*.msi

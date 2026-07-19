@@ -1,27 +1,22 @@
-# CODEOWNERS - Spark Match Frontend (04)
+# CODEOWNERS — Spark Match Frontend (04-frontend)
 #
-# Politica de aprobacion (configurada en branch protection):
-#   - dev:  required_approving_review_count: 1
-#            require_code_owner_reviews: true
-#   - main: required_approving_review_count: 1
-#            require_code_owner_reviews: true
-#            require_last_push_approval: true
+# Política de aprobación (ADR-003 branch-based deployment):
+# - dev: 1 aprobación del CODE OWNER técnico (frontend-devs) es suficiente.
+#   El autor NO puede aprobar su propio PR (regla GitHub). Si nadie más del
+#   team puede aprobar, solicitar manualmente un CODE OWNER de otro team
+#   (devops, backend-devs) como reviewer adicional.
+# - main: 1 CODE OWNER review (frontend-devs) + reviewer manual de
+#   @spark-match/product-owners (solicitado por el autor al abrir el PR).
 #
-# CODE OWNER del repo (catch-all): @spark-match/frontend-devs
-#   Miembros: ahincho, BriyitHT
+# ¿Por qué solo frontend-devs (sin reglas granulares)?
+# 1. El repo es responsabilidad de frontend-devs (ahincho + BriyitHT).
+#    No hay sub-teams con ownership exclusivo.
+# 2. Reduce el ruido en PRs: 1 solo team como CODE OWNER review.
+# 3. Si frontend-devs necesita apoyo de devops/backend-devs/qa, lo solicita
+#    MANUALMENTE como reviewer adicional (no CODE OWNER).
 #
-# Paths criticos (governance): @spark-match/product-owners
-#   - Decisiones arquitectonicas, onboarding, postmortems, docs raiz.
-#   - Miembros: dbarretol, FabiTaparaQuispe, ahincho
-#
-# Nota: el autor del PR no puede aprobar su propio PR, ni siquiera siendo
-# CODE OWNER (regla de GitHub). Por ejemplo, un PR abierto por ahincho
-# necesita la aprobacion de cualquier otro miembro del team.
-
-# =============================================================================
-# Catch-all: el equipo tecnico del repo es CODE OWNER del codigo
-# =============================================================================
-*                                          @spark-match/frontend-devs
+# CODE OWNERS del repo: @spark-match/frontend-devs
+#   Miembros actuales: ahincho, BriyitHT
 
 # =============================================================================
 # Paths criticos: product-owners revisa governance y docs raiz
