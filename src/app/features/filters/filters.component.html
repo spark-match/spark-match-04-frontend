@@ -1,140 +1,78 @@
-<div class="filters-page">
-  <header class="page-header">
-    <h1 class="font-display">Configura tu búsqueda</h1>
-    <p class="subtitle">
-      Estos filtros precargan el contexto del chat para que la IA te dé resultados precisos desde el
-      primer mensaje.
-    </p>
-  </header>
+<div class="filters" [formGroup]="form">
+  <h1 class="filters__title font-display">Configura tu búsqueda</h1>
+  <p class="filters__lead">
+    Estos filtros precargan el contexto del chat para que la IA te dé resultados precisos
+    desde el primer mensaje.
+  </p>
 
-  <form [formGroup]="filtersForm" (ngSubmit)="onSubmit()" class="filters-form">
-    <!-- Filtro 1: Región -->
-    <div class="filter-group">
-      <label class="group-label"> <span class="icon">📍</span> Región de estudio </label>
-      <select formControlName="region" class="custom-select">
-        <option value="" disabled selected>Selecciona tu región</option>
-        @for (region of regiones; track region) {
-          <option [value]="region">{{ region }}</option>
-        }
-      </select>
-    </div>
+  <section class="filters__field">
+    <label class="filters__label" for="region">📍 Región de estudio</label>
+    <select id="region" formControlName="region" class="filters__select">
+      <option value="" disabled>{{ loadingRegions() ? 'Cargando regiones...' : 'Selecciona tu región' }}</option>
+      <option *ngFor="let region of regions()" [value]="region.name">{{ region.name }}</option>
+    </select>
+  </section>
 
-    <!-- Filtro 2: Pública o Privada -->
-    <div class="filter-group">
-      <label class="group-label"> <span class="icon">🏛️</span> ¿Pública o privada? </label>
-      <div class="cards-grid">
-        <label
-          class="option-card"
-          [class.active]="filtersForm.get('fundingType')?.value === 'publica'"
-        >
-          <input type="radio" formControlName="fundingType" value="publica" class="hidden-radio" />
-          <span class="card-title">Pública</span>
-          <span class="card-desc">Menor costo</span>
-        </label>
-
-        <label
-          class="option-card"
-          [class.active]="filtersForm.get('fundingType')?.value === 'privada'"
-        >
-          <input type="radio" formControlName="fundingType" value="privada" class="hidden-radio" />
-          <span class="card-title">Privada</span>
-          <span class="card-desc">Más opciones</span>
-        </label>
-
-        <label
-          class="option-card"
-          [class.active]="filtersForm.get('fundingType')?.value === 'ambas'"
-        >
-          <input type="radio" formControlName="fundingType" value="ambas" class="hidden-radio" />
-          <span class="card-title">Ambas</span>
-          <span class="card-desc">Sin filtro</span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Filtro 3: Universidad o Instituto -->
-    <div class="filter-group">
-      <label class="group-label"> <span class="icon">🎓</span> ¿Universidad o instituto? </label>
-      <div class="cards-grid">
-        <label
-          class="option-card"
-          [class.active]="filtersForm.get('institutionType')?.value === 'universidad'"
-        >
-          <input
-            type="radio"
-            formControlName="institutionType"
-            value="universidad"
-            class="hidden-radio"
-          />
-          <span class="card-title">Universidad</span>
-          <span class="card-desc">Carreras de 5 años</span>
-        </label>
-
-        <label
-          class="option-card"
-          [class.active]="filtersForm.get('institutionType')?.value === 'instituto'"
-        >
-          <input
-            type="radio"
-            formControlName="institutionType"
-            value="instituto"
-            class="hidden-radio"
-          />
-          <span class="card-title">Instituto</span>
-          <span class="card-desc">Carreras técnicas</span>
-        </label>
-
-        <label
-          class="option-card"
-          [class.active]="filtersForm.get('institutionType')?.value === 'ambos'"
-        >
-          <input
-            type="radio"
-            formControlName="institutionType"
-            value="ambos"
-            class="hidden-radio"
-          />
-          <span class="card-title">Ambos</span>
-          <span class="card-desc">Sin filtro</span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Filtro 4: Presupuesto (Slider) -->
-    <div class="filter-group">
-      <label class="group-label"> <span class="icon">💰</span> Presupuesto anual máximo </label>
-
-      <div class="budget-container">
-        <div class="budget-display">
-          <span class="currency">S/.</span>
-          <span class="amount font-display">{{ formattedBudget }}</span>
-          <span class="period">/ año • Moderado</span>
-        </div>
-
-        <input
-          type="range"
-          formControlName="budget"
-          min="0"
-          max="35000"
-          step="500"
-          class="custom-slider"
-        />
-
-        <div class="slider-labels">
-          <span>S/. 0 (gratuito / público)</span>
-          <span>S/. 35,000</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Acciones -->
-    <div class="form-actions">
-      <button type="submit" class="btn-submit" [disabled]="!isFormComplete">
-        Iniciar chat de orientación <span class="arrow">→</span>
+  <section class="filters__field">
+    <p class="filters__label">🏛️ ¿Pública o privada?</p>
+    <div class="filters__choices">
+      <button
+        type="button"
+        *ngFor="let opt of institutionTypeOptions"
+        class="filters__choice"
+        [class.selected]="form.value.institutionType === opt.value"
+        (click)="form.patchValue({ institutionType: opt.value })"
+      >
+        <strong>{{ opt.label }}</strong>
+        <span>{{ opt.hint }}</span>
       </button>
-      @if (!isFormComplete) {
-        <span class="helper-text">Completa los 3 filtros</span>
-      }
     </div>
-  </form>
+  </section>
+
+  <section class="filters__field">
+    <p class="filters__label">🎓 ¿Universidad o instituto?</p>
+    <div class="filters__choices">
+      <button
+        type="button"
+        *ngFor="let opt of academicTypeOptions"
+        class="filters__choice"
+        [class.selected]="form.value.academicType === opt.value"
+        (click)="form.patchValue({ academicType: opt.value })"
+      >
+        <strong>{{ opt.label }}</strong>
+        <span>{{ opt.hint }}</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="filters__field">
+    <p class="filters__label">💰 Presupuesto anual máximo</p>
+    <div class="filters__budget-card">
+      <span class="filters__budget-value font-display">{{ budgetLabel }}</span>
+      <input
+        type="range"
+        [min]="minBudget"
+        [max]="maxBudget"
+        step="500"
+        formControlName="budget"
+        class="filters__slider"
+      />
+      <div class="filters__budget-range">
+        <span>S/. 0 (gratuito / público)</span>
+        <span>S/. {{ maxBudget.toLocaleString('es-PE') }}</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="filters__footer">
+    <button
+      type="button"
+      class="filters__submit"
+      [disabled]="!isReady"
+      (click)="startChat()"
+    >
+      Iniciar chat de orientación →
+    </button>
+    <span class="filters__progress">Completa los 3 filtros ({{ completedCount }}/3)</span>
+  </div>
 </div>
