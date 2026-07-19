@@ -1,1 +1,50 @@
-<p>chat works!</p>
+<div class="chat">
+  <header class="chat__header">
+    <span class="chat__header-icon">✨</span>
+    <div class="chat__header-info">
+      <h1>Orientador IA</h1>
+      <p><span class="chat__dot"></span> En línea · {{ profileSummary }}</p>
+    </div>
+    <a routerLink="/results" class="chat__report-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 3h9l5 5v13H6V3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      Ver Reporte de Carreras
+    </a>
+  </header>
+
+  <div class="chat__messages">
+    <p class="chat__loading" *ngIf="loadingSession()">Iniciando sesión de orientación...</p>
+
+    <div
+      class="chat__bubble-row"
+      *ngFor="let msg of messages()"
+      [class.chat__bubble-row--user]="msg.role === 'user'"
+    >
+      <span class="chat__avatar" *ngIf="msg.role === 'ai'">✨</span>
+      <div class="chat__bubble">
+        <p>{{ msg.text }}</p>
+        <span class="chat__time">{{ timeLabel(msg.timestamp) }}</span>
+      </div>
+    </div>
+
+    <div class="chat__bubble-row" *ngIf="sending()">
+      <span class="chat__avatar">✨</span>
+      <div class="chat__bubble chat__bubble--typing">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="chat__composer">
+    <input
+      type="text"
+      placeholder="Escribe tu pregunta aquí..."
+      [(ngModel)]="draft"
+      (keyup.enter)="send()"
+      class="chat__input"
+    />
+    <button type="button" class="chat__send" (click)="send()" [disabled]="!draft.trim()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12l16-8-6 8 6 8-16-8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    </button>
+  </footer>
+  <p class="chat__hint">Enviar · Shift+Enter para nueva línea</p>
+</div>
