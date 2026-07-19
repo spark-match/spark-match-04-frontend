@@ -1,7 +1,7 @@
 /* =============================================================================
  * Spark Match - Global Theme
  * =============================================================================
- * Basado en Angular Material 21 azure-blue, con personalizaciones SCSS.
+ * Estilos y variables globales nativas basadas en diseño UX personalizado.
  * ============================================================================= */
 
 /* 1. Importamos las fuentes de Google Fonts */
@@ -97,35 +97,7 @@ h3,
   box-shadow: var(--shadow-card);
 }
 
-@use '@angular/material' as mat;
-
-/* Paleta principal de Ángel - inspirada en azul Spark */
-html {
-  color-scheme: light;
-  @include mat.theme(
-    (
-      color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$cyan-palette,
-      ),
-      typography: Roboto,
-      density: 0,
-    )
-  );
-}
-
-/* CSS custom properties para componentes de Material */
-:root {
-  --spark-primary: #1976d2;
-  --spark-primary-light: #42a5f5;
-  --spark-accent: #00acc1;
-  --spark-bg: #fafafa;
-  --spark-surface: #ffffff;
-  --spark-text: rgba(0, 0, 0, 0.87);
-  --spark-text-secondary: rgba(0, 0, 0, 0.6);
-}
-
-/* Clases de espaciado que dejó Ángel */
+/* Clases de espaciado heredadas */
 .spacer {
   flex: 1;
 }
