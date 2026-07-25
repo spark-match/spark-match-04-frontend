@@ -1,14 +1,27 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+
 import { Router, RouterLink } from '@angular/router';
+import {
+  FormField,
+  email,
+  form,
+  minLength,
+  required,
+  submit,
+} from '@angular/forms/signals';
+import { firstValueFrom } from 'rxjs';
 import { AuthShellComponent } from '../../../shared/ui/auth-shell/auth-shell.component';
 import { AuthService } from '../../../core/auth/auth.service';
+
+interface LoginModel {
+  email: string;
+  password: string;
+}
 
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, AuthShellComponent],
+  imports: [RouterLink, AuthShellComponent, FormField],
   template: `
     <app-auth-shell>
       <div class="auth-card">
@@ -20,19 +33,41 @@ import { AuthService } from '../../../core/auth/auth.service';
         <h2 class="font-display">Bienvenido de vuelta</h2>
         <p class="auth-card__lead">Ingresa a tu cuenta para continuar tu búsqueda.</p>
 
-        <form [formGroup]="form" (ngSubmit)="submit()">
+        <form (submit)="submit($event)">
           <label class="auth-card__field">
             <span>Correo electrónico</span>
-            <input type="email" formControlName="email" placeholder="tucorreo&#64;ejemplo.com" />
+            <input
+              type="email"
+              [formField]="loginForm.email"
+              placeholder="tucorreo&#64;ejemplo.com"
+            />
           </label>
+          @if (loginForm.email().touched() && loginForm.email().invalid()) {
+            <p class="auth-card__error" role="alert">
+              {{ loginForm.email().errors()[0].message }}
+            </p>
+          }
 
           <label class="auth-card__field">
             <span>Contraseña</span>
-            <input type="password" formControlName="password" placeholder="Mínimo 6 caracteres" />
+            <input
+              type="password"
+              [formField]="loginForm.password"
+              placeholder="Mínimo 6 caracteres"
+            />
           </label>
+          @if (loginForm.password().touched() && loginForm.password().invalid()) {
+            <p class="auth-card__error" role="alert">
+              {{ loginForm.password().errors()[0].message }}
+            </p>
+          }
 
-          <button type="submit" class="auth-card__submit" [disabled]="form.invalid || submitting">
-            {{ submitting ? 'Ingresando...' : 'Ingresar →' }}
+          <button
+            type="submit"
+            class="auth-card__submit"
+            [disabled]="submitting()"
+          >
+            {{ submitting() ? 'Ingresando...' : 'Ingresar →' }}
           </button>
         </form>
 
@@ -43,41 +78,39 @@ import { AuthService } from '../../../core/auth/auth.service';
       </div>
     </app-auth-shell>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './auth-card.scss',
 })
 export class LoginPage {
-  private fb = inject(FormBuilder);
   private router = inject(Router);
   private authService = inject(AuthService);
 
-  submitting = false;
+  submitting = signal(false);
 
-  form = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
+  readonly loginModel = signal<LoginModel>({ email: '', password: '' });
+
+  readonly loginForm = form(this.loginModel, (f) => {
+    required(f.email, { message: 'Ingresa tu correo electrónico' });
+    email(f.email, { message: 'El correo no es válido' });
+    required(f.password, { message: 'Ingresa tu contraseña' });
+    minLength(f.password, 6, { message: 'La contraseña debe tener al menos 6 caracteres' });
   });
 
-  submit(): void {
-    if (this.form.invalid) return;
-    this.submitting = true;
-
-    this.authService
-      .login({
-        email: this.form.value.email!,
-        password: this.form.value.password!,
-      })
-      .subscribe({
-        next: () => {
-          // Te redirige a la ruta raíz, la cual ahora te enviará limpiamente a /filters
-          this.router.navigate(['/']);
-        },
-        error: () => {
-          this.submitting = false;
-        },
-        complete: () => {
-          // Nos aseguramos de apagar el estado de carga
-          this.submitting = false;
-        },
-      });
+  async submit(event?: Event): Promise<void> {
+    event?.preventDefault();
+    await submit(this.loginForm, async (field) => {
+      this.submitting.set(true);
+      const value = field().value();
+      try {
+        await firstValueFrom(
+          this.authService.login({ email: value.email, password: value.password }),
+        );
+        await this.router.navigate(['/']);
+        return [];
+      } catch {
+        this.submitting.set(false);
+        return [{ kind: 'login', message: 'No pudimos validar tus credenciales' }];
+      }
+    });
   }
 }

@@ -1,7 +1,13 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy, computed } from '@angular/core';
+
 import { Router } from '@angular/router';
+import {
+  FormField,
+  form,
+  min,
+  required,
+  submit,
+} from '@angular/forms/signals';
 import { FiltersService } from './filters.service';
 import { AcademicType, InstitutionType, OrientationFilters, RegionOption } from './filters.model';
 
@@ -11,22 +17,30 @@ interface ChoiceOption<T extends string> {
   hint: string;
 }
 
+type FiltersModel = OrientationFilters;
+
+const DEFAULT_FILTERS: FiltersModel = {
+  region: '',
+  institutionType: 'ambas',
+  academicType: 'ambos',
+  budget: 8000,
+};
+
 @Component({
   selector: 'app-filters',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [FormField],
   templateUrl: './filters.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './filters.component.scss',
 })
 export class FiltersComponent implements OnInit {
-  private fb = inject(FormBuilder);
   private router = inject(Router);
   private filtersService = inject(FiltersService);
 
   regions = signal<RegionOption[]>([]);
   loadingRegions = signal(true);
 
-  // Mantenemos las opciones visuales del asistente
   institutionTypeOptions: ChoiceOption<InstitutionType>[] = [
     { value: 'publica', label: 'Pública', hint: 'Menor costo' },
     { value: 'privada', label: 'Privada', hint: 'Más opciones' },
@@ -42,18 +56,34 @@ export class FiltersComponent implements OnInit {
   minBudget = 0;
   maxBudget = 35000;
 
-  // Formulario sin valores por defecto y con Validators
-  form = this.fb.group({
-    region: ['', Validators.required],
-    institutionType: ['', Validators.required],
-    academicType: ['', Validators.required],
-    budget: [8000],
+  readonly filtersModel = signal<FiltersModel>({ ...DEFAULT_FILTERS });
+
+  readonly filtersForm = form(this.filtersModel, (f) => {
+    required(f.region, { message: 'Selecciona tu región' });
+    required(f.institutionType, { message: 'Selecciona el tipo de institución' });
+    required(f.academicType, { message: 'Selecciona el tipo de academia' });
+    min(f.budget, 0, { message: 'El presupuesto no puede ser negativo' });
+  });
+
+  readonly isReady = computed(() => this.filtersForm().valid());
+
+  readonly budgetLabel = computed(() => {
+    const value = this.filtersModel().budget ?? 0;
+    let tier = 'Bajo';
+    if (value > 20000) tier = 'Alto';
+    else if (value > 8000) tier = 'Moderado';
+    return `S/. ${value.toLocaleString('es-PE')} / año · ${tier}`;
+  });
+
+  readonly completedCount = computed(() => {
+    const { region, institutionType, academicType } = this.filtersModel();
+    return [region, institutionType, academicType].filter(Boolean).length;
   });
 
   ngOnInit(): void {
     const existing = this.filtersService.currentFilters();
     if (existing) {
-      this.form.patchValue(existing);
+      this.filtersModel.set({ ...DEFAULT_FILTERS, ...existing });
     }
 
     this.filtersService.getRegions().subscribe((regions) => {
@@ -62,36 +92,24 @@ export class FiltersComponent implements OnInit {
     });
   }
 
-  get budgetLabel(): string {
-    const value = this.form.value.budget ?? 0;
-    let tier = 'Bajo';
-    if (value > 20000) tier = 'Alto';
-    else if (value > 8000) tier = 'Moderado';
-    return `S/. ${value.toLocaleString('es-PE')} / año · ${tier}`;
+  setInstitutionType(value: InstitutionType): void {
+    this.filtersForm.institutionType().value.set(value);
   }
 
-  //  Contamos valores reales, no defaults
-  get completedCount(): number {
-    const { region, institutionType, academicType } = this.form.value;
-    return [region, institutionType, academicType].filter(Boolean).length;
+  setAcademicType(value: AcademicType): void {
+    this.filtersForm.academicType().value.set(value);
   }
 
-  // El botón se activa solo si todo es válido
-  get isReady(): boolean {
-    return this.form.valid;
+  onBudgetInput(event: Event): void {
+    const value = Number((event.target as HTMLInputElement).value);
+    this.filtersForm.budget().value.set(value);
   }
 
-  startChat(): void {
-    if (!this.isReady) return;
-
-    const filters: OrientationFilters = {
-      region: this.form.value.region!,
-      institutionType: this.form.value.institutionType as InstitutionType,
-      academicType: this.form.value.academicType as AcademicType,
-      budget: this.form.value.budget ?? 0,
-    };
-
-    this.filtersService.setFilters(filters);
-    this.router.navigate(['/assessment']); // El asistente cambió la ruta a /assessment
+  async startChat(): Promise<void> {
+    await submit(this.filtersForm, async (field) => {
+      this.filtersService.setFilters(field().value());
+      await this.router.navigate(['/assessment']);
+      return [];
+    });
   }
 }

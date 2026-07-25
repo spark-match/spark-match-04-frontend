@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthShellComponent } from '../../../shared/ui/auth-shell/auth-shell.component';
 
@@ -20,6 +20,7 @@ import { AuthShellComponent } from '../../../shared/ui/auth-shell/auth-shell.com
       </div>
     </app-auth-shell>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './auth-card.scss',
 })
 export class ForgotPasswordPage {}

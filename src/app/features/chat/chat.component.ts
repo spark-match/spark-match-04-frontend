@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ChatService } from './chat.service';
@@ -9,8 +9,9 @@ import { ChatMessage } from './chat.model';
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   templateUrl: './chat.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './chat.component.scss',
 })
 export class ChatComponent implements OnInit {

@@ -1,14 +1,33 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+
 import { Router, RouterLink } from '@angular/router';
+import {
+  FormField,
+  email,
+  form,
+  max,
+  min,
+  minLength,
+  required,
+  submit,
+} from '@angular/forms/signals';
+import { firstValueFrom } from 'rxjs';
 import { AuthShellComponent } from '../../../shared/ui/auth-shell/auth-shell.component';
 import { AuthService } from '../../../core/auth/auth.service';
+
+interface RegisterModel {
+  fullName: string;
+  email: string;
+  password: string;
+  age: number;
+  region: string;
+  interestArea: string;
+}
 
 @Component({
   selector: 'app-register-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, AuthShellComponent],
+  imports: [RouterLink, AuthShellComponent, FormField],
   template: `
     <app-auth-shell>
       <div class="auth-card">
@@ -20,48 +39,94 @@ import { AuthService } from '../../../core/auth/auth.service';
         <h2 class="font-display">Empieza gratis</h2>
         <p class="auth-card__lead">Cuéntanos lo básico para personalizar tus recomendaciones.</p>
 
-        <form [formGroup]="form" (ngSubmit)="submit()">
+        <form (submit)="submit($event)">
           <label class="auth-card__field">
             <span>Nombre completo</span>
-            <input type="text" formControlName="fullName" placeholder="Ej: Ana Quispe" />
+            <input
+              type="text"
+              [formField]="registerForm.fullName"
+              placeholder="Ej: Ana Quispe"
+            />
           </label>
+          @if (registerForm.fullName().touched() && registerForm.fullName().invalid()) {
+            <p class="auth-card__error" role="alert">
+              {{ registerForm.fullName().errors()[0].message }}
+            </p>
+          }
 
           <label class="auth-card__field">
             <span>Correo electrónico</span>
-            <input type="email" formControlName="email" placeholder="tucorreo&#64;ejemplo.com" />
+            <input
+              type="email"
+              [formField]="registerForm.email"
+              placeholder="tucorreo&#64;ejemplo.com"
+            />
           </label>
+          @if (registerForm.email().touched() && registerForm.email().invalid()) {
+            <p class="auth-card__error" role="alert">
+              {{ registerForm.email().errors()[0].message }}
+            </p>
+          }
 
           <label class="auth-card__field">
             <span>Contraseña</span>
-            <input type="password" formControlName="password" placeholder="Mínimo 6 caracteres" />
+            <input
+              type="password"
+              [formField]="registerForm.password"
+              placeholder="Mínimo 6 caracteres"
+            />
           </label>
+          @if (registerForm.password().touched() && registerForm.password().invalid()) {
+            <p class="auth-card__error" role="alert">
+              {{ registerForm.password().errors()[0].message }}
+            </p>
+          }
 
           <div class="auth-card__row">
             <label class="auth-card__field">
               <span>Edad</span>
-              <input type="number" formControlName="age" min="14" max="99" />
+              <input
+                type="number"
+                [formField]="registerForm.age"
+              />
             </label>
+            @if (registerForm.age().touched() && registerForm.age().invalid()) {
+              <p class="auth-card__error" role="alert">
+                {{ registerForm.age().errors()[0].message }}
+              </p>
+            }
 
             <label class="auth-card__field">
               <span>Región</span>
-              <select formControlName="region">
+              <select [formField]="registerForm.region">
                 <option value="" disabled>Selecciona...</option>
-                <option *ngFor="let region of regions" [value]="region">{{ region }}</option>
+                @for (region of regions; track region) {
+                  <option [value]="region">{{ region }}</option>
+                }
               </select>
             </label>
+            @if (registerForm.region().touched() && registerForm.region().invalid()) {
+              <p class="auth-card__error" role="alert">
+                {{ registerForm.region().errors()[0].message }}
+              </p>
+            }
           </div>
 
           <label class="auth-card__field">
             <span>Área de interés (opcional)</span>
             <input
               type="text"
-              formControlName="interestArea"
+              [formField]="registerForm.interestArea"
               placeholder="Ej: tecnología, salud, negocios..."
             />
           </label>
 
-          <button type="submit" class="auth-card__submit" [disabled]="form.invalid || submitting">
-            {{ submitting ? 'Creando cuenta...' : 'Crear cuenta y continuar →' }}
+          <button
+            type="submit"
+            class="auth-card__submit"
+            [disabled]="submitting()"
+          >
+            {{ submitting() ? 'Creando cuenta...' : 'Crear cuenta y continuar →' }}
           </button>
         </form>
 
@@ -72,44 +137,62 @@ import { AuthService } from '../../../core/auth/auth.service';
       </div>
     </app-auth-shell>
   `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './auth-card.scss',
 })
 export class RegisterPage {
-  private fb = inject(FormBuilder);
   private router = inject(Router);
   private authService = inject(AuthService);
 
-  submitting = false;
+  submitting = signal(false);
 
   // TODO: reemplazar por el catálogo real de regiones que exponga el backend
   // (mismo catálogo que expone FiltersService.getRegions())
   regions = ['Lima Metropolitana', 'Arequipa', 'La Libertad', 'Piura', 'Cusco', 'Junín'];
 
-  form = this.fb.group({
-    fullName: ['', Validators.required],
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
-    age: [17, [Validators.required, Validators.min(14)]],
-    region: ['', Validators.required],
-    interestArea: [''],
+  readonly registerModel = signal<RegisterModel>({
+    fullName: '',
+    email: '',
+    password: '',
+    age: 17,
+    region: '',
+    interestArea: '',
   });
 
-  submit(): void {
-    if (this.form.invalid) return;
-    this.submitting = true;
+  readonly registerForm = form(this.registerModel, (f) => {
+    required(f.fullName, { message: 'Ingresa tu nombre completo' });
+    required(f.email, { message: 'Ingresa tu correo electrónico' });
+    email(f.email, { message: 'El correo no es válido' });
+    required(f.password, { message: 'Ingresa una contraseña' });
+    minLength(f.password, 6, { message: 'La contraseña debe tener al menos 6 caracteres' });
+    required(f.age, { message: 'Ingresa tu edad' });
+    min(f.age, 14, { message: 'Debes tener al menos 14 años' });
+    max(f.age, 99, { message: 'Ingresa una edad válida' });
+    required(f.region, { message: 'Selecciona tu región' });
+  });
 
-    this.authService
-      .register({
-        fullName: this.form.value.fullName!,
-        email: this.form.value.email!,
-        password: this.form.value.password!,
-        age: this.form.value.age!,
-        region: this.form.value.region!,
-        interestArea: this.form.value.interestArea || undefined,
-      })
-      .subscribe({
-        next: () => this.router.navigate(['/filters']),
-        error: () => (this.submitting = false),
-      });
+  async submit(event?: Event): Promise<void> {
+    event?.preventDefault();
+    await submit(this.registerForm, async (field) => {
+      this.submitting.set(true);
+      const value = field().value();
+      try {
+        await firstValueFrom(
+          this.authService.register({
+            fullName: value.fullName,
+            email: value.email,
+            password: value.password,
+            age: value.age,
+            region: value.region,
+            interestArea: value.interestArea || undefined,
+          }),
+        );
+        await this.router.navigate(['/filters']);
+        return [];
+      } catch {
+        this.submitting.set(false);
+        return [{ kind: 'register', message: 'No pudimos crear tu cuenta' }];
+      }
+    });
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ReportsService } from './reports.service';
 import { FiltersService } from '../filters/filters.service';
 import { CareerMatch, OrientationReport } from '../careers/career.model';
@@ -8,6 +8,7 @@ import { CareerMatch, OrientationReport } from '../careers/career.model';
   standalone: true,
   imports: [],
   templateUrl: './reports.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './reports.component.scss',
 })
 export class ReportsComponent implements OnInit {

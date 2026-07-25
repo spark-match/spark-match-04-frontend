@@ -1,11 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-slider',
   imports: [],
   templateUrl: './slider.component.html',
-  styleUrl: './slider.component.scss'
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: './slider.component.scss',
 })
-export class SliderComponent {
-
-}
+export class SliderComponent {}

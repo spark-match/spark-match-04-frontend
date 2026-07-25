@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { SidebarComponent } from '../sidebar/sidebar.component';
@@ -8,6 +8,7 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
   standalone: true,
   imports: [RouterOutlet, SidebarComponent],
   templateUrl: './app-layout.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './app-layout.component.scss',
 })
 export class AppLayoutComponent {}

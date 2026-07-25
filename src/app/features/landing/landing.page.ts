@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 interface HomeCard {
@@ -12,6 +12,7 @@ interface HomeCard {
   standalone: true,
   imports: [RouterLink],
   templateUrl: './landing.page.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './landing.page.scss',
 })
 export class LandingPage {

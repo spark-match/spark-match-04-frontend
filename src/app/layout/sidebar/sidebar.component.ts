@@ -1,6 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Toolbar, ToolbarWidget } from '@angular/aria/toolbar';
 import { AuthService } from '../../core/auth/auth.service';
 
 interface NavItem {
@@ -17,8 +18,9 @@ interface RecentChat {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, Toolbar, ToolbarWidget],
   templateUrl: './sidebar.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './sidebar.component.scss',
 })
 export class SidebarComponent {

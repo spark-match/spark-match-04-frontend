@@ -1,11 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-card',
   imports: [],
   templateUrl: './card.component.html',
-  styleUrl: './card.component.scss'
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrl: './card.component.scss',
 })
-export class CardComponent {
-
-}
+export class CardComponent {}
