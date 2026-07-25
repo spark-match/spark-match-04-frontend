@@ -1,5 +1,4 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ChatService } from './chat.service';
@@ -9,7 +8,7 @@ import { ChatMessage } from './chat.model';
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.scss',
 })
@@ -19,13 +18,13 @@ export class ChatComponent implements OnInit {
 
   private sessionId = '';
   draft = '';
-  sending = signal(false);
-  loadingSession = signal(true);
-  messages = signal<ChatMessage[]>([]);
-  showRecommendationRating = signal(false);
-  rating = signal(0);
-  submittingRating = signal(false);
-  ratingSubmitted = signal(false);
+  readonly sending = signal(false);
+  readonly loadingSession = signal(true);
+  readonly messages = signal<ChatMessage[]>([]);
+  readonly showRecommendationRating = signal(false);
+  readonly rating = signal(0);
+  readonly submittingRating = signal(false);
+  readonly ratingSubmitted = signal(false);
 
   get profileSummary(): string {
     const filters = this.filtersService.currentFilters();

@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Service, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, tap } from 'rxjs';
 import { delay } from 'rxjs/operators';
@@ -14,7 +14,7 @@ import {
 const TOKEN_KEY = 'spark-match:token';
 const USER_KEY = 'spark-match:user';
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class AuthService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/auth`;

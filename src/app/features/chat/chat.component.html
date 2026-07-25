@@ -12,26 +12,32 @@
   </header>
 
   <div class="chat__messages">
-    <p class="chat__loading" *ngIf="loadingSession()">Iniciando sesión de orientación...</p>
+    @if (loadingSession()) {
+      <p class="chat__loading">Iniciando sesión de orientación...</p>
+    }
 
-    <div
-      class="chat__bubble-row"
-      *ngFor="let msg of messages()"
-      [class.chat__bubble-row--user]="msg.role === 'user'"
-    >
-      <span class="chat__avatar" *ngIf="msg.role === 'ai'" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
-      <div class="chat__bubble">
-        <p>{{ msg.text }}</p>
-        <span class="chat__time">{{ timeLabel(msg.timestamp) }}</span>
+    @for (msg of messages(); track msg) {
+      <div
+        class="chat__bubble-row"
+        [class.chat__bubble-row--user]="msg.role === 'user'"
+        animate.enter="chat-bubble-in"
+      >
+        @if (msg.role === 'ai') {
+          <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
+        }
+        <div class="chat__bubble">
+          <p>{{ msg.text }}</p>
+          <span class="chat__time">{{ timeLabel(msg.timestamp) }}</span>
+        </div>
       </div>
-    </div>
+    }
 
-    <div class="chat__bubble-row" *ngIf="sending()">
-      <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
-      <div class="chat__bubble chat__bubble--typing">
-        <span></span><span></span><span></span>
+    @if (sending()) {
+      <div class="chat__bubble-row">
+        <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
+        <div class="chat__bubble chat__bubble--typing"><span></span><span></span><span></span></div>
       </div>
-    </div>
+    }
 
   </div>
 
@@ -49,34 +55,37 @@
   </footer>
   <p class="chat__hint">Enviar · Shift+Enter para nueva línea</p>
 
-  <div class="chat__rating-backdrop" *ngIf="showRecommendationRating()" (click)="dismissRecommendationRating()">
-    <section
-      class="chat__rating-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="recommendation-rating-title"
-      (click)="$event.stopPropagation()"
-    >
-      <button type="button" class="chat__rating-close" aria-label="Cerrar calificación" (click)="dismissRecommendationRating()">×</button>
-      @if (ratingSubmitted()) {
-        <p class="chat__rating-thanks">Gracias por calificar esta recomendación.</p>
-      } @else {
-        <p id="recommendation-rating-title">¿Qué te parece esta recomendación?</p>
-        <span class="chat__rating-description">Tu opinión nos ayuda a mejorar las recomendaciones.</span>
-        <div class="chat__stars" role="group" aria-label="Califica la recomendación de 1 a 5 estrellas">
-          @for (star of [1, 2, 3, 4, 5]; track star) {
-            <button
-              type="button"
-              [class.selected]="star <= rating()"
-              [disabled]="submittingRating()"
-              [attr.aria-label]="star + ' estrella' + (star === 1 ? '' : 's')"
-              (click)="rateRecommendation(star)"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
-            </button>
-          }
-        </div>
-      }
-    </section>
-  </div>
+  @if (showRecommendationRating()) {
+    <div class="chat__rating-backdrop" animate.enter="chat-backdrop-in">
+      <section
+        class="chat__rating-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="recommendation-rating-title"
+        animate.enter="chat-modal-in"
+        animate.leave="chat-modal-out"
+      >
+        <button type="button" class="chat__rating-close" aria-label="Cerrar calificación" (click)="dismissRecommendationRating()">×</button>
+        @if (ratingSubmitted()) {
+          <p class="chat__rating-thanks">Gracias por calificar esta recomendación.</p>
+        } @else {
+          <p id="recommendation-rating-title">¿Qué te parece esta recomendación?</p>
+          <span class="chat__rating-description">Tu opinión nos ayuda a mejorar las recomendaciones.</span>
+          <div class="chat__stars" role="group" aria-label="Califica la recomendación de 1 a 5 estrellas">
+            @for (star of [1, 2, 3, 4, 5]; track star) {
+              <button
+                type="button"
+                [class.selected]="star <= rating()"
+                [disabled]="submittingRating()"
+                [attr.aria-label]="star + ' estrella' + (star === 1 ? '' : 's')"
+                (click)="rateRecommendation(star)"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+              </button>
+            }
+          </div>
+        }
+      </section>
+    </div>
+  }
 </div>

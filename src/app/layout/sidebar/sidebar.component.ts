@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Toolbar, ToolbarWidget } from '@angular/aria/toolbar';
 import { AuthService } from '../../core/auth/auth.service';
 
 interface NavItem {
@@ -17,7 +17,7 @@ interface RecentChat {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, Toolbar, ToolbarWidget],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss',
 })
@@ -26,9 +26,9 @@ export class SidebarComponent {
   private router = inject(Router);
 
   user = this.authService.user;
-  collapsed = signal(false);
-  adminMode = signal(false);
-  mlopsOpen = signal(true);
+  readonly collapsed = signal(false);
+  readonly adminMode = signal(false);
+  readonly mlopsOpen = signal(true);
 
   // reemplazar por datos reales de /api/chats cuando el backend esté listo
   navItems: NavItem[] = [
@@ -48,9 +48,9 @@ export class SidebarComponent {
 
   promptVersions = ['v2.4', 'v2.3', 'v2.2'];
   scoringFormulas = ['v3', 'v2', 'v1'];
-  selectedPromptVersion = signal(this.promptVersions[0]);
-  selectedScoringFormula = signal(this.scoringFormulas[0]);
-  relevanceScore = signal(72);
+  readonly selectedPromptVersion = signal(this.promptVersions[0]);
+  readonly selectedScoringFormula = signal(this.scoringFormulas[0]);
+  readonly relevanceScore = signal(72);
 
   toggleCollapsed(): void {
     this.collapsed.update((v) => !v);
