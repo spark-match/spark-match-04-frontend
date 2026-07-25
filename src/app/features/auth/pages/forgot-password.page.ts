@@ -1,25 +1,25 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { MatCardModule } from '@angular/material/card';
+import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { AuthShellComponent } from '../../../shared/ui/auth-shell/auth-shell.component';
 
 @Component({
   selector: 'app-forgot-password',
-  imports: [MatCardModule],
+  standalone: true,
+  imports: [RouterLink, AuthShellComponent],
   template: `
-    <div class="auth-page">
-      <mat-card>
-        <mat-card-title i18n="@@forgotPassword.title">Recuperar contraseña</mat-card-title>
-        <mat-card-content>
-          <p i18n="@@forgotPassword.placeholder">
-            Próximamente disponible.
-          </p>
-        </mat-card-content>
-      </mat-card>
-    </div>
+    <app-auth-shell>
+      <div class="auth-card">
+        <h2 class="font-display">Recuperar contraseña</h2>
+        <p class="auth-card__lead">
+          Próximamente disponible. El flujo de recuperación se implementará en la siguiente fase.
+        </p>
+
+        <button class="auth-card__submit" routerLink="/auth/login">
+          ← Volver a iniciar sesión
+        </button>
+      </div>
+    </app-auth-shell>
   `,
-  styles: [`
-    .auth-page { max-width: 420px; margin: 4rem auto; padding: 1.5rem; }
-    mat-card { padding: 2rem; }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styleUrl: './auth-card.scss',
 })
 export class ForgotPasswordPage {}

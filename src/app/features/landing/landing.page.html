@@ -1,32 +1,88 @@
-<div class="landing">
-  <header class="hero">
-    <h1 i18n="@@landing.hero.title">Spark Match</h1>
-    <p class="subtitle" i18n="@@landing.hero.subtitle">
-      Tu copiloto de orientación vocacional con IA
-    </p>
-    <p class="description" i18n="@@landing.hero.description">
-      Descubre la carrera perfecta para ti con nuestro cuestionario validado
-      y recomendaciones inteligentes.
-    </p>
-    <div class="cta">
-      <a mat-flat-button color="primary" routerLink="/auth/register" i18n="@@landing.cta.start">
-        Comenzar ahora
-      </a>
-      <a mat-stroked-button routerLink="/auth/login" i18n="@@landing.cta.login">
-        Ya tengo cuenta
-      </a>
-    </div>
-  </header>
+<div class="home">
+  <span class="home__eyebrow">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z"
+        fill="currentColor"
+      />
+    </svg>
+    Datos oficiales de Ponte en Carrera · MINEDU Perú
+  </span>
 
-  <section class="features">
-    @for (feature of features(); track feature.title) {
-      <mat-card class="feature-card">
-        <mat-card-content>
-          <mat-icon class="feature-icon">{{ feature.icon }}</mat-icon>
-          <h2>{{ feature.title }}</h2>
-          <p>{{ feature.description }}</p>
-        </mat-card-content>
-      </mat-card>
+  <h1 class="home__title font-display">Encuentra la carrera<br />que cambia tu vida.</h1>
+
+  <p class="home__lead">
+    Nuestra IA analiza tus intereses, región y presupuesto usando datos reales del mercado laboral
+    peruano — sueldos, costos de carrera, tasas de admisión y duración de
+    <strong>Ponte en Carrera</strong>.
+  </p>
+
+  <a routerLink="/filters" class="home__cta">Iniciar Orientación →</a>
+
+  <div class="home__cards">
+    @for (card of cards; track card.title) {
+      <article class="home__card">
+        <span class="home__card-icon">
+          @if (card.icon === 'chart') {
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 20V10M12 20V4M20 20v-7"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+              />
+            </svg>
+          }
+          @if (card.icon === 'chat') {
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 5h16v11H8l-4 4V5z"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
+            </svg>
+          }
+          @if (card.icon === 'book') {
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13zM20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+            </svg>
+          }
+        </span>
+        <h3>{{ card.title }}</h3>
+        <p>{{ card.example }}</p>
+      </article>
     }
-  </section>
+  </div>
+
+  <div class="home__stats">
+    @for (stat of stats; track stat.label) {
+      <div class="home__stat">
+        <span class="home__stat-value font-display">{{ stat.value }}</span>
+        <span class="home__stat-label">{{ stat.label }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="home__disclaimer">
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 3 2.8 20h18.4L12 3z"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linejoin="round"
+      />
+      <path d="M12 9v4m0 3h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+    </svg>
+    <p>
+      Los datos de sueldo, costo anual y tasa de admisión provienen de la plataforma oficial
+      <strong>Ponte en Carrera</strong> del Ministerio de Educación del Perú, actualizados a
+      diciembre 2024.
+    </p>
+  </div>
 </div>
