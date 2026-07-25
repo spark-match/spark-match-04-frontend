@@ -1,0 +1,131 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+  <div class="sidebar__brand">
+    <span class="sidebar__logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-5 9 5-9 5-9-5zm4 2.2V16l5 3 5-3v-4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <span class="sidebar__brand-name" *ngIf="!collapsed()">Spark Match</span>
+    <button
+      type="button"
+      class="sidebar__collapse-btn"
+      (click)="toggleCollapsed()"
+      [attr.aria-label]="collapsed() ? 'Expandir menú' : 'Contraer menú'"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" [class.flipped]="collapsed()">
+        <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <nav class="sidebar__nav">
+    <a
+      *ngFor="let item of navItems"
+      [routerLink]="item.path"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+      class="sidebar__nav-item"
+    >
+      <ng-container [ngSwitch]="item.icon">
+        <svg *ngSwitchCase="'sparkles'" width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+        <svg *ngSwitchCase="'sliders'" width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M4 6h9M17 6h3M4 12h3M9 12h11M4 18h13M19 18h1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <circle cx="14" cy="6" r="2" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="7" cy="12" r="2" stroke="currentColor" stroke-width="1.6"/>
+          <circle cx="16" cy="18" r="2" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        <svg *ngSwitchCase="'chat'" width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M4 5h16v11H8l-4 4V5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+        <svg *ngSwitchCase="'file'" width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M6 3h9l5 5v13H6V3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M14 3v5h5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+        <svg *ngSwitchCase="'user'" width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M5 21a7 7 0 0114 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </ng-container>
+      <span *ngIf="!collapsed()">{{ item.label }}</span>
+    </a>
+  </nav>
+
+  <div class="sidebar__recent" *ngIf="!collapsed()">
+    <p class="sidebar__section-label">Recientes</p>
+    <a class="sidebar__recent-item" *ngFor="let chat of recentChats">
+      <span class="sidebar__recent-title">{{ chat.title }}</span>
+      <span class="sidebar__recent-when">{{ chat.when }}</span>
+    </a>
+  </div>
+
+  <button type="button" class="sidebar__new-chat" *ngIf="!collapsed()">
+    <span>+</span> Nuevo chat
+  </button>
+
+  <div class="sidebar__spacer"></div>
+
+  <div class="sidebar__admin" *ngIf="!collapsed()">
+    <label class="sidebar__admin-toggle">
+      <input type="checkbox" [checked]="adminMode()" (change)="toggleAdminMode()" />
+      <span class="sidebar__section-label">Modo admin</span>
+    </label>
+
+    <div class="sidebar__mlops" *ngIf="adminMode()">
+      <button type="button" class="sidebar__mlops-header" (click)="toggleMlops()">
+        <span class="sidebar__mlops-title"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.4-6.4-2.1 2.1M7.7 16.3l-2.1 2.1m12.8 0-2.1-2.1M7.7 7.7 5.6 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/></svg>MLOps</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" [class.flipped]="mlopsOpen()">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <div class="sidebar__mlops-body" *ngIf="mlopsOpen()">
+        <label class="sidebar__field">
+          <span>Versión de prompt</span>
+          <select [value]="selectedPromptVersion()" (change)="selectedPromptVersion.set($any($event.target).value)">
+            <option *ngFor="let v of promptVersions" [value]="v">{{ v }}</option>
+          </select>
+        </label>
+
+        <label class="sidebar__field">
+          <span>Fórmula de scoring</span>
+          <select [value]="selectedScoringFormula()" (change)="selectedScoringFormula.set($any($event.target).value)">
+            <option *ngFor="let f of scoringFormulas" [value]="f">{{ f }}</option>
+          </select>
+        </label>
+
+        <label class="sidebar__field">
+          <span>Score de relevancia <b>{{ relevanceScore() }}%</b></span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            [value]="relevanceScore()"
+            (input)="onScoreChange($event)"
+          />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar__user" *ngIf="user() as u; else guestUser">
+    <span class="sidebar__avatar">{{ u.fullName.charAt(0).toUpperCase() }}</span>
+    <div class="sidebar__user-info" *ngIf="!collapsed()">
+      <span class="sidebar__user-name">{{ u.fullName }}</span>
+      <span class="sidebar__user-email">{{ u.email }}</span>
+    </div>
+    <button
+      type="button"
+      class="sidebar__logout"
+      *ngIf="!collapsed()"
+      aria-label="Cerrar sesión"
+      (click)="logout()"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+  <ng-template #guestUser>
+    <a routerLink="/auth/login" class="sidebar__user sidebar__user--guest" *ngIf="!collapsed()">
+      Iniciar sesión
+    </a>
+  </ng-template>
+</aside>

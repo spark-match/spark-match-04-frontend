@@ -54,6 +54,8 @@ Thumbs.db
 desktop.ini
 
 # Environments / secrets
+# Standard Angular convention: environment.ts (base, committed) + environment.production.ts (committed, used via fileReplacements in angular.json for prod builds).
+# Both files are committed because they only carry URLs and feature flags (no secrets). For local overrides during development, point your IDE's run config at a personal copy and add it to .gitignore locally.
 .env
 .env.local
 .env.*.local
@@ -61,8 +63,6 @@ desktop.ini
 **/.env.local
 **/.env.*.local
 !.env.example
-/src/environments/environment.ts
-!/src/environments/environment.example.ts
 
 # i18n build artifacts (generados por ng extract-i18n)
 /src/locale/*.xlf

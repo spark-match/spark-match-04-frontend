@@ -1,51 +1,12 @@
-.app-container {
-  height: 100vh;
-}
-
-.app-sidenav {
-  width: 260px;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-
-  .sidenav-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    height: 64px;
-    padding: 0 1rem;
-  }
-
-  .brand {
-    font-weight: 600;
-    font-size: 1.2rem;
-  }
-
-  .active {
-    background: rgba(25, 118, 210, 0.1);
-    color: #1976d2;
-  }
-}
-
-.app-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+.app-layout {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  height: 64px;
-  padding: 0 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-
-  .spacer {
-    flex: 1;
-  }
-
-  .user-label {
-    margin-left: 0.5rem;
-  }
+  height: 100vh; /* Ocupa todo el alto de la pantalla */
+  width: 100vw;
+  overflow: hidden; /* Evita scrolls dobles extraños */
 }
 
-.app-main {
-  min-height: calc(100vh - 64px);
-  background: #fafafa;
+.main-content {
+  flex: 1; /* Toma todo el espacio sobrante a la derecha del sidebar */
+  overflow-y: auto; /* Permite hacer scroll solo en el contenido */
+  background-color: var(--background); /* El color crema que configuramos */
 }
