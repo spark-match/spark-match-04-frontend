@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
@@ -76,7 +76,7 @@ function buildMockReport(filters: OrientationFilters | null): OrientationReport 
   };
 }
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ReportsService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/reports`;

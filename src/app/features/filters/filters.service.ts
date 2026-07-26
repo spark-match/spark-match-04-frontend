@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Service, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
@@ -34,7 +34,7 @@ const MOCK_REGIONS: RegionOption[] = [
   { code: 'ucayali', name: 'Ucayali' },
 ];
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class FiltersService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/catalog`;
