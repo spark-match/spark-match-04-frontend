@@ -86,7 +86,11 @@ jobs:
       package-manager: ${{ vars.PACKAGE_MANAGER }}
       lockfile-name: ${{ vars.LOCKFILE_NAME }}
       install-command: 'npm ci'
-      test-command: 'npx vitest run --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.statements=0 --coverage.thresholds.branches=0 --coverage.reporter=lcov'
+      # Use Angular CLI's `ng test` wrapper (which configures vitest globals)
+      # instead of `npx vitest run` directly. Direct vitest run fails with
+      # `ReferenceError: describe is not defined` because the test globals
+      # are only injected by Angular's test runner.
+      test-command: 'npm test -- --watch=false --coverage --coverage.thresholds.lines=0 --coverage.thresholds.functions=0 --coverage.thresholds.statements=0 --coverage.thresholds.branches=0 --coverage.reporter=lcov'
       coverage-paths: 'coverage/lcov.info'
       fail-on-quality-gate: ${{ vars.SONAR_FAIL_ON_QUALITY_GATE }}
     secrets:
