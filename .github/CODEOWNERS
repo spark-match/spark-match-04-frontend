@@ -1,34 +1,33 @@
 # CODEOWNERS - Spark Match Frontend (04)
 #
-# Politica de aprobacion (configurada en branch protection):
+# Politica de aprobacion (configurada via ruleset):
 #   - dev:  required_approving_review_count: 1
-#            require_code_owner_reviews: true
+#            require_code_owner_review: true
 #   - main: required_approving_review_count: 1
-#            require_code_owner_reviews: true
-#            require_last_push_approval: true
+#            require_code_owner_review: true
 #
-# CODE OWNER del repo (catch-all): @spark-match/frontend-devs
+# CODE OWNER del repo: @spark-match/frontend-devs
 #   Miembros: ahincho, BriyitHT
 #
 # Paths criticos (governance): @spark-match/product-owners
-#   - Decisiones arquitectonicas, onboarding, postmortems, docs raiz.
-#   - Miembros: dbarretol, FabiTaparaQuispe, ahincho
 #
-# Nota: el autor del PR no puede aprobar su propio PR, ni siquiera siendo
-# CODE OWNER (regla de GitHub). Por ejemplo, un PR abierto por ahincho
-# necesita la aprobacion de cualquier otro miembro del team.
+# Convencion: explicit paths, no catch-all.
 
-# =============================================================================
-# Catch-all: el equipo tecnico del repo es CODE OWNER del codigo
-# =============================================================================
-*                                          @spark-match/frontend-devs
-
-# =============================================================================
-# Paths criticos: product-owners revisa governance y docs raiz
-# =============================================================================
 /decisions/                                @spark-match/product-owners
 /onboarding/                               @spark-match/product-owners
 /postmortems/                              @spark-match/product-owners
-/README.md                                 @spark-match/product-owners
-/CONTRIBUTING.md                           @spark-match/product-owners
-/LICENSE                                   @spark-match/product-owners
+/README.md                                 @spark-match/frontend-devs @spark-match/product-owners
+/CONTRIBUTING.md                           @spark-match/frontend-devs @spark-match/product-owners
+/LICENSE                                   @spark-match/frontend-devs @spark-match/product-owners
+
+/.github/                                  @spark-match/frontend-devs
+/.vscode/                                  @spark-match/frontend-devs
+/public/                                   @spark-match/frontend-devs
+/src/                                      @spark-match/frontend-devs
+
+/.editorconfig                             @spark-match/frontend-devs
+/.prettierrc                               @spark-match/frontend-devs
+/.yamllint.yml                             @spark-match/frontend-devs
+/angular.json                              @spark-match/frontend-devs
+/eslint.config.js                          @spark-match/frontend-devs
+/tsconfig.app.json                         @spark-match/frontend-devs
