@@ -27,7 +27,6 @@ jobs:
       # TODO Fase 5+: deploy a S3 + CloudFront
       - name: Deploy placeholder
         id: deploy
-        # shellcheck disable=SC2086 # ${{ }} are GitHub Actions expressions, not bash variables — quoting doesn't apply.
         run: |
-          echo "::notice::Deploy to ${{ github.ref_name }} pending Fase 5 (Terraform + S3 + CloudFront)"
-          echo "url=https://spark-match.example.com" >> $GITHUB_OUTPUT
+          printf '::notice::Deploy pending Fase 5 (Terraform + S3 + CloudFront)\n'
+          printf 'url=https://spark-match.example.com\n' >> "$GITHUB_OUTPUT"
