@@ -6,30 +6,95 @@ on:
   pull_request:
     branches: [main, dev]
 
+permissions:
+  contents: read
+
+# Cancel in-progress runs on the same ref. Idempotent for lint/test jobs.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-test:
-    name: Lint, typecheck, test, build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  # ─── ecosystem: read-only, no caller secrets ────────────────────────
+  actionlint:
+    name: actionlint
+    uses: spark-match/spark-match-01-devops/.github/workflows/actionlint.yml@main
+    with:
+      environment-name: ci
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
+  yamllint:
+    name: yamllint
+    uses: spark-match/spark-match-01-devops/.github/workflows/yamllint.yml@main
+    with:
+      environment-name: ci
 
-      - name: Install dependencies
-        run: npm ci
+  gitleaks:
+    name: gitleaks
+    uses: spark-match/spark-match-01-devops/.github/workflows/gitleaks.yml@main
+    with:
+      environment-name: ci
+    secrets:
+      GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
 
-      - name: Lint
-        run: npm run lint
+  # ─── node layer ─────────────────────────────────────────────────────
+  eslint:
+    name: eslint
+    uses: spark-match/spark-match-01-devops/.github/workflows/eslint.yml@main
+    with:
+      environment-name: ci
+      node-version: '24'
+      eslint-version: '10'
 
-      - name: Typecheck
-        run: npm run typecheck
+  typecheck:
+    name: typecheck
+    uses: spark-match/spark-match-01-devops/.github/workflows/node-typecheck.yml@main
+    with:
+      environment-name: ci
+      node-version: '24'
 
-      - name: Unit tests
-        run: npm test -- --watch=false
+  test:
+    name: unit tests
+    uses: spark-match/spark-match-01-devops/.github/workflows/node-test.yml@main
+    with:
+      environment-name: ci
+      node-version: '24'
+      test-script: 'test -- --watch=false'
 
-      - name: Production build
-        run: npm run build --configuration=production
+  build:
+    name: production build
+    uses: spark-match/spark-match-01-devops/.github/workflows/node-build.yml@main
+    with:
+      environment-name: ci
+      node-version: '24'
+      build-script: 'build --configuration=production'
+
+  # ─── sonarqube ──────────────────────────────────────────────────────
+  sonar:
+    name: SonarCloud
+    uses: spark-match/spark-match-01-devops/.github/workflows/sonar-typescript.yml@main
+    with:
+      project-key: ${{ vars.SONAR_PROJECT_KEY }}
+      project-name: ${{ vars.SONAR_PROJECT_NAME }}
+      organization: ${{ vars.SONAR_ORGANIZATION }}
+      sources: ${{ vars.SONAR_SOURCES }}
+      tests: ${{ vars.SONAR_TESTS }}
+      test-inclusions: ${{ vars.SONAR_TEST_INCLUSIONS }}
+      exclude-patterns: ${{ vars.SONAR_EXCLUDE_PATTERNS }}
+      working-directory: '.'
+      env: 'ci'
+      node-version: ${{ vars.DEFAULT_NODE_VERSION }}
+      package-manager: ${{ vars.PACKAGE_MANAGER }}
+      lockfile-name: ${{ vars.LOCKFILE_NAME }}
+      install-command: 'npm ci'
+      # Use Angular CLI's `ng test` wrapper (which configures vitest globals)
+      # instead of `npx vitest run` directly. Direct vitest run fails with
+      # `ReferenceError: describe is not defined` because the test globals
+      # are only injected by Angular's test runner.
+      # Coverage reporter and thresholds are configured in angular.json
+      # (test.options.coverageReporters/coverageThresholds), NOT via CLI
+      # flags — Angular CLI strips unknown flags.
+      test-command: 'npm test -- --watch=false --coverage'
+      coverage-paths: 'coverage/spark-match-frontend/lcov.info'
+      fail-on-quality-gate: ${{ vars.SONAR_FAIL_ON_QUALITY_GATE }}
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

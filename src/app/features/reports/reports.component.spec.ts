@@ -47,6 +47,7 @@ describe('ReportsComponent', () => {
 
   beforeEach(async () => {
     getReportMock = vi.fn().mockReturnValue(of(buildReport())) as unknown as ReturnType<typeof vi.fn>;
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
 
     await TestBed.configureTestingModule({
