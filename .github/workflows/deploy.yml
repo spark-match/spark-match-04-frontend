@@ -28,5 +28,5 @@ jobs:
       - name: Deploy placeholder
         id: deploy
         run: |
-          echo "::notice::Deploy to ${{ github.ref_name }} pending Fase 5 (Terraform + S3 + CloudFront)"
-          echo "url=https://spark-match.example.com" >> $GITHUB_OUTPUT
+          printf '::notice::Deploy pending Fase 5 (Terraform + S3 + CloudFront)\n'
+          printf 'url=https://spark-match.example.com\n' >> "$GITHUB_OUTPUT"
