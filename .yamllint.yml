@@ -1,0 +1,32 @@
+---
+# yamllint configuration for spark-match-04-frontend
+# Docs: https://yamllint.readthedocs.io/
+# Mirrors spark-match-01-devops/.yamllint.yml with frontend-specific ignores.
+
+extends: default
+
+ignore: |
+  .git/
+  node_modules/
+  .angular/
+  dist/
+  coverage/
+  .github/workflows/
+
+rules:
+  # Allow longer lines (workflow files often have long input names + URLs)
+  line-length:
+    max: 160
+
+  # Allow multiple documents in one file (--- separators)
+  document-start: disable
+
+  # Allow truthy values like 'on' (used in workflows) and 'yes'
+  truthy:
+    allowed-values: ['true', 'false', 'on', 'off']
+    check-keys: false
+
+  # Allow comments to be indented differently from parent
+  comments:
+    min-spaces-from-content: 1
+    require-starting-space: true
