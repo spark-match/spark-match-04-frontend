@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Service, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
@@ -7,7 +7,7 @@ import { ChatMessage, ChatSession } from './chat.model';
 import { OrientationFilters } from '../filters/filters.model';
 
 // Respuestas mock rotativas, solo para que el chat se sienta vivo mientras no hay backend.
-const MOCK_AI_REPLIES: Array<{ text: string; isFinalRecommendation?: boolean }> = [
+const MOCK_AI_REPLIES: { text: string; isFinalRecommendation?: boolean }[] = [
   { text: 'Estoy comparando tu perfil con las carreras de Ponte en Carrera que más se ajustan a tu presupuesto y región.' },
   { text: 'Según los datos disponibles, esa opción tiene buena empleabilidad. Estoy terminando tu propuesta personalizada.' },
   {
@@ -16,7 +16,7 @@ const MOCK_AI_REPLIES: Array<{ text: string; isFinalRecommendation?: boolean }> 
   },
 ];
 
-@Injectable({ providedIn: 'root' })
+@Service()
 export class ChatService {
   private http = inject(HttpClient);
   private base = `${environment.apiUrl}/chat`;

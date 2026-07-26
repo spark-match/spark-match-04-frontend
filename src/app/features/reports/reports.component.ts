@@ -14,8 +14,8 @@ export class ReportsComponent implements OnInit {
   private reportsService = inject(ReportsService);
   private filtersService = inject(FiltersService);
 
-  loading = signal(true);
-  report = signal<OrientationReport | null>(null);
+  readonly loading = signal(true);
+  readonly report = signal<OrientationReport | null>(null);
 
   get careers(): CareerMatch[] {
     return this.report()?.careers ?? [];
