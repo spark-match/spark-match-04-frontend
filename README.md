@@ -196,6 +196,23 @@ src/
 - [`03-backend`](https://github.com/spark-match/spark-match-03-backend) — SAM (Lambdas, API Gateway)
 - [`08-deep-agent`](https://github.com/spark-match/spark-match-08-deep-agent) — AI Advisor (AgentCore)
 
+## Despliegue
+
+Pipeline CI/CD:
+
+- Lint, typecheck, tests, build prod y SonarCloud corren en cada PR y push a dev/main (ver `.github/workflows/ci.yml`).
+- Deploy automatico: push a dev -> environment `development`; push a main -> environment `production`. Ver `.github/workflows/deploy.yml`.
+- Manual: Actions tab -> Deploy dry run -> Run workflow (valida sin escribir) o Deploy -> Run workflow.
+
+Hosts:
+
+- dev: `https://<distribution>.cloudfront.net` (default domain de CloudFront, sin dominio custom).
+- prod: `https://<distribution>.cloudfront.net` (default domain, dominio custom diferido).
+
+Configuracion por ambiente en `src/environments/`.
+
+Secrets de deploy se configuran por GH Environment (`development` y `production`) sin sufijo en el nombre: el binding al env provee el scoping. Ver `AGENTS.md` para detalle operativo, roles OIDC, rollback, troubleshooting y el checklist del primer deploy.
+
 ## 📄 Licencia
 
 MIT - ver [`LICENSE`](./LICENSE)
