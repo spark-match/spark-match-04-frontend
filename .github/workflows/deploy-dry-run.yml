@@ -20,12 +20,12 @@ jobs:
       environment-name: development
       gh-environment: development
       aws-region: us-east-1
-      role-arn: ${{ secrets.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
+      role-arn: ${{ vars.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
       working-directory: '.'
-      build-script: 'build --configuration=production'
+      build-script: 'build:ci'
       node-version: '24'
       bucket-name: spark-match-frontend-dev
-      distribution-id: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+      distribution-id: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
       source-dir: 'dist/spark-match-frontend'
       cache-control-hashed: 'public, max-age=31536000, immutable'
       cache-control-html: 'no-cache, no-store, must-revalidate'
