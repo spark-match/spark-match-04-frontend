@@ -1,8 +1,6 @@
-name: deploy
+name: deploy-dry-run
 
 on:
-  push:
-    branches: [main, dev]
   workflow_dispatch:
 
 concurrency:
@@ -15,20 +13,21 @@ permissions:
   deployments: write
 
 jobs:
-  deploy:
-    name: deploy-${{ github.ref_name }}
+  dry-run:
+    name: deploy-dry-run-dev
     uses: spark-match/spark-match-01-devops/.github/workflows/reusable-frontend-deploy.yml@main
     with:
-      environment-name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
-      gh-environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+      environment-name: development
+      gh-environment: development
       aws-region: us-east-1
       role-arn: ${{ vars.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
       working-directory: '.'
       build-script: 'build:ci'
       node-version: '24'
-      bucket-name: ${{ github.ref_name == 'main' && 'spark-match-frontend-prod' || 'spark-match-frontend-dev' }}
+      bucket-name: spark-match-frontend-dev
       distribution-id: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
       source-dir: 'dist/spark-match-frontend'
       cache-control-hashed: 'public, max-age=31536000, immutable'
       cache-control-html: 'no-cache, no-store, must-revalidate'
       invalidation-paths: '/*'
+      dry-run: 'true'
