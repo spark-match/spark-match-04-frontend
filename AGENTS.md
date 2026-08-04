@@ -39,12 +39,14 @@ Este repo sigue el modelo jerarquico de spark-match:
 - Repositorio: vars como `SONAR_PROJECT_KEY`, `DEFAULT_NODE_VERSION`, `PACKAGE_MANAGER`.
 - Ambiente (este es el caso para deploy): secrets por GH Environment.
 
-Los secrets de deploy VIVEN en el GH Environment, no en repo settings generales. Se resuelven por env activo gracias al `environment:` del job en `deploy.yml`. Por eso NO llevan sufijo `_DEV`/`_PROD`: el mismo nombre existe en ambos envs con valores distintos.
+Los secrets de deploy VIVEN en el GH Environment, no en repo settings generales. Se resuelven por env activo gracias al binding del job. Por eso NO llevan sufijo `_DEV`/`_PROD`: el mismo nombre existe en ambos envs con valores distintos.
 
-- `production` env:
+> NOTA: En este repo el role ARN y el distribution ID se almacenan como `vars` (no `secrets`) a nivel de GH Environment. Esto se debe a una limitacion de GitHub Actions: el contexto `secrets` no esta disponible dentro del bloque `with:` de un `uses:` (reusable workflow), solo `vars`, `github`, `inputs`, `matrix`, `needs`, `strategy`. Las credenciales reales (assume role) siguen protegidas por la trust policy del role OIDC, asi que el rol ARN en si no necesita ser secret.
+
+- `production` env vars:
   - `AWS_FRONTEND_DEPLOY_ROLE_ARN` = `arn:aws:iam::<account>:role/spark-match-frontend-deploy-prod`
   - `CLOUDFRONT_DISTRIBUTION_ID` = `<id de la distribucion prod>`
-- `development` env:
+- `development` env vars:
   - `AWS_FRONTEND_DEPLOY_ROLE_ARN` = `arn:aws:iam::<account>:role/spark-match-frontend-deploy-dev`
   - `CLOUDFRONT_DISTRIBUTION_ID` = `<id de la distribucion dev>`
 
@@ -62,12 +64,12 @@ El role prod no puede ser asumido desde un deploy a dev (no confia en `ref=dev` 
 - `development`:
   - Deployment branches: `dev`
   - Required reviewers: ninguno (auto-approve).
-  - Secrets: `AWS_FRONTEND_DEPLOY_ROLE_ARN`, `CLOUDFRONT_DISTRIBUTION_ID`.
+  - Vars: `AWS_FRONTEND_DEPLOY_ROLE_ARN`, `CLOUDFRONT_DISTRIBUTION_ID`.
 
 - `production`:
   - Deployment branches: `main`
   - Required reviewers: `@spark-match/frontend-devs` Y `@spark-match/product-owners` (ambos deben aprobar).
-  - Secrets: `AWS_FRONTEND_DEPLOY_ROLE_ARN`, `CLOUDFRONT_DISTRIBUTION_ID`.
+  - Vars: `AWS_FRONTEND_DEPLOY_ROLE_ARN`, `CLOUDFRONT_DISTRIBUTION_ID`.
 
 ### Hosts
 
@@ -85,8 +87,8 @@ El role prod no puede ser asumido desde un deploy a dev (no confia en `ref=dev` 
 1. Repo 02-infrastructure: `terraform apply` de `modules/frontend-hosting` + `modules/oidc-frontend` en env dev. Confirmar outputs (`bucket_name`, `distribution_id`, `role_arn` por env).
 2. Repo 01-devops: merge del PR que crea `reusable-frontend-deploy.yml` con la firma documentada en la seccion "Contratos publicados" de este PR. Verificar bats tests en verde.
 3. Repo 04-frontend settings -> Environments:
-   - Crear `development` (sin required reviewers). Agregar secrets `AWS_FRONTEND_DEPLOY_ROLE_ARN` y `CLOUDFRONT_DISTRIBUTION_ID` con valores de dev.
-   - Crear `production` (required reviewers = `@spark-match/frontend-devs` + `@spark-match/product-owners`). Agregar los mismos dos secrets con valores de prod.
+   - Crear `development` (sin required reviewers). Agregar env vars `AWS_FRONTEND_DEPLOY_ROLE_ARN` y `CLOUDFRONT_DISTRIBUTION_ID` con valores de dev.
+   - Crear `production` (required reviewers = `@spark-match/frontend-devs` + `@spark-match/product-owners`). Agregar las mismas dos env vars con valores de prod.
 4. Actions tab -> Deploy dry run -> Run workflow en rama `dev`. Verificar logs.
 5. Si dry-run OK, push a `dev` dispara deploy automatico.
 6. Smoke test: `curl -I https://<distribution>.cloudfront.net/` debe devolver 200 con cache-control del HTML. Probar deep links `/home`, `/filters`, `/assessment` (no deben dar 404, el error response de CloudFront devuelve index.html con 200).
