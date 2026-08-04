@@ -1,4 +1,4 @@
-name: Deploy
+name: deploy
 
 on:
   push:
@@ -9,24 +9,28 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  id-token: write
+  contents: read
+  deployments: write
+
 jobs:
   deploy:
-    name: Deploy to ${{ github.ref_name }}
-    runs-on: ubuntu-latest
-    # TODO Fase 5+: re-add `needs: build` when this workflow is paired with ci.yml (or a dedicated build job).
+    name: deploy-${{ github.ref_name }}
+    uses: spark-match/spark-match-01-devops/.github/workflows/reusable-frontend-deploy.yml@main
+    with:
+      environment-name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+      aws-region: us-east-1
+      role-arn: ${{ secrets.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
+      working-directory: '.'
+      build-script: 'build --configuration=production'
+      node-version: '24'
+      bucket-name: ${{ github.ref_name == 'main' && 'spark-match-frontend-prod' || 'spark-match-frontend-dev' }}
+      distribution-id: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+      source-dir: 'dist/spark-match-frontend'
+      cache-control-hashed: 'public, max-age=31536000, immutable'
+      cache-control-html: 'no-cache, no-store, must-revalidate'
+      invalidation-paths: '/*'
     environment:
       name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
       url: ${{ steps.deploy.outputs.url }}
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-${{ github.ref_name }}
-          path: dist/
-
-      # TODO Fase 5+: deploy a S3 + CloudFront
-      - name: Deploy placeholder
-        id: deploy
-        run: |
-          printf '::notice::Deploy pending Fase 5 (Terraform + S3 + CloudFront)\n'
-          printf 'url=https://spark-match.example.com\n' >> "$GITHUB_OUTPUT"
