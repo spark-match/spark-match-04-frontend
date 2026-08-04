@@ -18,6 +18,7 @@ jobs:
     uses: spark-match/spark-match-01-devops/.github/workflows/reusable-frontend-deploy.yml@main
     with:
       environment-name: development
+      gh-environment: development
       aws-region: us-east-1
       role-arn: ${{ secrets.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
       working-directory: '.'
@@ -30,6 +31,3 @@ jobs:
       cache-control-html: 'no-cache, no-store, must-revalidate'
       invalidation-paths: '/*'
       dry-run: 'true'
-    environment:
-      name: development
-      url: ${{ steps.deploy.outputs.url }}

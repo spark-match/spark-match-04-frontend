@@ -20,6 +20,7 @@ jobs:
     uses: spark-match/spark-match-01-devops/.github/workflows/reusable-frontend-deploy.yml@main
     with:
       environment-name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+      gh-environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
       aws-region: us-east-1
       role-arn: ${{ secrets.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
       working-directory: '.'
@@ -31,6 +32,3 @@ jobs:
       cache-control-hashed: 'public, max-age=31536000, immutable'
       cache-control-html: 'no-cache, no-store, must-revalidate'
       invalidation-paths: '/*'
-    environment:
-      name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
-      url: ${{ steps.deploy.outputs.url }}
