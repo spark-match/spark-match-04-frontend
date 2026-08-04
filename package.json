@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "lint": "ng lint",
     "i18n:extract": "ng extract-i18n --output-path src/locale --format=xlf",
+    "test:ci": "ng test --watch=false --coverage",
     "predeploy:check": "node scripts/check-deploy.mjs",
     "predeploy:check:fast": "node scripts/check-deploy.mjs --skip-build"
   },

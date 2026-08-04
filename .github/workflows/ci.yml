@@ -58,7 +58,7 @@ jobs:
     with:
       environment-name: ci
       node-version: '24'
-      test-script: 'test -- --watch=false'
+      test-script: 'test:ci'
 
   build:
     name: production build
