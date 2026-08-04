@@ -18,19 +18,19 @@ jobs:
   # ─── ecosystem: read-only, no caller secrets ────────────────────────
   actionlint:
     name: actionlint
-    uses: spark-match/spark-match-01-devops/.github/workflows/actionlint.yml@main
+    uses: spark-match/spark-match-01-devops/.github/workflows/reusable-actionlint.yml@main
     with:
       environment-name: ci
 
   yamllint:
     name: yamllint
-    uses: spark-match/spark-match-01-devops/.github/workflows/yamllint.yml@main
+    uses: spark-match/spark-match-01-devops/.github/workflows/reusable-yamllint.yml@main
     with:
       environment-name: ci
 
   gitleaks:
     name: gitleaks
-    uses: spark-match/spark-match-01-devops/.github/workflows/gitleaks.yml@main
+    uses: spark-match/spark-match-01-devops/.github/workflows/reusable-gitleaks.yml@main
     with:
       environment-name: ci
     secrets:
@@ -39,7 +39,7 @@ jobs:
   # ─── node layer ─────────────────────────────────────────────────────
   eslint:
     name: eslint
-    uses: spark-match/spark-match-01-devops/.github/workflows/eslint.yml@main
+    uses: spark-match/spark-match-01-devops/.github/workflows/reusable-eslint.yml@main
     with:
       environment-name: ci
       node-version: '24'
@@ -47,31 +47,31 @@ jobs:
 
   typecheck:
     name: typecheck
-    uses: spark-match/spark-match-01-devops/.github/workflows/node-typecheck.yml@main
+    uses: spark-match/spark-match-01-devops/.github/workflows/reusable-node-typecheck.yml@main
     with:
       environment-name: ci
       node-version: '24'
 
   test:
     name: unit tests
-    uses: spark-match/spark-match-01-devops/.github/workflows/node-test.yml@main
+    uses: spark-match/spark-match-01-devops/.github/workflows/reusable-node-test.yml@main
     with:
       environment-name: ci
       node-version: '24'
-      test-script: 'test -- --watch=false'
+      test-script: 'test:ci'
 
   build:
     name: production build
-    uses: spark-match/spark-match-01-devops/.github/workflows/node-build.yml@main
+    uses: spark-match/spark-match-01-devops/.github/workflows/reusable-node-build.yml@main
     with:
       environment-name: ci
       node-version: '24'
-      build-script: 'build --configuration=production'
+      build-script: 'build:ci'
 
   # ─── sonarqube ──────────────────────────────────────────────────────
   sonar:
     name: SonarCloud
-    uses: spark-match/spark-match-01-devops/.github/workflows/sonar-typescript.yml@main
+    uses: spark-match/spark-match-01-devops/.github/workflows/reusable-sonar-typescript.yml@main
     with:
       project-key: ${{ vars.SONAR_PROJECT_KEY }}
       project-name: ${{ vars.SONAR_PROJECT_NAME }}
