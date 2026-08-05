@@ -22,13 +22,19 @@ jobs:
       environment-name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
       gh-environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
       aws-region: us-east-1
-      role-arn: ${{ vars.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
+      # Vars por ambiente con sufijo _DEV/_PROD: las vars de scope
+      # environment NO se resuelven en el with: de un reusable call
+      # (el environment se enlaza dentro del workflow llamado), asi que
+      # deben ser repo-level y elegirse por rama.
+      role-arn: ${{ github.ref_name == 'main' && vars.AWS_FRONTEND_DEPLOY_ROLE_ARN_PROD || vars.AWS_FRONTEND_DEPLOY_ROLE_ARN_DEV }}
       working-directory: '.'
       build-script: 'build:ci'
       node-version: '24'
       bucket-name: ${{ github.ref_name == 'main' && 'spark-match-frontend-prod' || 'spark-match-frontend-dev' }}
-      distribution-id: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
-      source-dir: 'dist/spark-match-frontend'
+      distribution-id: ${{ github.ref_name == 'main' && vars.CLOUDFRONT_DISTRIBUTION_ID_PROD || vars.CLOUDFRONT_DISTRIBUTION_ID_DEV }}
+      # Angular 22 (application builder) emite en dist/<proyecto>/browser/;
+      # sincronizar un nivel arriba subiria index.html a s3://bucket/browser/.
+      source-dir: 'dist/spark-match-frontend/browser'
       cache-control-hashed: 'public, max-age=31536000, immutable'
       cache-control-html: 'no-cache, no-store, must-revalidate'
       invalidation-paths: '/*'

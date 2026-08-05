@@ -20,13 +20,14 @@ jobs:
       environment-name: development
       gh-environment: development
       aws-region: us-east-1
-      role-arn: ${{ vars.AWS_FRONTEND_DEPLOY_ROLE_ARN }}
+      role-arn: ${{ vars.AWS_FRONTEND_DEPLOY_ROLE_ARN_DEV }}
       working-directory: '.'
       build-script: 'build:ci'
       node-version: '24'
       bucket-name: spark-match-frontend-dev
-      distribution-id: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
-      source-dir: 'dist/spark-match-frontend'
+      distribution-id: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID_DEV }}
+      # Angular 22 (application builder) emite en dist/<proyecto>/browser/.
+      source-dir: 'dist/spark-match-frontend/browser'
       cache-control-hashed: 'public, max-age=31536000, immutable'
       cache-control-html: 'no-cache, no-store, must-revalidate'
       invalidation-paths: '/*'
