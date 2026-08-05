@@ -1,11 +1,26 @@
 /**
- * Contrato INVENTADO a partir de los formularios de LoginPage/RegisterPage.
+ * Contrato real del backend (spark-match-03-backend).
+ *
+ * Fuente de verdad:
+ *   contexts/identity/src/schemas/login.schema.ts
+ *   contexts/identity/src/schemas/register.schema.ts
+ *
+ * Antes este archivo declaraba un contrato inventado a partir de los
+ * formularios, con `token` donde el backend devuelve `accessToken`. El efecto
+ * era silencioso y total: `localStorage` guardaba `undefined`, el guard dejaba
+ * pasar con ese token basura, y toda peticion autenticada respondia 401.
  */
 
+/**
+ * El backend solo devuelve id, email y fullName. `age`, `region` e
+ * `interestArea` se capturan en el formulario de registro pero todavia no se
+ * persisten ni se devuelven: quedan opcionales hasta que exista el endpoint de
+ * perfil extendido.
+ */
 export interface AuthUser {
   id: string;
-  fullName: string;
   email: string;
+  fullName: string;
   age?: number;
   region?: string;
   interestArea?: string;
@@ -25,8 +40,23 @@ export interface RegisterPayload {
   interestArea?: string;
 }
 
-export interface AuthResponse {
+/** POST /v1/auth/login */
+export interface LoginResponse {
+  accessToken: string;
+  /** Segundos de validez del accessToken. */
+  expiresIn: number;
   user: AuthUser;
-  /** JWT o token de sesión emitido por el backend. */
-  token: string;
+}
+
+/**
+ * POST /v1/auth/register -> 201.
+ *
+ * NO devuelve token: el registro no abre sesion. Despues de un registro
+ * exitoso hay que mandar al usuario a login.
+ */
+export interface RegisterResponse {
+  id: string;
+  email: string;
+  fullName: string;
+  createdAt: string;
 }

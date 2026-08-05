@@ -187,7 +187,13 @@ export class RegisterPage {
             interestArea: value.interestArea || undefined,
           }),
         );
-        await this.router.navigate(['/filters']);
+        // El registro no abre sesion: el backend responde 201 con el usuario
+        // creado y ningun token. Antes se navegaba a /filters, que esta detras
+        // del authGuard -- funcionaba solo porque el guard aceptaba el token
+        // basura que dejaba el contrato viejo.
+        await this.router.navigate(['/auth/login'], {
+          queryParams: { registered: value.email },
+        });
         return [];
       } catch {
         this.submitting.set(false);
