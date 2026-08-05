@@ -8,6 +8,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
+import { apiEnvelopeInterceptor } from './core/http/api-envelope.interceptor';
 import { errorInterceptor } from './core/http/error.interceptor';
 
 export const appConfig: ApplicationConfig = {
@@ -19,7 +20,12 @@ export const appConfig: ApplicationConfig = {
     // Rutas con transiciones suaves
     provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
 
-    // Cliente HTTP con los interceptores necesarios
-    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
+    // Cliente HTTP con los interceptores necesarios.
+    // apiEnvelopeInterceptor va ultimo a proposito: es el mas cercano a la red,
+    // asi desenvuelve el sobre { success, data, meta } del backend antes de que
+    // los otros interceptores (y los servicios) vean el cuerpo.
+    provideHttpClient(
+      withInterceptors([authInterceptor, errorInterceptor, apiEnvelopeInterceptor]),
+    ),
   ],
 };
