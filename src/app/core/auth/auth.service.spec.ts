@@ -43,30 +43,62 @@ describe('AuthService', () => {
         service.login({ email: 'nuevo@correo.com', password: 'secreto' }),
       );
 
-      expect(response.token).toMatch(/^mock-token-/);
+      expect(response.accessToken).toMatch(/^mock-token-/);
       expect(response.user.email).toBe('nuevo@correo.com');
-      expect(service.token()).toBe(response.token);
+      expect(service.token()).toBe(response.accessToken);
       expect(service.user()?.email).toBe('nuevo@correo.com');
+    });
+
+    // El backend devuelve `accessToken`, no `token`. Con el nombre viejo,
+    // localStorage guardaba undefined y toda peticion autenticada daba 401.
+    it('guarda el accessToken en localStorage, no undefined', async () => {
+      const response = await firstValueFrom(
+        service.login({ email: 'nuevo@correo.com', password: 'secreto' }),
+      );
+
+      expect(localStorage.getItem('spark-match:token')).toBe(response.accessToken);
+      expect(localStorage.getItem('spark-match:token')).not.toBe('undefined');
+    });
+
+    it('expone expiresIn del contrato del backend', async () => {
+      const response = await firstValueFrom(
+        service.login({ email: 'nuevo@correo.com', password: 'secreto' }),
+      );
+
+      expect(typeof response.expiresIn).toBe('number');
     });
   });
 
   describe('register', () => {
-    it('persists the response and exposes the new user', async () => {
-      const response = await firstValueFrom(
-        service.register({
-          fullName: 'Andrea Prueba',
-          email: 'andrea@correo.com',
-          password: 'secreto',
-          age: 17,
-          region: 'Arequipa',
-          interestArea: 'Ciencias',
-        }),
-      );
+    const payload = {
+      fullName: 'Andrea Prueba',
+      email: 'andrea@correo.com',
+      password: 'secreto',
+      age: 17,
+      region: 'Arequipa',
+      interestArea: 'Ciencias',
+    };
 
-      expect(response.token).toMatch(/^mock-token-/);
-      expect(response.user.fullName).toBe('Andrea Prueba');
-      expect(response.user.region).toBe('Arequipa');
-      expect(service.user()?.fullName).toBe('Andrea Prueba');
+    it('devuelve el usuario creado que responde el backend', async () => {
+      const response = await firstValueFrom(service.register(payload));
+
+      expect(response.id).toBeTruthy();
+      expect(response.email).toBe('andrea@correo.com');
+      expect(response.fullName).toBe('Andrea Prueba');
+      expect(response.createdAt).toBeTruthy();
+    });
+
+    // El registro responde 201 sin token: no abre sesion. La pagina redirige a
+    // login. Antes se persistia una sesion inventada y se navegaba a /filters.
+    it('no abre sesion ni toca el usuario actual', async () => {
+      const tokenAntes = service.token();
+      const userAntes = service.user();
+
+      await firstValueFrom(service.register(payload));
+
+      expect(service.token()).toBe(tokenAntes);
+      expect(service.user()).toBe(userAntes);
+      expect(service.user()?.fullName).not.toBe('Andrea Prueba');
     });
   });
 

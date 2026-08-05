@@ -5,10 +5,11 @@ import { delay } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import {
-  AuthResponse,
   AuthUser,
   LoginPayload,
+  LoginResponse,
   RegisterPayload,
+  RegisterResponse,
 } from '../../shared/models/user.model';
 
 const TOKEN_KEY = 'spark-match:token';
@@ -29,9 +30,9 @@ export class AuthService {
   // Mantenemos el computed para que el guard funcione correctamente al llamarlo auth.isAuthenticated()
   readonly isAuthenticated = computed(() => this._token() !== null);
 
-  login(payload: LoginPayload): Observable<AuthResponse> {
+  login(payload: LoginPayload): Observable<LoginResponse> {
     if (environment.useMocks) {
-      const response = this.buildMockResponse({
+      const response = this.buildMockLoginResponse({
         fullName: payload.email.split('@')[0],
         email: payload.email,
       });
@@ -41,27 +42,23 @@ export class AuthService {
       );
     }
     return this.http
-      .post<AuthResponse>(`${this.base}/login`, payload)
+      .post<LoginResponse>(`${this.base}/login`, payload)
       .pipe(tap((res) => this.persistSession(res)));
   }
 
-  register(payload: RegisterPayload): Observable<AuthResponse> {
+  /**
+   * El registro NO abre sesion: el backend devuelve 201 con el usuario creado
+   * y ningun token. La pagina que llama debe redirigir a login.
+   *
+   * `region` e `interestArea` se siguen enviando porque el formulario los pide,
+   * pero el schema del backend los ignora (zod descarta claves desconocidas).
+   * Cuando exista el endpoint de perfil extendido habra que persistirlos.
+   */
+  register(payload: RegisterPayload): Observable<RegisterResponse> {
     if (environment.useMocks) {
-      const response = this.buildMockResponse({
-        fullName: payload.fullName,
-        email: payload.email,
-        age: payload.age,
-        region: payload.region,
-        interestArea: payload.interestArea,
-      });
-      return of(response).pipe(
-        delay(600),
-        tap((res) => this.persistSession(res)),
-      );
+      return of(this.buildMockRegisterResponse(payload)).pipe(delay(600));
     }
-    return this.http
-      .post<AuthResponse>(`${this.base}/register`, payload)
-      .pipe(tap((res) => this.persistSession(res)));
+    return this.http.post<RegisterResponse>(`${this.base}/register`, payload);
   }
 
   logout(): void {
@@ -71,15 +68,19 @@ export class AuthService {
     this._user.set(null);
   }
 
-  private persistSession(response: AuthResponse): void {
-    localStorage.setItem(TOKEN_KEY, response.token);
+  private persistSession(response: LoginResponse): void {
+    localStorage.setItem(TOKEN_KEY, response.accessToken);
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-    this._token.set(response.token);
+    this._token.set(response.accessToken);
     this._user.set(response.user);
   }
 
-  private buildMockResponse(partial: Partial<AuthUser> & { email: string }): AuthResponse {
+  private buildMockLoginResponse(
+    partial: Partial<AuthUser> & { email: string },
+  ): LoginResponse {
     return {
+      accessToken: `mock-token-${crypto.randomUUID()}`,
+      expiresIn: 3600,
       user: {
         id: crypto.randomUUID(),
         fullName: partial.fullName ?? 'Usuario Spark Match',
@@ -88,7 +89,15 @@ export class AuthService {
         region: partial.region ?? 'Lima Metropolitana',
         interestArea: partial.interestArea ?? 'Tecnología e innovación',
       },
-      token: `mock-token-${crypto.randomUUID()}`,
+    };
+  }
+
+  private buildMockRegisterResponse(payload: RegisterPayload): RegisterResponse {
+    return {
+      id: crypto.randomUUID(),
+      email: payload.email,
+      fullName: payload.fullName,
+      createdAt: new Date().toISOString(),
     };
   }
 

@@ -12,7 +12,9 @@
         "@schematics/angular:component": {
           "style": "scss"
         },
-        "schematicCollections": ["angular-eslint"]
+        "schematicCollections": [
+          "angular-eslint"
+        ]
       },
       "root": "",
       "sourceRoot": "src",
@@ -30,8 +32,12 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.scss"],
-            "polyfills": ["@angular/localize/init"]
+            "styles": [
+              "src/styles.scss"
+            ],
+            "polyfills": [
+              "@angular/localize/init"
+            ]
           },
           "configurations": {
             "production": {
@@ -52,6 +58,27 @@
                 {
                   "replace": "src/environments/environment.ts",
                   "with": "src/environments/environment.production.ts"
+                }
+              ]
+            },
+            "cloud-dev": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kB",
+                  "maximumError": "8kB"
+                }
+              ],
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.cloud-dev.ts"
                 }
               ]
             },
@@ -79,7 +106,9 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "coverage": true,
-            "coverageReporters": ["lcov"],
+            "coverageReporters": [
+              "lcov"
+            ],
             "coverageThresholds": {
               "statements": 75,
               "branches": 80,
@@ -91,7 +120,10 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+            "lintFilePatterns": [
+              "src/**/*.ts",
+              "src/**/*.html"
+            ]
           }
         }
       }
