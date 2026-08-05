@@ -20,6 +20,7 @@
     "i18n:extract": "ng extract-i18n --output-path src/locale --format=xlf",
     "test:ci": "ng test --watch=false --coverage",
     "build:ci": "ng build --configuration=production",
+    "build:ci:dev": "ng build --configuration=cloud-dev",
     "predeploy:check": "node scripts/check-deploy.mjs",
     "predeploy:check:fast": "node scripts/check-deploy.mjs --skip-build"
   },
