@@ -6,7 +6,13 @@ import { environment } from '../../../environments/environment';
 import { AgUiClient } from '../../core/agent/ag-ui.client';
 import { stepLabel } from '../../core/agent/step-labels';
 import { RunAgentInput } from '../../core/agent/ag-ui.model';
-import { ChatMessage, ChatTurnHandlers, ThreadMessagesResponse } from './chat.model';
+import {
+  ChatMessage,
+  ChatThread,
+  ChatTurnHandlers,
+  ThreadMessagesResponse,
+  ThreadsResponse,
+} from './chat.model';
 
 const THREAD_STORAGE_KEY = 'spark-match:chat-thread';
 
@@ -45,6 +51,25 @@ export class ChatService {
     const fresh = crypto.randomUUID();
     localStorage.setItem(THREAD_STORAGE_KEY, fresh);
     return fresh;
+  }
+
+  /**
+   * Fija cuál es la conversación actual.
+   *
+   * La llama el chat cuando el id llega por la URL, para que volver a
+   * `/assessment` sin id caiga en la que se estaba mirando y no en otra.
+   */
+  rememberThread(threadId: string): void {
+    localStorage.setItem(THREAD_STORAGE_KEY, threadId);
+  }
+
+  /** Conversaciones del usuario, más recientes primero (las ordena el agente). */
+  listThreads(): Observable<ChatThread[]> {
+    if (environment.useMocks) return of([]);
+
+    return this.http
+      .get<ThreadsResponse>(`${environment.agentUrl}/threads`)
+      .pipe(map((response) => response.threads ?? []));
   }
 
   /** Historial de la conversacion, para repoblar el chat al recargar. */

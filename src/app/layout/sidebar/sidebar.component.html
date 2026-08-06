@@ -68,17 +68,19 @@
   @if (!collapsed()) {
     <div class="sidebar__recent" animate.enter="sidebar-section-in">
       <p class="sidebar__section-label">Recientes</p>
-      @for (chat of recentChats; track chat) {
-        <a class="sidebar__recent-item">
+      @for (chat of recentChats(); track chat.thread_id) {
+        <button type="button" class="sidebar__recent-item" (click)="openChat(chat.thread_id)">
           <span class="sidebar__recent-title">{{ chat.title }}</span>
-          <span class="sidebar__recent-when">{{ chat.when }}</span>
-        </a>
+          <span class="sidebar__recent-when">{{ whenLabel(chat.updated_at) }}</span>
+        </button>
+      } @empty {
+        <p class="sidebar__recent-empty">Aún no tienes conversaciones.</p>
       }
     </div>
   }
 
   @if (!collapsed()) {
-    <button type="button" class="sidebar__new-chat">
+    <button type="button" class="sidebar__new-chat" (click)="newChat()">
       <span>+</span> Nuevo chat
     </button>
   }

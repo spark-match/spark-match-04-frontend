@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { BehaviorSubject, of, throwError } from 'rxjs';
 
 import { ChatComponent } from './chat.component';
 import { ChatService } from './chat.service';
@@ -9,6 +9,7 @@ import { FiltersService } from '../filters/filters.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ChatMessage, ChatTurnHandlers } from './chat.model';
 import { AgentStreamError } from '../../core/agent/ag-ui.client';
+import { ChatSessionsStore } from './chat-sessions.store';
 
 /**
  * El turno no devuelve un valor: emite pasos, arranca la respuesta y va
@@ -29,9 +30,13 @@ describe('ChatComponent', () => {
   let chatStub: {
     currentThreadId: ReturnType<typeof vi.fn>;
     startNewThread: ReturnType<typeof vi.fn>;
+    rememberThread: ReturnType<typeof vi.fn>;
     loadHistory: ReturnType<typeof vi.fn>;
     sendTurn: ReturnType<typeof vi.fn>;
   };
+  let sessionsStub: { refresh: ReturnType<typeof vi.fn> };
+  /** El :threadId de la URL. Un BehaviorSubject para poder cambiarlo en vivo. */
+  let params: BehaviorSubject<Map<string, string>>;
   let authStub: { logout: ReturnType<typeof vi.fn> };
   let filtersStub: { currentFilters: ReturnType<typeof signal> };
 
@@ -46,6 +51,11 @@ describe('ChatComponent', () => {
         { provide: ChatService, useValue: chatStub },
         { provide: FiltersService, useValue: filtersStub },
         { provide: AuthService, useValue: authStub },
+        { provide: ChatSessionsStore, useValue: sessionsStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { paramMap: params.asObservable() },
+        },
       ],
     }).compileComponents();
 
@@ -55,9 +65,12 @@ describe('ChatComponent', () => {
   }
 
   beforeEach(async () => {
+    params = new BehaviorSubject(new Map<string, string>());
+    sessionsStub = { refresh: vi.fn() };
     chatStub = {
       currentThreadId: vi.fn().mockReturnValue('thread-1'),
       startNewThread: vi.fn().mockReturnValue('thread-2'),
+      rememberThread: vi.fn(),
       loadHistory: vi.fn().mockReturnValue(of([])),
       sendTurn: turnThatStreams(['Pensando…'], ['Hola', ' de nuevo']),
     };
@@ -209,6 +222,59 @@ describe('ChatComponent', () => {
       await failWith(new AgentStreamError('network', 'offline'));
 
       expect(component.sending()).toBe(false);
+    });
+  });
+
+  describe('switching conversations', () => {
+    it('uses the id from the URL when there is one', async () => {
+      params.next(new Map([['threadId', 'de-la-url']]));
+      TestBed.resetTestingModule();
+      await build();
+
+      expect(chatStub.loadHistory).toHaveBeenCalledWith('de-la-url');
+    });
+
+    it('falls back to the last conversation when the URL has no id', () => {
+      expect(chatStub.loadHistory).toHaveBeenCalledWith('thread-1');
+    });
+
+    it('reloads when the URL changes without remounting the component', () => {
+      // La misma instancia sirve /assessment y /assessment/:threadId, asi que
+      // cambiar de conversacion desde el sidebar NO vuelve a llamar ngOnInit.
+      // Leyendo el snapshot una sola vez, el chat se quedaria en el hilo viejo.
+      chatStub.loadHistory.mockReturnValue(
+        of([
+          {
+            id: 'x',
+            role: 'ai' as const,
+            text: 'otra conversación',
+            timestamp: '2026-08-05T12:00:00.000Z',
+          },
+        ]),
+      );
+
+      params.next(new Map([['threadId', 'otro-hilo']]));
+
+      expect(chatStub.loadHistory).toHaveBeenCalledWith('otro-hilo');
+      expect(component.messages().map((m) => m.text)).toEqual(['otra conversación']);
+    });
+
+    it('remembers the opened conversation so returning without an id lands here', () => {
+      params.next(new Map([['threadId', 'de-la-url']]));
+
+      expect(chatStub.rememberThread).toHaveBeenCalledWith('de-la-url');
+    });
+
+    it('refreshes the sidebar after a turn, not before', async () => {
+      // El indice del agente se escribe al procesar el turno: pedir la lista
+      // antes devolveria una conversacion nueva que todavia no existe.
+      expect(sessionsStub.refresh).not.toHaveBeenCalled();
+
+      component.draft = 'hola';
+      component.send();
+      await fixture.whenStable();
+
+      expect(sessionsStub.refresh).toHaveBeenCalledOnce();
     });
   });
 

@@ -44,3 +44,16 @@ export interface ChatTurnHandlers {
   onAnswerStart(): void;
   onDelta(delta: string): void;
 }
+
+/** Una conversación en la lista del sidebar (`GET /threads` del agente). */
+export interface ChatThread {
+  /** El id del lado del cliente: con el se reabre la conversación. */
+  thread_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ThreadsResponse {
+  threads: ChatThread[];
+}
