@@ -26,7 +26,11 @@
           <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
         }
         <div class="chat__bubble">
-          <p>{{ msg.text }}@if (msg.streaming) {<span class="chat__caret" aria-hidden="true"></span>}</p>
+          <div
+            class="chat__text prose"
+            [class.chat__text--streaming]="msg.streaming"
+            [innerHTML]="msg.text | markdown"
+          ></div>
           @if (!msg.streaming) {
             <span class="chat__time">{{ timeLabel(msg.timestamp) }}</span>
           }

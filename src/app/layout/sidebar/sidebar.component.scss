@@ -113,16 +113,32 @@
   margin-bottom: 0.75rem;
 }
 
+// Es un <button> y ya no un <a>: ahora abre una conversacion, no navega a
+// una URL. Eso obliga a resetear lo que el navegador le pone por defecto
+// (borde, fondo, fuente y texto centrado), que antes no hacia falta.
 .sidebar__recent-item {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
   padding: 0.4rem 0.7rem;
+  border: 0;
   border-radius: var(--radius);
+  background: none;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 
   &:hover {
     background: oklch(1 0 0 / 0.06);
   }
+}
+
+.sidebar__recent-empty {
+  margin: 0;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--sidebar-muted);
 }
 
 .sidebar__recent-title {
