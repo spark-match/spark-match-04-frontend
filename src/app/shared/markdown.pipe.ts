@@ -10,7 +10,7 @@ import { marked } from 'marked';
  *
  *   **Opción 1 - Assessment completo (recomendado):** Puedo guiarte a través
  *
- * asteriscos incluidos y todo aplastado en un solo párrafo.
+ * asteriscos incluidos, y la lista aplastada en un solo párrafo.
  *
  * Sobre la seguridad: el HTML que sale de aquí se enlaza con `[innerHTML]`,
  * que en Angular pasa SIEMPRE por `DomSanitizer` en `SecurityContext.HTML`
