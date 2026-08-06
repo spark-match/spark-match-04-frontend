@@ -127,7 +127,7 @@ export class ChatService {
           // Se cierra con el RESULT y no con TOOL_CALL_END: END puede llegar
           // en cuanto el modelo termina de dictar los argumentos, antes de
           // que la herramienta se haya ejecutado.
-          handlers.onToolEnd(String(event['toolCallId'] ?? ''));
+          handlers.onToolEnd(event.toolCallId ?? '');
           break;
         case 'TEXT_MESSAGE_START':
           handlers.onAnswerStart();

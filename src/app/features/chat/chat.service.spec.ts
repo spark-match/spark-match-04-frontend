@@ -162,6 +162,15 @@ describe('ChatService', () => {
       expect(toolsStarted[0].label).toBe('Consultando a un especialista…');
     });
 
+    it('tolerates a tool event with no id', async () => {
+      agent.events = [{ type: 'TOOL_CALL_START', toolCallName: 'web_search' }];
+      const { handlers, toolsStarted } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolsStarted[0].id).toBe('');
+    });
+
     it('never leaks the name of a tool it does not know', async () => {
       agent.events = [
         { type: 'TOOL_CALL_START', toolCallId: 'tc-2', toolCallName: 'herramienta_secreta_v2' },
@@ -191,13 +200,77 @@ describe('ChatService', () => {
     });
   });
 
-  describe('loadHistory', () => {
-    it('maps the agent roles onto the chat bubbles', async () => {
-      // El servicio no llama al agente cuando los mocks estan encendidos,
-      // que es el default de `environment.ts` usado en tests.
+  describe('with mocks enabled (the default of environment.ts in tests)', () => {
+    it('does not call the agent at all', async () => {
       expect(environment.useMocks).toBe(true);
 
       expect(await firstValueFrom(service.loadHistory('t-1'))).toEqual([]);
+      expect(await firstValueFrom(service.listThreads())).toEqual([]);
+    });
+  });
+
+  describe('against the real agent', () => {
+    // Los caminos HTTP son los que corren en produccion, y con useMocks=true
+    // ningun test los tocaba. Se apaga la bandera aqui y se restaura despues.
+    let http: HttpTestingController;
+
+    beforeEach(() => {
+      environment.useMocks = false;
+      http = TestBed.inject(HttpTestingController);
+    });
+
+    afterEach(() => {
+      environment.useMocks = true;
+    });
+
+    it('maps the agent roles onto the chat bubbles', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http.expectOne(`${environment.agentUrl}/threads/t-1/messages`).flush({
+        thread_id: 't-1',
+        messages: [
+          { id: 'm1', role: 'user', content: 'hola' },
+          { id: 'm2', role: 'assistant', content: 'qué tal' },
+        ],
+      });
+
+      expect((await history).map((m) => m.role)).toEqual(['user', 'ai']);
+    });
+
+    it('gives a message an id when the agent did not persist one', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http
+        .expectOne(`${environment.agentUrl}/threads/t-1/messages`)
+        .flush({ thread_id: 't-1', messages: [{ id: null, role: 'user', content: 'hola' }] });
+
+      expect((await history)[0].id).toBeTruthy();
+    });
+
+    it('survives a response with no messages field', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http.expectOne(`${environment.agentUrl}/threads/t-1/messages`).flush({ thread_id: 't-1' });
+
+      expect(await history).toEqual([]);
+    });
+
+    it('lists the threads', async () => {
+      const threads = firstValueFrom(service.listThreads());
+
+      http.expectOne(`${environment.agentUrl}/threads`).flush({
+        threads: [{ thread_id: 'a', title: 'una', created_at: 'x', updated_at: 'x' }],
+      });
+
+      expect((await threads).map((t) => t.thread_id)).toEqual(['a']);
+    });
+
+    it('survives a thread listing with no threads field', async () => {
+      const threads = firstValueFrom(service.listThreads());
+
+      http.expectOne(`${environment.agentUrl}/threads`).flush({});
+
+      expect(await threads).toEqual([]);
     });
   });
 
