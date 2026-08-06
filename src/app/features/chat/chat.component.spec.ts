@@ -39,7 +39,10 @@ describe('ChatComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ChatComponent],
       providers: [
-        provideRouter([]),
+        // La ruta de login tiene que existir: el componente navega ahi cuando
+        // el token vence, y con un router vacio esa navegacion rechaza fuera
+        // de la promesa del test (unhandled rejection, no fallo visible).
+        provideRouter([{ path: 'auth/login', children: [] }]),
         { provide: ChatService, useValue: chatStub },
         { provide: FiltersService, useValue: filtersStub },
         { provide: AuthService, useValue: authStub },
