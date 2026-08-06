@@ -1,8 +1,9 @@
 /**
- * Contrato INVENTADO para el chat de orientación (mockup "Orientador IA").
- * Cuando el backend conecte con Amazon Bedrock, probablemente el mensaje del
- * asistente venga por streaming (SSE) en vez de un único ChatMessage; en ese
- * caso solo cambia la implementación interna de ChatService.sendMessage().
+ * Contrato del chat de orientación.
+ *
+ * Ya no es inventado: `ChatMessage` es lo que devuelve el agente en
+ * `GET /threads/{id}/messages`, y el turno en vivo llega por SSE desde
+ * `POST /ag-ui` (ver `src/app/core/agent/`).
  */
 import { OrientationFilters } from '../filters/filters.model';
 
@@ -16,10 +17,30 @@ export interface ChatMessage {
   timestamp: string;
   /** Indica que el agente terminó su propuesta de carreras y habilita la valoración. */
   isFinalRecommendation?: boolean;
+  /** Marca la burbuja que se está escribiendo ahora mismo, token a token. */
+  streaming?: boolean;
 }
 
 export interface ChatSession {
   id: string;
   filters: OrientationFilters | null;
   messages: ChatMessage[];
+}
+
+/** Forma de `GET /threads/{id}/messages` en el agente. */
+export interface ThreadMessagesResponse {
+  thread_id: string;
+  messages: { id?: string | null; role: string; content: string }[];
+}
+
+/**
+ * Lo que pasa durante un turno, separado por tipo de evento.
+ *
+ * `onStep` puede dispararse varias veces antes de `onAnswerStart`: son los
+ * pasos intermedios que el agente va anunciando mientras piensa.
+ */
+export interface ChatTurnHandlers {
+  onStep(label: string): void;
+  onAnswerStart(): void;
+  onDelta(delta: string): void;
 }
