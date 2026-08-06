@@ -5,6 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AgUiClient } from '../../core/agent/ag-ui.client';
 import { stepLabel } from '../../core/agent/step-labels';
+import { toolLabel } from '../../core/agent/tool-labels';
 import { RunAgentInput } from '../../core/agent/ag-ui.model';
 import {
   ChatMessage,
@@ -114,6 +115,20 @@ export class ChatService {
           if (label) handlers.onStep(label);
           break;
         }
+        case 'TOOL_CALL_START':
+          // toolCallName es el nombre de la funcion en el agente; toolLabel
+          // lo traduce y nunca lo deja pasar crudo al navegador.
+          handlers.onToolStart(
+            String(event['toolCallId'] ?? ''),
+            toolLabel(event['toolCallName'] as string),
+          );
+          break;
+        case 'TOOL_CALL_RESULT':
+          // Se cierra con el RESULT y no con TOOL_CALL_END: END puede llegar
+          // en cuanto el modelo termina de dictar los argumentos, antes de
+          // que la herramienta se haya ejecutado.
+          handlers.onToolEnd(String(event['toolCallId'] ?? ''));
+          break;
         case 'TEXT_MESSAGE_START':
           handlers.onAnswerStart();
           break;

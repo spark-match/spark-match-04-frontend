@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ChatService } from './chat.service';
 import { FiltersService } from '../filters/filters.service';
-import { ChatMessage } from './chat.model';
+import { ChatActivity, ChatMessage } from './chat.model';
 import { AgentStreamError, agentErrorMessage } from '../../core/agent/ag-ui.client';
 import { INITIAL_STEP_LABEL } from '../../core/agent/step-labels';
 import { AuthService } from '../../core/auth/auth.service';
@@ -41,6 +41,8 @@ export class ChatComponent implements OnInit, OnDestroy {
   readonly messages = signal<ChatMessage[]>([]);
   /** Lo que el agente está haciendo ahora mismo; null cuando ya escribe. */
   readonly currentStep = signal<string | null>(null);
+  /** Herramientas del turno en curso: búsquedas web, catálogo, subagentes. */
+  readonly activities = signal<ChatActivity[]>([]);
   readonly errorMessage = signal<string | null>(null);
   readonly showRecommendationRating = signal(false);
   readonly rating = signal(0);
@@ -114,6 +116,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.draft = '';
     this.sending.set(true);
     this.currentStep.set(INITIAL_STEP_LABEL);
+    this.activities.set([]);
 
     void this.runTurn(text);
   }
@@ -144,6 +147,17 @@ export class ChatComponent implements OnInit, OnDestroy {
           onDelta: (delta) => {
             if (answerId) this.appendDelta(answerId, delta);
           },
+          onToolStart: (toolCallId, label) => {
+            // El paso genérico deja de aportar en cuanto se puede decir algo
+            // concreto ("Buscando en internet…" en vez de "Pensando…").
+            this.currentStep.set(null);
+            this.activities.update((list) => [...list, { id: toolCallId, label, running: true }]);
+          },
+          onToolEnd: (toolCallId) => {
+            this.activities.update((list) =>
+              list.map((a) => (a.id === toolCallId ? { ...a, running: false } : a)),
+            );
+          },
         },
         this.abort.signal,
       );
@@ -155,7 +169,9 @@ export class ChatComponent implements OnInit, OnDestroy {
       this.abort = null;
       this.sending.set(false);
       this.currentStep.set(null);
+      if (answerId) this.attachActivities(answerId);
       if (answerId) this.finishStreaming(answerId);
+      this.activities.set([]);
       // El indice del agente se escribe al procesar el turno, asi que la
       // lista del sidebar solo es correcta despues de esto: una conversacion
       // nueva no existe hasta su primer mensaje, y una vieja cambia de
@@ -185,6 +201,21 @@ export class ChatComponent implements OnInit, OnDestroy {
   private appendDelta(id: string, delta: string): void {
     this.messages.update((msgs) =>
       msgs.map((msg) => (msg.id === id ? { ...msg, text: msg.text + delta } : msg)),
+    );
+  }
+
+  /**
+   * Pega al mensaje las herramientas que se usaron para producirlo.
+   *
+   * Se hace al cerrar el turno y no mientras corre, porque durante el turno
+   * la lista se pinta aparte (encima del texto que se está escribiendo) y
+   * duplicarla en los dos sitios se vería dos veces.
+   */
+  private attachActivities(id: string): void {
+    const used = this.activities().map((a) => ({ ...a, running: false }));
+    if (!used.length) return;
+    this.messages.update((msgs) =>
+      msgs.map((msg) => (msg.id === id ? { ...msg, activities: used } : msg)),
     );
   }
 

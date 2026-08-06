@@ -213,3 +213,44 @@ h3,
     border-top: 1px solid var(--border);
   }
 }
+
+/* =============================================================================
+ * .chat__activities - herramientas que el agente uso en el turno
+ * ============================================================================= */
+.chat__activities {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  color: oklch(0.5 0.02 240);
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.1rem 0;
+
+    /* Marca de completado. Un check y no un icono cargado, para que la fila
+       se lea como una nota al margen y no compita con la respuesta. */
+    &::before {
+      content: '✓';
+      font-size: 0.85em;
+      color: var(--teal-glow);
+    }
+  }
+
+  /* Mientras corre, el punto late en vez del check ya conseguido. */
+  li.chat__activity--running::before {
+    content: '•';
+    animation: chat-typing 1s infinite;
+  }
+}
+
+/* Cuando ya forman parte del mensaje, van mas apagadas: son procedencia,
+   no la respuesta. */
+.chat__activities--done {
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dashed var(--border);
+  opacity: 0.75;
+}
