@@ -26,16 +26,28 @@
           <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
         }
         <div class="chat__bubble">
-          <p>{{ msg.text }}</p>
-          <span class="chat__time">{{ timeLabel(msg.timestamp) }}</span>
+          <p>{{ msg.text }}@if (msg.streaming) {<span class="chat__caret" aria-hidden="true"></span>}</p>
+          @if (!msg.streaming) {
+            <span class="chat__time">{{ timeLabel(msg.timestamp) }}</span>
+          }
         </div>
       </div>
     }
 
-    @if (sending()) {
+    @if (currentStep(); as step) {
       <div class="chat__bubble-row">
         <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
-        <div class="chat__bubble chat__bubble--typing"><span></span><span></span><span></span></div>
+        <div class="chat__bubble chat__bubble--step">
+          <span class="chat__bubble--typing"><span></span><span></span><span></span></span>
+          <span class="chat__time" aria-live="polite">{{ step }}</span>
+        </div>
+      </div>
+    }
+
+    @if (errorMessage(); as error) {
+      <div class="chat__error" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" aria-label="Descartar aviso" (click)="dismissError()">×</button>
       </div>
     }
 
@@ -49,7 +61,7 @@
       (keyup.enter)="send()"
       class="chat__input"
     />
-    <button type="button" class="chat__send" (click)="send()" [disabled]="!draft.trim()">
+    <button type="button" class="chat__send" (click)="send()" [disabled]="!draft.trim() || sending()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12l16-8-6 8 6 8-16-8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
     </button>
   </footer>
