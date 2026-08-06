@@ -122,3 +122,30 @@ h3,
 .mb-3 {
   margin-bottom: 1.5rem;
 }
+
+/* =============================================================================
+ * .prose - texto en markdown generado por el agente
+ * =============================================================================
+ * El agente escribe en markdown y la app lo convierte a HTML (MarkdownPipe).
+ * Sin estos margenes el navegador separa listas y encabezados como si fueran
+ * una pagina de documentacion, no un mensaje de chat.
+ *
+ * Vive aqui y no en el componente del chat porque cualquier vista que muestre
+ * texto del agente lo va a necesitar igual.
+ * ========================================================================== */
+.prose {
+  :first-child { margin-top: 0; }
+  :last-child { margin-bottom: 0; }
+
+  p, ul, ol { margin: 0 0 0.5rem; }
+  ul, ol { padding-left: 1.15rem; }
+  li { margin-bottom: 0.15rem; }
+  h1, h2, h3 { margin: 0.6rem 0 0.35rem; font-size: 1rem; }
+
+  code {
+    padding: 0.05rem 0.25rem;
+    border-radius: 0.25rem;
+    background: oklch(0.93 0.01 240);
+    font-size: 0.85em;
+  }
+}

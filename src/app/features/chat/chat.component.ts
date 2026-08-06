@@ -1,12 +1,15 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ChatService } from './chat.service';
 import { FiltersService } from '../filters/filters.service';
 import { ChatMessage } from './chat.model';
 import { AgentStreamError, agentErrorMessage } from '../../core/agent/ag-ui.client';
 import { INITIAL_STEP_LABEL } from '../../core/agent/step-labels';
 import { AuthService } from '../../core/auth/auth.service';
+import { MarkdownPipe } from '../../shared/markdown.pipe';
+import { ChatSessionsStore } from './chat-sessions.store';
+import { Subscription } from 'rxjs';
 
 const WELCOME_TEXT =
   '¡Hola! Soy tu orientador vocacional con IA. Usamos datos oficiales de Ponte en Carrera ' +
@@ -16,7 +19,7 @@ const WELCOME_TEXT =
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, MarkdownPipe],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.scss',
 })
@@ -25,9 +28,12 @@ export class ChatComponent implements OnInit, OnDestroy {
   private readonly filtersService = inject(FiltersService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly sessions = inject(ChatSessionsStore);
 
   private threadId = '';
   private abort: AbortController | null = null;
+  private routeSub: Subscription | null = null;
 
   draft = '';
   readonly sending = signal(false);
@@ -50,9 +56,37 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.threadId = this.chatService.currentThreadId();
+    // Por paramMap y no leyendo el snapshot una vez: la misma instancia del
+    // componente sirve `/assessment` y `/assessment/:threadId`, asi que
+    // cambiar de conversación desde el sidebar NO vuelve a llamar a ngOnInit.
+    // Con el snapshot, el chat se quedaría mostrando el hilo anterior.
+    this.routeSub = this.route.paramMap.subscribe((params) => {
+      this.openThread(params.get('threadId') ?? this.chatService.currentThreadId());
+    });
+  }
 
-    this.chatService.loadHistory(this.threadId).subscribe({
+  ngOnDestroy(): void {
+    this.routeSub?.unsubscribe();
+    // Sin esto, salir de la pantalla a mitad de respuesta deja al agente
+    // generando contra un lector que ya no existe.
+    this.abort?.abort();
+  }
+
+  private openThread(threadId: string): void {
+    // Cambiar de conversación cancela lo que quedara corriendo de la
+    // anterior; si no, sus tokens seguirían llegando a la pantalla nueva.
+    this.abort?.abort();
+    this.abort = null;
+    this.sending.set(false);
+    this.currentStep.set(null);
+    this.errorMessage.set(null);
+
+    this.threadId = threadId;
+    this.chatService.rememberThread(threadId);
+    this.loadingSession.set(true);
+    this.messages.set([]);
+
+    this.chatService.loadHistory(threadId).subscribe({
       next: (history) => {
         this.messages.set(history.length ? history : [welcomeMessage()]);
         this.loadingSession.set(false);
@@ -64,12 +98,6 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.loadingSession.set(false);
       },
     });
-  }
-
-  ngOnDestroy(): void {
-    // Sin esto, salir de la pantalla a mitad de respuesta deja al agente
-    // generando contra un lector que ya no existe.
-    this.abort?.abort();
   }
 
   send(): void {
@@ -128,6 +156,11 @@ export class ChatComponent implements OnInit, OnDestroy {
       this.sending.set(false);
       this.currentStep.set(null);
       if (answerId) this.finishStreaming(answerId);
+      // El indice del agente se escribe al procesar el turno, asi que la
+      // lista del sidebar solo es correcta despues de esto: una conversacion
+      // nueva no existe hasta su primer mensaje, y una vieja cambia de
+      // posicion al retomarla.
+      this.sessions.refresh();
     }
   }
 
