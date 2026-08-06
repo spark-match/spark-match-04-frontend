@@ -220,6 +220,24 @@ describe('ChatComponent', () => {
       expect(stepWhenToolStarted).toEqual([null]);
     });
 
+    it('renders the activity list in the bubble, not just in memory', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        handlers.onToolEnd('tc-1');
+        handlers.onAnswerStart();
+        handlers.onDelta('listo');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const rendered = fixture.nativeElement.querySelectorAll('.chat__activities--done li');
+      expect(rendered.length).toBe(1);
+      expect(rendered[0].textContent).toContain('Buscando en internet');
+    });
+
     it('does not attach an activity list to an answer that used no tools', async () => {
       component.draft = 'hola';
 
