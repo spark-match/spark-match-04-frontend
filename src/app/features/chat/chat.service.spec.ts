@@ -23,6 +23,8 @@ class FakeAgUiClient {
 function recordingHandlers() {
   const steps: string[] = [];
   const deltas: string[] = [];
+  const toolsStarted: { id: string; label: string }[] = [];
+  const toolsEnded: string[] = [];
   let started = 0;
   const handlers: ChatTurnHandlers = {
     onStep: (label) => steps.push(label),
@@ -30,8 +32,10 @@ function recordingHandlers() {
       started += 1;
     },
     onDelta: (delta) => deltas.push(delta),
+    onToolStart: (id, label) => toolsStarted.push({ id, label }),
+    onToolEnd: (id) => toolsEnded.push(id),
   };
-  return { handlers, steps, deltas, startedCount: () => started };
+  return { handlers, steps, deltas, toolsStarted, toolsEnded, startedCount: () => started };
 }
 
 describe('ChatService', () => {
@@ -117,6 +121,68 @@ describe('ChatService', () => {
       expect(input.messages[0].content).toBe('me gustan las matemáticas');
     });
 
+    it('announces a web search in words, never the function name', async () => {
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-1', toolCallName: 'web_search' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'tc-1', delta: '{"query": "carreras"' },
+        { type: 'TOOL_CALL_END', toolCallId: 'tc-1' },
+        { type: 'TOOL_CALL_RESULT', toolCallId: 'tc-1', content: '[...]' },
+      ];
+      const { handlers, toolsStarted, toolsEnded } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolsStarted).toEqual([{ id: 'tc-1', label: 'Buscando en internet…' }]);
+      expect(toolsEnded).toEqual(['tc-1']);
+    });
+
+    it('closes a tool on its RESULT, not on TOOL_CALL_END', async () => {
+      // END llega en cuanto el modelo termina de dictar los argumentos, antes
+      // de que la herramienta se haya ejecutado: cerrarla ahi mostraria como
+      // terminada una busqueda que aun no empezo.
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-1', toolCallName: 'web_search' },
+        { type: 'TOOL_CALL_END', toolCallId: 'tc-1' },
+      ];
+      const { handlers, toolsEnded } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolsEnded).toEqual([]);
+    });
+
+    it('shows subagent delegation as a tool call named task', async () => {
+      // ag_ui_langgraph no tiene eventos de subagente: deepagents expone la
+      // delegacion como una tool normal llamada `task`.
+      agent.events = [{ type: 'TOOL_CALL_START', toolCallId: 'tc-9', toolCallName: 'task' }];
+      const { handlers, toolsStarted } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolsStarted[0].label).toBe('Consultando a un especialista…');
+    });
+
+    it('tolerates a tool event with no id', async () => {
+      agent.events = [{ type: 'TOOL_CALL_START', toolCallName: 'web_search' }];
+      const { handlers, toolsStarted } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolsStarted[0].id).toBe('');
+    });
+
+    it('never leaks the name of a tool it does not know', async () => {
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-2', toolCallName: 'herramienta_secreta_v2' },
+      ];
+      const { handlers, toolsStarted } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolsStarted[0].label).toBe('Usando una herramienta…');
+      expect(toolsStarted[0].label).not.toContain('herramienta_secreta_v2');
+    });
+
     it('surfaces a RUN_ERROR instead of ending the turn silently', async () => {
       agent.events = [{ type: 'RUN_ERROR', message: 'boom' }];
       const { handlers } = recordingHandlers();
@@ -134,13 +200,77 @@ describe('ChatService', () => {
     });
   });
 
-  describe('loadHistory', () => {
-    it('maps the agent roles onto the chat bubbles', async () => {
-      // El servicio no llama al agente cuando los mocks estan encendidos,
-      // que es el default de `environment.ts` usado en tests.
+  describe('with mocks enabled (the default of environment.ts in tests)', () => {
+    it('does not call the agent at all', async () => {
       expect(environment.useMocks).toBe(true);
 
       expect(await firstValueFrom(service.loadHistory('t-1'))).toEqual([]);
+      expect(await firstValueFrom(service.listThreads())).toEqual([]);
+    });
+  });
+
+  describe('against the real agent', () => {
+    // Los caminos HTTP son los que corren en produccion, y con useMocks=true
+    // ningun test los tocaba. Se apaga la bandera aqui y se restaura despues.
+    let http: HttpTestingController;
+
+    beforeEach(() => {
+      environment.useMocks = false;
+      http = TestBed.inject(HttpTestingController);
+    });
+
+    afterEach(() => {
+      environment.useMocks = true;
+    });
+
+    it('maps the agent roles onto the chat bubbles', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http.expectOne(`${environment.agentUrl}/threads/t-1/messages`).flush({
+        thread_id: 't-1',
+        messages: [
+          { id: 'm1', role: 'user', content: 'hola' },
+          { id: 'm2', role: 'assistant', content: 'qué tal' },
+        ],
+      });
+
+      expect((await history).map((m) => m.role)).toEqual(['user', 'ai']);
+    });
+
+    it('gives a message an id when the agent did not persist one', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http
+        .expectOne(`${environment.agentUrl}/threads/t-1/messages`)
+        .flush({ thread_id: 't-1', messages: [{ id: null, role: 'user', content: 'hola' }] });
+
+      expect((await history)[0].id).toBeTruthy();
+    });
+
+    it('survives a response with no messages field', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http.expectOne(`${environment.agentUrl}/threads/t-1/messages`).flush({ thread_id: 't-1' });
+
+      expect(await history).toEqual([]);
+    });
+
+    it('lists the threads', async () => {
+      const threads = firstValueFrom(service.listThreads());
+
+      http.expectOne(`${environment.agentUrl}/threads`).flush({
+        threads: [{ thread_id: 'a', title: 'una', created_at: 'x', updated_at: 'x' }],
+      });
+
+      expect((await threads).map((t) => t.thread_id)).toEqual(['a']);
+    });
+
+    it('survives a thread listing with no threads field', async () => {
+      const threads = firstValueFrom(service.listThreads());
+
+      http.expectOne(`${environment.agentUrl}/threads`).flush({});
+
+      expect(await threads).toEqual([]);
     });
   });
 

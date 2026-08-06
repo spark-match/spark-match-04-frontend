@@ -176,6 +176,78 @@ describe('ChatComponent', () => {
     });
   });
 
+  describe('showing what the agent is doing', () => {
+    it('lists the tools live and keeps them on the answer afterwards', async () => {
+      // Saber que la respuesta salio de una busqueda en internet importa
+      // despues de leerla, no solo mientras se genera.
+      const seenDuringTurn: string[][] = [];
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        seenDuringTurn.push(component.activities().map((a) => a.label));
+        handlers.onToolEnd('tc-1');
+        handlers.onAnswerStart();
+        handlers.onDelta('listo');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(seenDuringTurn[0]).toEqual(['Buscando en internet…']);
+      expect(
+        component
+          .messages()
+          .at(-1)
+          ?.activities?.map((a) => a.label),
+      ).toEqual(['Buscando en internet…']);
+      // La lista en vivo se limpia: si no, saldria duplicada junto a la que
+      // ya quedo pegada al mensaje.
+      expect(component.activities()).toEqual([]);
+    });
+
+    it('replaces the generic step as soon as it can say something concrete', async () => {
+      const stepWhenToolStarted: (string | null)[] = [];
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onStep('Pensando…');
+        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        stepWhenToolStarted.push(component.currentStep());
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(stepWhenToolStarted).toEqual([null]);
+    });
+
+    it('renders the activity list in the bubble, not just in memory', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        handlers.onToolEnd('tc-1');
+        handlers.onAnswerStart();
+        handlers.onDelta('listo');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const rendered = fixture.nativeElement.querySelectorAll('.chat__activities--done li');
+      expect(rendered.length).toBe(1);
+      expect(rendered[0].textContent).toContain('Buscando en internet');
+    });
+
+    it('does not attach an activity list to an answer that used no tools', async () => {
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(component.messages().at(-1)?.activities).toBeUndefined();
+    });
+  });
+
   describe('when the agent fails', () => {
     async function failWith(error: unknown): Promise<void> {
       chatStub.sendTurn = vi.fn().mockRejectedValue(error);

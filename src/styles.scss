@@ -127,25 +127,130 @@ h3,
  * .prose - texto en markdown generado por el agente
  * =============================================================================
  * El agente escribe en markdown y la app lo convierte a HTML (MarkdownPipe).
- * Sin estos margenes el navegador separa listas y encabezados como si fueran
- * una pagina de documentacion, no un mensaje de chat.
+ * Sin estos estilos el navegador separa listas y encabezados como si fueran
+ * una pagina de documentacion, y los bloques de codigo y las tablas se salen
+ * de la burbuja.
  *
  * Vive aqui y no en el componente del chat porque cualquier vista que muestre
  * texto del agente lo va a necesitar igual.
  * ========================================================================== */
 .prose {
+  /* Una URL larga sin espacios no puede ensanchar la burbuja. */
+  overflow-wrap: anywhere;
+
   :first-child { margin-top: 0; }
   :last-child { margin-bottom: 0; }
 
-  p, ul, ol { margin: 0 0 0.5rem; }
+  p, ul, ol, pre, blockquote { margin: 0 0 0.5rem; }
   ul, ol { padding-left: 1.15rem; }
   li { margin-bottom: 0.15rem; }
   h1, h2, h3 { margin: 0.6rem 0 0.35rem; font-size: 1rem; }
+
+  a {
+    color: var(--teal-deep);
+    text-decoration: underline;
+  }
 
   code {
     padding: 0.05rem 0.25rem;
     border-radius: 0.25rem;
     background: oklch(0.93 0.01 240);
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
     font-size: 0.85em;
   }
+
+  /* Un bloque de codigo scrollea DENTRO de la burbuja. Sin esto, una linea
+     larga estira el contenedor y termina moviendo la pagina entera. */
+  pre {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.5rem;
+    background: oklch(0.96 0.005 240);
+    border: 1px solid var(--border);
+
+    code {
+      /* El <code> de dentro no lleva el fondo ni el padding del inline: ya
+         los pone el <pre>, y duplicarlos se ve como una caja dentro de otra. */
+      display: block;
+      padding: 0;
+      background: none;
+      white-space: pre;
+      font-size: 0.82em;
+      line-height: 1.5;
+    }
+  }
+
+  blockquote {
+    padding-left: 0.75rem;
+    border-left: 3px solid var(--border);
+    color: oklch(0.5 0.02 240);
+  }
+
+  /* Igual que el codigo: una tabla ancha scrollea, no empuja el layout. */
+  table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    font-size: 0.9em;
+  }
+
+  th, td {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+
+  th {
+    background: oklch(0.95 0.01 240);
+    font-weight: 600;
+  }
+
+  hr {
+    margin: 0.75rem 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* =============================================================================
+ * .chat__activities - herramientas que el agente uso en el turno
+ * ============================================================================= */
+.chat__activities {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  color: oklch(0.5 0.02 240);
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.1rem 0;
+
+    /* Marca de completado. Un check y no un icono cargado, para que la fila
+       se lea como una nota al margen y no compita con la respuesta. */
+    &::before {
+      content: '✓';
+      font-size: 0.85em;
+      color: var(--teal-glow);
+    }
+  }
+
+  /* Mientras corre, el punto late en vez del check ya conseguido. */
+  li.chat__activity--running::before {
+    content: '•';
+    animation: chat-typing 1s infinite;
+  }
+}
+
+/* Cuando ya forman parte del mensaje, van mas apagadas: son procedencia,
+   no la respuesta. */
+.chat__activities--done {
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px dashed var(--border);
+  opacity: 0.75;
 }

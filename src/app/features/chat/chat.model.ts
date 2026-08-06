@@ -19,6 +19,8 @@ export interface ChatMessage {
   isFinalRecommendation?: boolean;
   /** Marca la burbuja que se está escribiendo ahora mismo, token a token. */
   streaming?: boolean;
+  /** Herramientas que el agente usó para producir esta respuesta. */
+  activities?: ChatActivity[];
 }
 
 export interface ChatSession {
@@ -43,6 +45,24 @@ export interface ChatTurnHandlers {
   onStep(label: string): void;
   onAnswerStart(): void;
   onDelta(delta: string): void;
+  /** El agente empezo a usar una herramienta (buscar en internet, etc). */
+  onToolStart(toolCallId: string, label: string): void;
+  /** Esa herramienta termino. */
+  onToolEnd(toolCallId: string): void;
+}
+
+/**
+ * Una herramienta que el agente uso durante el turno, tal como se le muestra
+ * al estudiante.
+ *
+ * Se guardan en el mensaje del asistente y no solo en pantalla mientras
+ * corre: saber que la respuesta salio de una busqueda en internet importa
+ * despues de leerla, no solo mientras se genera.
+ */
+export interface ChatActivity {
+  id: string;
+  label: string;
+  running: boolean;
 }
 
 /** Una conversación en la lista del sidebar (`GET /threads` del agente). */

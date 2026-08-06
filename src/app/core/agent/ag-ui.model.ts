@@ -22,7 +22,11 @@ export type AgUiEventType =
   | 'TEXT_MESSAGE_CONTENT'
   | 'TEXT_MESSAGE_END'
   | 'MESSAGES_SNAPSHOT'
-  | 'STATE_SNAPSHOT';
+  | 'STATE_SNAPSHOT'
+  | 'TOOL_CALL_START'
+  | 'TOOL_CALL_ARGS'
+  | 'TOOL_CALL_END'
+  | 'TOOL_CALL_RESULT';
 
 export interface AgUiEvent {
   /** Uno de `AgUiEventType`, o cualquier otro que el agente agregue despues. */
@@ -35,6 +39,15 @@ export interface AgUiEvent {
   messageId?: string;
   /** RUN_ERROR. */
   message?: string;
+  /**
+   * TOOL_CALL_*: identifica la llamada. Es la clave para agrupar START con
+   * su RESULT — `parentMessageId` NO sirve, porque vale cosas distintas
+   * segun el camino interno de ag_ui_langgraph (el id del AIMessage cuando
+   * viene por streaming, el del ToolMessage en el fallback de on_tool_end).
+   */
+  toolCallId?: string;
+  /** TOOL_CALL_START: nombre de la funcion en el agente. Nunca se muestra. */
+  toolCallName?: string;
   [key: string]: unknown;
 }
 
