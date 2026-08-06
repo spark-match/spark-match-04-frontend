@@ -20,6 +20,10 @@ export const environment = {
   production: false,
   apiUrl: 'https://wu0zw05owi.execute-api.us-east-1.amazonaws.com/dev/v1',
   apiBaseUrl: 'https://wu0zw05owi.execute-api.us-east-1.amazonaws.com/dev/v1',
+  // CloudFront delante del ALB del agente. Hardcodeada igual que `apiUrl`;
+  // infra la publica en SSM /spark-match/dev/config/agent-endpoint-url y lo
+  // correcto seria leerla ahi en build-time (ver README).
+  agentUrl: 'https://d2qj0spvb60idg.cloudfront.net',
   authStorageKey: 'spark-match.auth',
 
   // El punto de este ambiente: pegarle al backend de verdad.

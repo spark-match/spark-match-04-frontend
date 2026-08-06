@@ -6,169 +6,231 @@ import { of, throwError } from 'rxjs';
 import { ChatComponent } from './chat.component';
 import { ChatService } from './chat.service';
 import { FiltersService } from '../filters/filters.service';
-import { ChatMessage, ChatSession } from './chat.model';
+import { AuthService } from '../../core/auth/auth.service';
+import { ChatMessage, ChatTurnHandlers } from './chat.model';
+import { AgentStreamError } from '../../core/agent/ag-ui.client';
 
-const buildSession = (): ChatSession => ({
-  id: 'session-1',
-  filters: null,
-  messages: [
-    { id: 'm1', role: 'ai', text: '¡Hola! ¿En qué puedo ayudarte?', timestamp: '2026-07-26T12:00:00.000Z' },
-  ],
-});
+/**
+ * El turno no devuelve un valor: emite pasos, arranca la respuesta y va
+ * soltando texto. Este stub reproduce esa secuencia para poder afirmar sobre
+ * lo que ve el estudiante mientras el agente trabaja, no solo al final.
+ */
+function turnThatStreams(steps: string[], chunks: string[]) {
+  return vi.fn(async (_thread: string, _text: string, handlers: ChatTurnHandlers) => {
+    for (const step of steps) handlers.onStep(step);
+    handlers.onAnswerStart();
+    for (const chunk of chunks) handlers.onDelta(chunk);
+  });
+}
 
 describe('ChatComponent', () => {
   let component: ChatComponent;
   let fixture: ComponentFixture<ChatComponent>;
-  let startSessionMock: ReturnType<typeof vi.fn>;
-  let sendMessageMock: ReturnType<typeof vi.fn>;
-  let submitRatingMock: ReturnType<typeof vi.fn>;
+  let chatStub: {
+    currentThreadId: ReturnType<typeof vi.fn>;
+    startNewThread: ReturnType<typeof vi.fn>;
+    loadHistory: ReturnType<typeof vi.fn>;
+    sendTurn: ReturnType<typeof vi.fn>;
+  };
+  let authStub: { logout: ReturnType<typeof vi.fn> };
   let filtersStub: { currentFilters: ReturnType<typeof signal> };
 
-  beforeEach(async () => {
-    startSessionMock = vi.fn().mockReturnValue(of(buildSession())) as unknown as ReturnType<typeof vi.fn>;
-    sendMessageMock = vi.fn().mockImplementation((_id: string, text: string) =>
-      of({
-        id: 'reply-1',
-        role: 'ai' as const,
-        text: `Respuesta a: ${text}`,
-        timestamp: '2026-07-26T12:01:00.000Z',
-        isFinalRecommendation: false,
-      }),
-    ) as unknown as ReturnType<typeof vi.fn>;
-    submitRatingMock = vi.fn().mockReturnValue(of({ ok: true })) as unknown as ReturnType<typeof vi.fn>;
-    filtersStub = { currentFilters: signal(null) };
-
+  async function build(): Promise<void> {
     await TestBed.configureTestingModule({
       imports: [ChatComponent],
       providers: [
-        provideRouter([]),
-        { provide: ChatService, useValue: { startSession: startSessionMock, sendMessage: sendMessageMock, submitRecommendationRating: submitRatingMock } },
+        // La ruta de login tiene que existir: el componente navega ahi cuando
+        // el token vence, y con un router vacio esa navegacion rechaza fuera
+        // de la promesa del test (unhandled rejection, no fallo visible).
+        provideRouter([{ path: 'auth/login', children: [] }]),
+        { provide: ChatService, useValue: chatStub },
         { provide: FiltersService, useValue: filtersStub },
+        { provide: AuthService, useValue: authStub },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ChatComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  }
+
+  beforeEach(async () => {
+    chatStub = {
+      currentThreadId: vi.fn().mockReturnValue('thread-1'),
+      startNewThread: vi.fn().mockReturnValue('thread-2'),
+      loadHistory: vi.fn().mockReturnValue(of([])),
+      sendTurn: turnThatStreams(['Pensando…'], ['Hola', ' de nuevo']),
+    };
+    authStub = { logout: vi.fn() };
+    filtersStub = { currentFilters: signal(null) };
+    await build();
   });
 
   it('creates', () => {
     expect(component).toBeTruthy();
   });
 
-  it('starts the chat session on init and seeds messages', () => {
-    expect(startSessionMock).toHaveBeenCalledOnce();
-    expect(component.loadingSession()).toBe(false);
-    expect(component.messages().length).toBe(1);
-    expect(component.messages()[0].text).toContain('Hola');
+  describe('on init', () => {
+    it('greets when there is no history', () => {
+      expect(component.messages().length).toBe(1);
+      expect(component.messages()[0].role).toBe('ai');
+      expect(component.messages()[0].text).toContain('orientador vocacional');
+    });
+
+    it('repopulates a previous conversation instead of greeting', async () => {
+      const history: ChatMessage[] = [
+        { id: 'h1', role: 'user', text: 'hola', timestamp: '2026-08-05T12:00:00.000Z' },
+        { id: 'h2', role: 'ai', text: 'qué tal', timestamp: '2026-08-05T12:00:01.000Z' },
+      ];
+      chatStub.loadHistory = vi.fn().mockReturnValue(of(history));
+      TestBed.resetTestingModule();
+      await build();
+
+      expect(component.messages().map((m) => m.text)).toEqual(['hola', 'qué tal']);
+    });
+
+    it('still opens the chat when the history fails to load', async () => {
+      chatStub.loadHistory = vi.fn().mockReturnValue(throwError(() => new Error('down')));
+      TestBed.resetTestingModule();
+      await build();
+
+      expect(component.loadingSession()).toBe(false);
+      expect(component.messages().length).toBe(1);
+    });
   });
 
-  it('reports "Sin filtros configurados" when no filters are set', () => {
-    filtersStub.currentFilters.set(null);
-    expect(component.profileSummary).toBe('Sin filtros configurados');
+  describe('sending a turn', () => {
+    it('does nothing on an empty draft', async () => {
+      component.draft = '   ';
+
+      component.send();
+
+      expect(chatStub.sendTurn).not.toHaveBeenCalled();
+    });
+
+    it('appends the student message and clears the input immediately', async () => {
+      component.draft = 'me gustan las matemáticas';
+
+      component.send();
+
+      // El mensaje del estudiante aparece antes de que el agente conteste,
+      // no cuando la respuesta termina. Se busca por rol en vez de mirar el
+      // ultimo porque el stub responde sin ceder el control al event loop.
+      const userMessages = component.messages().filter((m) => m.role === 'user');
+      expect(component.draft).toBe('');
+      expect(userMessages.map((m) => m.text)).toEqual(['me gustan las matemáticas']);
+    });
+
+    it('builds the answer delta by delta into a single bubble', async () => {
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      const last = component.messages().at(-1);
+      expect(last?.role).toBe('ai');
+      expect(last?.text).toBe('Hola de nuevo');
+      expect(last?.streaming).toBe(false);
+    });
+
+    it('shows the current step while the agent works, then clears it', async () => {
+      const seen: (string | null)[] = [];
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onStep('Recordando lo que ya sé de ti…');
+        seen.push(component.currentStep());
+        handlers.onAnswerStart();
+        seen.push(component.currentStep());
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      // Un paso visible mientras piensa; y en cuanto empieza a escribir, el
+      // indicador desaparece porque el texto ya es señal suficiente.
+      expect(seen).toEqual(['Recordando lo que ya sé de ti…', null]);
+      expect(component.currentStep()).toBeNull();
+    });
+
+    it('ignores a second send while a turn is in flight', async () => {
+      component.draft = 'uno';
+      component.send();
+      component.draft = 'dos';
+
+      component.send();
+
+      expect(chatStub.sendTurn).toHaveBeenCalledOnce();
+    });
   });
 
-  it('formats the profile summary with region and capitalized institution', () => {
-    filtersStub.currentFilters.set({
-      region: 'Arequipa',
-      institutionType: 'privada',
-      academicType: 'ingenieria',
-      budget: 5000,
-    } as never);
-    expect(component.profileSummary).toBe('Arequipa · Privada');
+  describe('when the agent fails', () => {
+    async function failWith(error: unknown): Promise<void> {
+      chatStub.sendTurn = vi.fn().mockRejectedValue(error);
+      component.draft = 'hola';
+      component.send();
+      await fixture.whenStable();
+    }
+
+    it('explains a rate limit in words a student understands', async () => {
+      await failWith(new AgentStreamError('rate-limited', 'Rate limit exceeded', 429));
+
+      expect(component.errorMessage()).toContain('Espera unos segundos');
+    });
+
+    it('distinguishes the daily budget from the burst limit', async () => {
+      await failWith(new AgentStreamError('budget-exhausted', 'Daily request budget', 429));
+
+      expect(component.errorMessage()).toContain('mañana');
+    });
+
+    it('logs out on an expired token, which no interceptor covers here', async () => {
+      // authInterceptor y errorInterceptor solo ven peticiones de HttpClient;
+      // el stream va por fetch, asi que sin esto el estudiante se queda
+      // escribiendo en un chat que nunca responde.
+      await failWith(new AgentStreamError('unauthorized', 'no token', 401));
+
+      expect(authStub.logout).toHaveBeenCalledOnce();
+    });
+
+    it('does not leave an empty bubble behind', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onAnswerStart();
+        throw new AgentStreamError('agent', 'boom', 500);
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(component.messages().some((m) => m.role === 'ai' && m.text === '')).toBe(false);
+    });
+
+    it('re-enables the composer so the student can retry', async () => {
+      await failWith(new AgentStreamError('network', 'offline'));
+
+      expect(component.sending()).toBe(false);
+    });
   });
 
-  it('uses "Pública/Privada" when institutionType is "ambas"', () => {
-    filtersStub.currentFilters.set({
-      region: 'Lima',
-      institutionType: 'ambas',
-      academicType: 'ingenieria',
-      budget: 5000,
-    } as never);
-    expect(component.profileSummary).toBe('Lima · Pública/Privada');
-  });
+  describe('profile summary', () => {
+    it('reports "Sin filtros configurados" when no filters are set', () => {
+      expect(component.profileSummary).toBe('Sin filtros configurados');
+    });
 
-  it('does nothing when send is called with an empty draft', () => {
-    component.draft = '   ';
-    component.send();
-    expect(component.messages().length).toBe(1);
-    expect(sendMessageMock).not.toHaveBeenCalled();
-  });
+    it('formats region and capitalized institution', () => {
+      filtersStub.currentFilters.set({ region: 'Lima', institutionType: 'privada' } as never);
 
-  it('appends the user message, clears the draft, and requests a reply', () => {
-    component.draft = '¿Qué carrera me conviene?';
-    component.send();
+      expect(component.profileSummary).toBe('Lima · Privada');
+    });
 
-    // 3 messages: initial AI + user + reply (reply is synchronous via of())
-    expect(component.messages().length).toBe(3);
-    expect(component.messages()[1].role).toBe('user');
-    expect(component.messages()[1].text).toBe('¿Qué carrera me conviene?');
-    expect(component.draft).toBe('');
-    expect(sendMessageMock).toHaveBeenCalledOnce();
-    expect(component.messages()[2].text).toContain('Respuesta a:');
-  });
+    it('uses "Pública/Privada" when institutionType is "ambas"', () => {
+      filtersStub.currentFilters.set({ region: 'Cusco', institutionType: 'ambas' } as never);
 
-  it('shows the rating modal when the reply is a final recommendation', () => {
-    sendMessageMock.mockReturnValueOnce(
-      of({
-        id: 'r',
-        role: 'ai',
-        text: 'Te recomiendo Ingeniería',
-        timestamp: '2026-07-26T12:01:00.000Z',
-        isFinalRecommendation: true,
-      } as ChatMessage),
-    );
-
-    component.draft = 'Dame tu recomendación';
-    component.send();
-
-    expect(component.showRecommendationRating()).toBe(true);
-  });
-
-  it('submits the rating and marks the recommendation as rated', () => {
-    component.showRecommendationRating.set(true);
-    component.rateRecommendation(4);
-
-    expect(submitRatingMock).toHaveBeenCalledWith('session-1', 4);
-    expect(component.rating()).toBe(4);
-    expect(component.ratingSubmitted()).toBe(true);
-  });
-
-  it('ignores repeated ratings once submitted', () => {
-    component.showRecommendationRating.set(true);
-    component.rateRecommendation(5);
-    component.rateRecommendation(1);
-
-    expect(submitRatingMock).toHaveBeenCalledOnce();
-    expect(component.rating()).toBe(5);
-  });
-
-  it('resets submittingRating on error', () => {
-    submitRatingMock.mockReturnValueOnce(throwError(() => new Error('boom')));
-
-    component.showRecommendationRating.set(true);
-    component.rateRecommendation(3);
-
-    expect(component.submittingRating()).toBe(false);
-  });
-
-  it('dismisses the rating modal without sending', () => {
-    component.showRecommendationRating.set(true);
-    component.dismissRecommendationRating();
-
-    expect(component.showRecommendationRating()).toBe(false);
-    expect(submitRatingMock).not.toHaveBeenCalled();
+      expect(component.profileSummary).toBe('Cusco · Pública/Privada');
+    });
   });
 
   it('formats timestamps in es-PE locale', () => {
-    const label = component.timeLabel('2026-07-26T15:30:00.000Z');
-    // es-PE renders "10:30 a. m." / "03:30 p. m." (note: lowercase with dots)
-    expect(label).toMatch(/\d{1,2}:\d{2}/);
-    expect(label).toBeTruthy();
-  });
-
-  it('shows the loading state while the session is being fetched', () => {
-    const fresh = TestBed.createComponent(ChatComponent);
-    expect(fresh.componentInstance.loadingSession()).toBe(true);
+    expect(component.timeLabel('2026-07-26T17:05:00.000Z')).toMatch(/\d{2}:\d{2}/);
   });
 });

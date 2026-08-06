@@ -367,3 +367,45 @@
   padding: 0 1.75rem 0.75rem;
   margin: 0;
 }
+
+// Fila de progreso: los tres puntos de siempre mas la etiqueta del paso que
+// el agente esta ejecutando ahora mismo (STEP_STARTED del protocolo AG-UI).
+// La etiqueta reusa .chat__time en vez de traer su propia regla.
+.chat__bubble--step {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+// Cursor de escritura mientras la respuesta llega token a token. Inline para
+// que quede pegado al ultimo caracter aunque el texto reflowee, y reusando
+// la animacion de los tres puntos en vez de definir otra.
+.chat__caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: currentColor;
+  animation: chat-typing 1s infinite;
+}
+
+.chat__error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.6rem;
+  background: oklch(0.96 0.03 25);
+  color: oklch(0.42 0.13 25);
+  font-size: 0.85rem;
+
+  button {
+    margin-left: auto;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+  }
+}
