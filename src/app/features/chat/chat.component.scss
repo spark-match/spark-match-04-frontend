@@ -377,10 +377,14 @@
   gap: 0.55rem;
 }
 
-// Cursor de escritura mientras la respuesta llega token a token. Inline para
-// que quede pegado al ultimo caracter aunque el texto reflowee, y reusando
-// la animacion de los tres puntos en vez de definir otra.
-.chat__caret {
+// Cursor de escritura mientras la respuesta llega token a token. Va como
+// ::after del contenedor y no como nodo aparte, porque el texto ahora se
+// pinta con innerHTML y no admite interpolar nada dentro.
+//
+// El formato del markdown en si vive en styles.scss (.prose): lo usara
+// cualquier vista que muestre texto del agente, no solo el chat.
+.chat__text--streaming::after {
+  content: '';
   display: inline-block;
   width: 2px;
   height: 1em;

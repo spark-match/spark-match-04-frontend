@@ -7,6 +7,7 @@ import { ChatMessage } from './chat.model';
 import { AgentStreamError, agentErrorMessage } from '../../core/agent/ag-ui.client';
 import { INITIAL_STEP_LABEL } from '../../core/agent/step-labels';
 import { AuthService } from '../../core/auth/auth.service';
+import { MarkdownPipe } from '../../shared/markdown.pipe';
 
 const WELCOME_TEXT =
   '¡Hola! Soy tu orientador vocacional con IA. Usamos datos oficiales de Ponte en Carrera ' +
@@ -16,7 +17,7 @@ const WELCOME_TEXT =
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, MarkdownPipe],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.scss',
 })
