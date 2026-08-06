@@ -62,7 +62,7 @@ async function toStreamError(response: Response): Promise<AgentStreamError> {
 
 @Service()
 export class AgUiClient {
-  private auth = inject(AuthService);
+  private readonly auth = inject(AuthService);
 
   /**
    * Abre el stream y va emitiendo los eventos del agente conforme llegan.

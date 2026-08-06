@@ -25,7 +25,8 @@ export type AgUiEventType =
   | 'STATE_SNAPSHOT';
 
 export interface AgUiEvent {
-  type: AgUiEventType | string;
+  /** Uno de `AgUiEventType`, o cualquier otro que el agente agregue despues. */
+  type: string;
   /** STEP_STARTED / STEP_FINISHED: nombre del nodo del grafo. */
   stepName?: string;
   /** TEXT_MESSAGE_CONTENT: el fragmento de texto que se acaba de generar. */

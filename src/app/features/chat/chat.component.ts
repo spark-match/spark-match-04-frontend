@@ -21,10 +21,10 @@ const WELCOME_TEXT =
   styleUrl: './chat.component.scss',
 })
 export class ChatComponent implements OnInit, OnDestroy {
-  private chatService = inject(ChatService);
-  private filtersService = inject(FiltersService);
-  private auth = inject(AuthService);
-  private router = inject(Router);
+  private readonly chatService = inject(ChatService);
+  private readonly filtersService = inject(FiltersService);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   private threadId = '';
   private abort: AbortController | null = null;

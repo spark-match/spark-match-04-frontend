@@ -21,8 +21,8 @@ const THREAD_STORAGE_KEY = 'spark-match:chat-thread';
  */
 @Service()
 export class ChatService {
-  private http = inject(HttpClient);
-  private agent = inject(AgUiClient);
+  private readonly http = inject(HttpClient);
+  private readonly agent = inject(AgUiClient);
 
   /**
    * Id de conversacion del lado del cliente.
@@ -61,7 +61,7 @@ export class ChatService {
    *
    * Devuelve callbacks en vez de un Observable porque un turno no es un
    * valor: son tres cosas distintas ocurriendo a la vez — texto que crece,
-   * pasos que cambian, y un final. Meter todo en un `Observable<ChatMessage>`
+   * pasos que cambian, y un final. Empaquetarlo en un `Observable<ChatMessage>`
    * obligaria a re-emitir el mensaje entero en cada token.
    */
   async sendTurn(
