@@ -78,15 +78,17 @@
   </div>
 
   <footer class="chat__composer">
+    <label for="chat-input" class="sr-only">Escribe tu pregunta al orientador</label>
     <input
+      id="chat-input"
       type="text"
       placeholder="Escribe tu pregunta aquí..."
       [(ngModel)]="draft"
       (keyup.enter)="send()"
       class="chat__input"
     />
-    <button type="button" class="chat__send" (click)="send()" [disabled]="!draft.trim() || sending()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12l16-8-6 8 6 8-16-8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    <button type="button" class="chat__send" aria-label="Enviar pregunta" (click)="send()" [disabled]="!draft.trim() || sending()">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12l16-8-6 8 6 8-16-8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
     </button>
   </footer>
   <p class="chat__hint">Enviar · Shift+Enter para nueva línea</p>
