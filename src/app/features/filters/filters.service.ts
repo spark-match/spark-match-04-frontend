@@ -5,34 +5,12 @@ import { delay } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import { OrientationFilters, RegionOption } from './filters.model';
+import { PERU_REGIONS } from '../../shared/data/peru-regions';
 
-const MOCK_REGIONS: RegionOption[] = [
-  { code: 'amazonas', name: 'Amazonas' },
-  { code: 'ancash', name: 'Áncash' },
-  { code: 'apurimac', name: 'Apurímac' },
-  { code: 'arequipa', name: 'Arequipa' },
-  { code: 'ayacucho', name: 'Ayacucho' },
-  { code: 'cajamarca', name: 'Cajamarca' },
-  { code: 'callao', name: 'Callao' },
-  { code: 'cusco', name: 'Cusco' },
-  { code: 'huancavelica', name: 'Huancavelica' },
-  { code: 'huanuco', name: 'Huánuco' },
-  { code: 'ica', name: 'Ica' },
-  { code: 'junin', name: 'Junín' },
-  { code: 'la-libertad', name: 'La Libertad' },
-  { code: 'lambayeque', name: 'Lambayeque' },
-  { code: 'lima', name: 'Lima' },
-  { code: 'loreto', name: 'Loreto' },
-  { code: 'madre-de-dios', name: 'Madre de Dios' },
-  { code: 'moquegua', name: 'Moquegua' },
-  { code: 'pasco', name: 'Pasco' },
-  { code: 'piura', name: 'Piura' },
-  { code: 'puno', name: 'Puno' },
-  { code: 'san-martin', name: 'San Martín' },
-  { code: 'tacna', name: 'Tacna' },
-  { code: 'tumbes', name: 'Tumbes' },
-  { code: 'ucayali', name: 'Ucayali' },
-];
+// El catálogo vivía aquí, duplicado con el del formulario de registro y sin
+// coincidir con él. Ahora sale de `shared/data/peru-regions`, que es la única
+// fuente. Ver el comentario de ese fichero para el porqué.
+const MOCK_REGIONS: RegionOption[] = [...PERU_REGIONS];
 
 @Service()
 export class FiltersService {
