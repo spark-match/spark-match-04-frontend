@@ -195,7 +195,7 @@ describe('ChatComponent', () => {
       // despues de leerla, no solo mientras se genera.
       const seenDuringTurn: string[][] = [];
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
         seenDuringTurn.push(component.activities().map((a) => a.label));
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-1');
@@ -222,7 +222,7 @@ describe('ChatComponent', () => {
       const stepWhenToolStarted: (string | null)[] = [];
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
         handlers.onStep('Pensando…');
-        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
         stepWhenToolStarted.push(component.currentStep());
       });
       component.draft = 'hola';
@@ -235,7 +235,7 @@ describe('ChatComponent', () => {
 
     it('renders the activity list in the bubble, not just in memory', async () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-1');
         handlers.onDelta('m-1', 'listo');
@@ -249,6 +249,54 @@ describe('ChatComponent', () => {
       const rendered = fixture.nativeElement.querySelectorAll('.chat__activities--done li');
       expect(rendered.length).toBe(1);
       expect(rendered[0].textContent).toContain('Buscando en internet');
+    });
+
+    it('shows what it searched for and why, not just that it searched', async () => {
+      // Lo que el estudiante veia era «Buscando una herramienta…» y nada mas:
+      // ni con que la llamo ni para que sirve.
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onToolStart(
+          'tc-1',
+          'Buscando carreras en universidades e institutos…',
+          'para recomendarte carreras que existen de verdad',
+        );
+        handlers.onToolDetail('tc-1', '«ingeniería» · en Áncash');
+        handlers.onToolEnd('tc-1');
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'listo');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const chip = fixture.nativeElement.querySelector('.chat__activities--done li');
+      expect(chip.textContent).toContain('Buscando carreras en universidades e institutos');
+      expect(chip.textContent).toContain('«ingeniería» · en Áncash');
+      expect(chip.textContent).toContain('para recomendarte carreras que existen de verdad');
+    });
+
+    it('fills the chip that is already on screen instead of adding another', async () => {
+      // El detalle llega despues del START: los argumentos los dicta el
+      // modelo token a token. Si abriera un chip nuevo, cada busqueda se
+      // veria dos veces.
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
+        handlers.onToolDetail('tc-1', '«becas Pronabec»');
+        handlers.onToolEnd('tc-1');
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'listo');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      const chips = component.messages().at(-1)?.activities ?? [];
+      expect(chips.length).toBe(1);
+      expect(chips[0].detail).toBe('«becas Pronabec»');
+      expect(chips[0].label).toBe('Buscando en internet…');
     });
 
     it('does not attach an activity list to an answer that used no tools', async () => {
@@ -265,8 +313,12 @@ describe('ChatComponent', () => {
       // `task` que lo envuelve. Si se tratara como un chip nuevo, el
       // estudiante veria dos veces la misma delegacion.
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Consultando a un especialista…');
-        handlers.onSubagentStart('tc-1', 'Evaluando tu perfil vocacional…');
+        handlers.onToolStart('tc-1', 'Consultando a un especialista…', '');
+        handlers.onSubagentStart(
+          'tc-1',
+          'Evaluando tu perfil vocacional…',
+          'un especialista arma tu perfil',
+        );
         handlers.onSubagentEnd('tc-1', true, 8400);
         handlers.onAnswerStart('m-1');
         handlers.onDelta('m-1', 'listo');
@@ -280,12 +332,16 @@ describe('ChatComponent', () => {
       expect(chips.length).toBe(1);
       expect(chips[0].label).toBe('Evaluando tu perfil vocacional…');
       expect(chips[0].kind).toBe('subagent');
-      expect(component.activityDetail(chips[0])).toBe(' · 8.4 s');
+      expect(component.activityTiming(chips[0])).toBe(' · 8.4 s');
     });
 
     it('says so when a delegation could not be completed', async () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onSubagentStart('tc-1', 'Armando tu plan de acción…');
+        handlers.onSubagentStart(
+          'tc-1',
+          'Armando tu plan de acción…',
+          'un especialista arma los pasos',
+        );
         handlers.onSubagentEnd('tc-1', false, 1200);
         handlers.onAnswerStart('m-1');
         handlers.onDelta('m-1', 'listo');
@@ -297,7 +353,7 @@ describe('ChatComponent', () => {
 
       const chip = (component.messages().at(-1)?.activities ?? [])[0];
       expect(chip.ok).toBe(false);
-      expect(component.activityDetail(chip)).toContain('no pudo completarse');
+      expect(component.activityTiming(chip)).toContain('no pudo completarse');
     });
 
     it('keeps the chips when the turn produces several bubbles', async () => {
@@ -308,7 +364,7 @@ describe('ChatComponent', () => {
         handlers.onAnswerStart('m-1');
         handlers.onDelta('m-1', 'déjame consultarlo');
         handlers.onAnswerEnd('m-1');
-        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-2');
         handlers.onDelta('m-2', 'esto encontré');
@@ -382,7 +438,7 @@ describe('ChatComponent', () => {
 
     it('keeps the chips of what it did before being cut off', async () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
         handlers.onToolEnd('tc-1');
         handlers.onSnapshot([{ id: 'x', role: 'assistant', content: 'No puedo ayudarte.' }]);
       });
