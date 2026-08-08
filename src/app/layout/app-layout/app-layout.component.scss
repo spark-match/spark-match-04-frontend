@@ -1,0 +1,39 @@
+.app-layout {
+  display: flex;
+  height: 100dvh;
+  min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background-color: var(--background);
+}
+
+@media (max-width: 860px) {
+  .app-layout {
+    flex-direction: column;
+  }
+}
+
+// Sin esto el chat no llena la pantalla.
+//
+// La cadena de alturas es .app-layout (100dvh) -> .main-wrapper ->
+// .main-content -> .chat (height: 100%). .main-wrapper no tenia ninguna
+// regla, asi que era un div normal dentro de un flex: se encogia al alto de
+// su contenido y no propagaba nada. El `flex: 1 1 auto` de .main-content
+// tampoco servia, porque su padre no era un contenedor flex.
+//
+// Resultado visible: el composer del chat quedaba pegado al ultimo mensaje,
+// con el resto de la ventana en blanco debajo.
+.main-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}

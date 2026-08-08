@@ -1,0 +1,58 @@
+{
+  "name": "spark-match-frontend",
+  "version": "0.1.0",
+  "description": "Spark Match - Copiloto de Orientación Vocacional con IA Generativa (Frontend)",
+  "author": "Spark Match Team",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": "^24.11.0 || >=22.22.3",
+    "npm": ">=11.6.0"
+  },
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "lint": "ng lint",
+    "i18n:extract": "ng extract-i18n --output-path src/locale --format=xlf",
+    "test:ci": "ng test --watch=false --coverage",
+    "build:ci": "ng build --configuration=production",
+    "build:ci:dev": "ng build --configuration=cloud-dev",
+    "predeploy:check": "node scripts/check-deploy.mjs",
+    "predeploy:check:fast": "node scripts/check-deploy.mjs --skip-build"
+  },
+  "dependencies": {
+    "@angular/aria": "^22.0.6",
+    "@angular/cdk": "^22.0.6",
+    "@angular/common": "^22.0.8",
+    "@angular/compiler": "^22.0.8",
+    "@angular/core": "^22.0.8",
+    "@angular/forms": "^22.0.8",
+    "@angular/localize": "^22.0.8",
+    "@angular/material": "^22.0.6",
+    "@angular/platform-browser": "^22.0.8",
+    "@angular/router": "^22.0.8",
+    "marked": "^18.0.9",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular-eslint/utils": "^22.1.0",
+    "@angular/build": "^22.0.8",
+    "@angular/cli": "^22.0.8",
+    "@angular/compiler-cli": "^22.0.8",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "angular-eslint": "22.1.0",
+    "eslint": "^10.6.0",
+    "jsdom": "^28.0.0",
+    "prettier": "^3.8.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "8.62.1",
+    "vitest": "^4.0.8"
+  }
+}

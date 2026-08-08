@@ -1,9 +1,10 @@
 # CODEOWNERS - Spark Match Frontend (04)
 #
-# Politica de aprobacion (configurada via ruleset):
-#   - dev:  required_approving_review_count: 1
-#            require_code_owner_review: true
+# Politica de aprobacion (configurada via ruleset
+# spark-match-default-branch-protection):
 #   - main: required_approving_review_count: 1
+#            require_code_owner_review: true
+#   - dev:  required_approving_review_count: 1
 #            require_code_owner_review: true
 #
 # CODE OWNER del repo: @spark-match/frontend-devs
@@ -11,23 +12,47 @@
 #
 # Paths criticos (governance): @spark-match/product-owners
 #
-# Convencion: explicit paths, no catch-all.
+# Convencion: explicit paths, no catch-all. Todo path que exista debe aparecer
+# aqui, y ningun path que no exista debe aparecer. Ver
+# spark-match-01-devops/docs/GOVERNANCE-STANDARD.md seccion 3.
+#
+# Nota: el autor de un pull request no puede aprobarlo, ni siendo CODE OWNER
+# (regla de GitHub). Un pull request abierto por cualquier miembro necesita la
+# aprobacion de otro.
+#
+# La version anterior de este fichero declaraba /decisions/, /onboarding/,
+# /postmortems/, /CONTRIBUTING.md y /LICENSE, que no existen en este repo, y
+# dejaba sin dueno package.json, package-lock.json, AGENTS.md, CHANGELOG.md,
+# scripts/, sonar-project.properties, .gitignore, .gitattributes,
+# tsconfig.json y tsconfig.spec.json. Se escribio contra una plantilla, no
+# contra el arbol real.
 
-/decisions/                                @spark-match/product-owners
-/onboarding/                               @spark-match/product-owners
-/postmortems/                              @spark-match/product-owners
+# =============================================================================
+# Governance y docs raiz: doble propiedad
+# =============================================================================
 /README.md                                 @spark-match/frontend-devs @spark-match/product-owners
-/CONTRIBUTING.md                           @spark-match/frontend-devs @spark-match/product-owners
-/LICENSE                                   @spark-match/frontend-devs @spark-match/product-owners
+/AGENTS.md                                 @spark-match/frontend-devs @spark-match/product-owners
+/CHANGELOG.md                              @spark-match/frontend-devs @spark-match/product-owners
 
+# =============================================================================
+# Codigo y toolchain: el equipo del repo
+# =============================================================================
 /.github/                                  @spark-match/frontend-devs
 /.vscode/                                  @spark-match/frontend-devs
 /public/                                   @spark-match/frontend-devs
+/scripts/                                  @spark-match/frontend-devs
 /src/                                      @spark-match/frontend-devs
 
 /.editorconfig                             @spark-match/frontend-devs
+/.gitattributes                            @spark-match/frontend-devs
+/.gitignore                                @spark-match/frontend-devs
 /.prettierrc                               @spark-match/frontend-devs
 /.yamllint.yml                             @spark-match/frontend-devs
 /angular.json                              @spark-match/frontend-devs
 /eslint.config.js                          @spark-match/frontend-devs
+/package-lock.json                         @spark-match/frontend-devs
+/package.json                              @spark-match/frontend-devs
+/sonar-project.properties                  @spark-match/frontend-devs
 /tsconfig.app.json                         @spark-match/frontend-devs
+/tsconfig.json                             @spark-match/frontend-devs
+/tsconfig.spec.json                        @spark-match/frontend-devs
