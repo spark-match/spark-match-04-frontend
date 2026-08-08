@@ -253,6 +253,32 @@ describe('ChatService', () => {
       expect(subagentsEnded[0].ok).toBe(true);
     });
 
+    it('does not turn a malformed payload into a colliding chip id', async () => {
+      // El cuerpo de un CUSTOM es `unknown`. `String({})` da '[object Object]',
+      // que como clave casaria con la de cualquier otro objeto: dos
+      // delegaciones distintas compartirian indicador.
+      agent.events = [
+        {
+          type: 'CUSTOM',
+          name: 'spark.subagent.start',
+          value: { toolCallId: { raro: true }, subagent: { tambien: true } },
+        },
+        {
+          type: 'CUSTOM',
+          name: 'spark.subagent.end',
+          value: { toolCallId: 'tc-1', durationMs: 'ocho segundos' },
+        },
+      ];
+      const { handlers, subagentsStarted, subagentsEnded } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(subagentsStarted[0].id).toBe('');
+      expect(subagentsStarted[0].label).toBe('Consultando a un especialista…');
+      // Una duracion ilegible se ensena como nada, no como "NaN ms".
+      expect(subagentsEnded[0].durationMs).toBe(0);
+    });
+
     it('ignores a custom event it does not know', async () => {
       agent.events = [
         { type: 'CUSTOM', name: 'spark.algo.nuevo', value: { x: 1 } },
