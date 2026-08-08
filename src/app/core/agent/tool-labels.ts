@@ -15,6 +15,11 @@
 const LABELS: Record<string, string> = {
   web_search: 'Buscando en internet…',
   search_careers: 'Consultando el catálogo de carreras…',
+  // El catálogo real del MINEDU: carreras concretas en universidades e
+  // institutos, con costo y duración. `search_careers` describe la carrera en
+  // abstracto y no sabe nada de instituciones, así que son dos chips
+  // distintos y el estudiante tiene que poder distinguirlos.
+  search_programs: 'Buscando carreras en universidades e institutos…',
   calculate_affinity: 'Calculando tu afinidad…',
   evaluate_riasec_profile: 'Evaluando tu perfil vocacional…',
   search_memory: 'Repasando lo que conversamos…',

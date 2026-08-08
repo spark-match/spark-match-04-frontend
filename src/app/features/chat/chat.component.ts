@@ -174,18 +174,21 @@ export class ChatComponent implements OnInit, OnDestroy {
             this.appendDelta(messageId, delta);
           },
           onAnswerEnd: (messageId) => this.finishStreaming(messageId),
-          onToolStart: (toolCallId, label) => {
+          onToolStart: (toolCallId, label, reason) => {
             // El paso genérico deja de aportar en cuanto se puede decir algo
             // concreto ("Buscando en internet…" en vez de "Pensando…").
             this.currentStep.set(null);
-            this.upsertActivity({ id: toolCallId, label, running: true, kind: 'tool' });
+            this.upsertActivity({ id: toolCallId, label, reason, running: true, kind: 'tool' });
           },
+          // Los argumentos llegan después del START, así que esto llena el
+          // chip que ya está en pantalla en vez de crear otro.
+          onToolDetail: (toolCallId, detail) => this.patchActivity(toolCallId, { detail }),
           onToolEnd: (toolCallId) => this.patchActivity(toolCallId, { running: false }),
-          onSubagentStart: (toolCallId, label) => {
+          onSubagentStart: (toolCallId, label, reason) => {
             this.currentStep.set(null);
             // Mismo `toolCallId` que la tool `task` que lo envuelve, así que
             // esto asciende el chip genérico en vez de duplicarlo.
-            this.upsertActivity({ id: toolCallId, label, running: true, kind: 'subagent' });
+            this.upsertActivity({ id: toolCallId, label, reason, running: true, kind: 'subagent' });
           },
           onSubagentEnd: (toolCallId, ok, durationMs) =>
             this.patchActivity(toolCallId, { running: false, kind: 'subagent', ok, durationMs }),
@@ -351,8 +354,11 @@ export class ChatComponent implements OnInit, OnDestroy {
    * Vacío mientras corre — un contador subiendo distrae del texto que se
    * está escribiendo — y vacío también para las herramientas normales, que
    * no reportan duración.
+   *
+   * No confundir con `activity.detail`, que es CON QUÉ se llamó a la
+   * herramienta: esto sólo mide.
    */
-  activityDetail(activity: ChatActivity): string {
+  activityTiming(activity: ChatActivity): string {
     if (activity.running) return '';
     if (activity.ok === false) return ' · no pudo completarse';
     if (activity.durationMs === undefined) return '';

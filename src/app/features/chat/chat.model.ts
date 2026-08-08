@@ -54,11 +54,19 @@ export interface ChatTurnHandlers {
   /** Esa respuesta quedó completa (`TEXT_MESSAGE_END`). */
   onAnswerEnd(messageId: string): void;
   /** El agente empezo a usar una herramienta (buscar en internet, etc). */
-  onToolStart(toolCallId: string, label: string): void;
+  onToolStart(toolCallId: string, label: string, reason: string): void;
+  /**
+   * Con qué se llamó a esa herramienta.
+   *
+   * Llega despues del START y no con él: los argumentos los dicta el modelo
+   * token a token (`TOOL_CALL_ARGS`), asi que hasta que no termina de
+   * dictarlos no hay un JSON que se pueda leer.
+   */
+  onToolDetail(toolCallId: string, detail: string): void;
   /** Esa herramienta termino. */
   onToolEnd(toolCallId: string): void;
   /** El coordinador delegó en un especialista. Mismo id que la tool `task`. */
-  onSubagentStart(toolCallId: string, label: string): void;
+  onSubagentStart(toolCallId: string, label: string, reason: string): void;
   /** El especialista terminó. `ok` es false si la delegación falló. */
   onSubagentEnd(toolCallId: string, ok: boolean, durationMs: number): void;
   /** El hilo completo tal como lo tiene el checkpoint del agente. */
@@ -81,6 +89,14 @@ export interface ChatActivity {
   label: string;
   running: boolean;
   kind: ChatActivityKind;
+  /**
+   * Con qué se llamó: «ingeniería» · en Áncash. Sale de los argumentos de la
+   * llamada, filtrados por `tool-details.ts`. Vacío si no hay nada que se
+   * pueda enseñar.
+   */
+  detail?: string;
+  /** Para qué sirve esa herramienta, en una frase. */
+  reason?: string;
   /** Sólo en delegaciones ya terminadas. */
   durationMs?: number;
   /** `false` cuando la delegación falló. */

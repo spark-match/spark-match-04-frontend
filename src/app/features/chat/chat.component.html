@@ -33,9 +33,16 @@
                   [class.chat__activity--subagent]="activity.kind === 'subagent'"
                   [class.chat__activity--failed]="activity.ok === false"
                 >
-                  {{ activity.label }}<span class="chat__activity-detail">{{
-                    activityDetail(activity)
-                  }}</span>
+                  <span class="chat__activity-head">
+                    <span>{{ activity.label }}</span>
+                    @if (activity.detail) {
+                      <span class="chat__activity-args">{{ activity.detail }}</span>
+                    }
+                    <span class="chat__activity-timing">{{ activityTiming(activity) }}</span>
+                  </span>
+                  @if (activity.reason) {
+                    <span class="chat__activity-reason">{{ activity.reason }}</span>
+                  }
                 </li>
               }
             </ul>
@@ -63,9 +70,16 @@
                 [class.chat__activity--subagent]="activity.kind === 'subagent'"
                 [class.chat__activity--failed]="activity.ok === false"
               >
-                {{ activity.label }}<span class="chat__activity-detail">{{
-                  activityDetail(activity)
-                }}</span>
+                <span class="chat__activity-head">
+                  <span>{{ activity.label }}</span>
+                  @if (activity.detail) {
+                    <span class="chat__activity-args">{{ activity.detail }}</span>
+                  }
+                  <span class="chat__activity-timing">{{ activityTiming(activity) }}</span>
+                </span>
+                @if (activity.reason) {
+                  <span class="chat__activity-reason">{{ activity.reason }}</span>
+                }
               </li>
             }
           </ul>
