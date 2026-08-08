@@ -11,10 +11,30 @@ import { MarkdownPipe } from '../../shared/markdown.pipe';
 import { ChatSessionsStore } from './chat-sessions.store';
 import { Subscription } from 'rxjs';
 
+/**
+ * Lo que el chat promete en su primera frase.
+ *
+ * Decía: «Usamos datos oficiales de Ponte en Carrera del Ministerio de
+ * Educación para darte recomendaciones basadas en el mercado laboral real
+ * peruano». Era falso de punta a punta. El agente no tenía ni un dato del
+ * MINEDU: su catálogo eran 20 fichas genéricas, sin una sola universidad,
+ * sin un sueldo y sin un costo, y con recursos de Harvard.
+ *
+ * Ya sí los tiene — 6208 carreras en universidades e institutos de los 25
+ * departamentos (`spark-match-08-deep-agent#71`) — así que el texto de ahora
+ * dice lo que hay y lo dice en concreto.
+ *
+ * Lo que NO vuelve es la promesa de sueldos. Están en el dataset, pero el
+ * 73% son la mediana de la familia de carrera y no una medición de ese
+ * programa. El agente los da con esa advertencia cuando vienen a cuento;
+ * anunciarlos en la frase de bienvenida los convertiría en el gancho, y un
+ * gancho no admite matices.
+ */
 const WELCOME_TEXT =
-  '¡Hola! Soy tu orientador vocacional con IA. Usamos datos oficiales de Ponte en Carrera ' +
-  'del Ministerio de Educación para darte recomendaciones basadas en el mercado laboral ' +
-  'real peruano. ¿Por dónde empezamos?';
+  '¡Hola! Soy tu orientador vocacional con IA. Busco entre 6208 carreras de universidades ' +
+  'e institutos de los 25 departamentos del Perú, con datos del portal Ponte en Carrera ' +
+  'del Ministerio de Educación: cuánto duran, cuánto cuestan y qué tan difícil es entrar. ' +
+  '¿Por dónde empezamos?';
 
 @Component({
   selector: 'app-chat',
