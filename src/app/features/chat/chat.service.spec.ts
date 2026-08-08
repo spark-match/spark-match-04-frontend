@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { ChatService } from './chat.service';
 import { ChatTurnHandlers } from './chat.model';
 import { AgUiClient } from '../../core/agent/ag-ui.client';
-import { AgUiEvent } from '../../core/agent/ag-ui.model';
+import { AgUiEvent, AgUiSnapshotMessage } from '../../core/agent/ag-ui.model';
 import { environment } from '../../../environments/environment';
 
 /** Reemplaza el transporte SSE por una lista fija de eventos. */
@@ -23,19 +23,42 @@ class FakeAgUiClient {
 function recordingHandlers() {
   const steps: string[] = [];
   const deltas: string[] = [];
+  const deltaIds: string[] = [];
+  const startedIds: string[] = [];
+  const endedIds: string[] = [];
   const toolsStarted: { id: string; label: string }[] = [];
   const toolsEnded: string[] = [];
-  let started = 0;
+  const subagentsStarted: { id: string; label: string }[] = [];
+  const subagentsEnded: { id: string; ok: boolean; durationMs: number }[] = [];
+  const snapshots: AgUiSnapshotMessage[][] = [];
   const handlers: ChatTurnHandlers = {
     onStep: (label) => steps.push(label),
-    onAnswerStart: () => {
-      started += 1;
+    onAnswerStart: (messageId) => startedIds.push(messageId),
+    onDelta: (messageId, delta) => {
+      deltaIds.push(messageId);
+      deltas.push(delta);
     },
-    onDelta: (delta) => deltas.push(delta),
+    onAnswerEnd: (messageId) => endedIds.push(messageId),
     onToolStart: (id, label) => toolsStarted.push({ id, label }),
     onToolEnd: (id) => toolsEnded.push(id),
+    onSubagentStart: (id, label) => subagentsStarted.push({ id, label }),
+    onSubagentEnd: (id, ok, durationMs) => subagentsEnded.push({ id, ok, durationMs }),
+    onSnapshot: (messages) => snapshots.push(messages),
   };
-  return { handlers, steps, deltas, toolsStarted, toolsEnded, startedCount: () => started };
+  return {
+    handlers,
+    steps,
+    deltas,
+    deltaIds,
+    startedIds,
+    endedIds,
+    toolsStarted,
+    toolsEnded,
+    subagentsStarted,
+    subagentsEnded,
+    snapshots,
+    startedCount: () => startedIds.length,
+  };
 }
 
 describe('ChatService', () => {
@@ -151,15 +174,174 @@ describe('ChatService', () => {
       expect(toolsEnded).toEqual([]);
     });
 
-    it('shows subagent delegation as a tool call named task', async () => {
-      // ag_ui_langgraph no tiene eventos de subagente: deepagents expone la
-      // delegacion como una tool normal llamada `task`.
+    it('falls back to a generic label for the task tool', async () => {
+      // AG-UI no tiene eventos de subagente: deepagents expone la delegacion
+      // como una tool normal llamada `task`. Ese chip generico es lo unico
+      // que hay hasta que llegan los eventos propios del agente.
       agent.events = [{ type: 'TOOL_CALL_START', toolCallId: 'tc-9', toolCallName: 'task' }];
       const { handlers, toolsStarted } = recordingHandlers();
 
       await service.sendTurn('t-1', 'hola', handlers);
 
       expect(toolsStarted[0].label).toBe('Consultando a un especialista…');
+    });
+
+    it('names the tool that writes preferences by its real name', async () => {
+      // El nombre en el stream es `manage_memory`. `manage_prefs` solo es la
+      // variable de Python del agente, y con esa clave el mapa fallaba y
+      // anotar una preferencia se anunciaba como "Usando una herramienta…".
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-1', toolCallName: 'manage_memory' },
+      ];
+      const { handlers, toolsStarted } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolsStarted[0].label).toBe('Anotando tus preferencias…');
+    });
+
+    it('says which specialist the coordinator delegated to', async () => {
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-9', toolCallName: 'task' },
+        {
+          type: 'CUSTOM',
+          name: 'spark.subagent.start',
+          value: { toolCallId: 'tc-9', subagent: 'matching' },
+        },
+        {
+          type: 'CUSTOM',
+          name: 'spark.subagent.end',
+          value: { toolCallId: 'tc-9', subagent: 'matching', ok: true, durationMs: 4200 },
+        },
+      ];
+      const { handlers, subagentsStarted, subagentsEnded } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(subagentsStarted).toEqual([
+        { id: 'tc-9', label: 'Buscando carreras que encajen contigo…' },
+      ]);
+      expect(subagentsEnded).toEqual([{ id: 'tc-9', ok: true, durationMs: 4200 }]);
+    });
+
+    it('never leaks the internal key of a specialist it does not know', async () => {
+      agent.events = [
+        {
+          type: 'CUSTOM',
+          name: 'spark.subagent.start',
+          value: { toolCallId: 'tc-1', subagent: 'especialista_secreto' },
+        },
+      ];
+      const { handlers, subagentsStarted } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(subagentsStarted[0].label).toBe('Consultando a un especialista…');
+      expect(subagentsStarted[0].label).not.toContain('especialista_secreto');
+    });
+
+    it('assumes a delegation went fine when the agent does not say otherwise', async () => {
+      // Un agente anterior al contrato no manda `ok`. Pintar un fallo
+      // inventado seria peor que asumir que fue bien.
+      agent.events = [
+        { type: 'CUSTOM', name: 'spark.subagent.end', value: { toolCallId: 'tc-1' } },
+      ];
+      const { handlers, subagentsEnded } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(subagentsEnded[0].ok).toBe(true);
+    });
+
+    it('ignores a custom event it does not know', async () => {
+      agent.events = [
+        { type: 'CUSTOM', name: 'spark.algo.nuevo', value: { x: 1 } },
+        { type: 'TEXT_MESSAGE_START' },
+      ];
+      const { handlers, startedCount } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(startedCount()).toBe(1);
+    });
+
+    it('keeps each answer of the turn under its own message id', async () => {
+      // Un turno puede producir varias burbujas: el coordinador escribe,
+      // delega, y vuelve a escribir.
+      agent.events = [
+        { type: 'TEXT_MESSAGE_START', messageId: 'm-1' },
+        { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm-1', delta: 'uno' },
+        { type: 'TEXT_MESSAGE_END', messageId: 'm-1' },
+        { type: 'TEXT_MESSAGE_START', messageId: 'm-2' },
+        { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm-2', delta: 'dos' },
+        { type: 'TEXT_MESSAGE_END', messageId: 'm-2' },
+      ];
+      const { handlers, startedIds, deltaIds, endedIds } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(startedIds).toEqual(['m-1', 'm-2']);
+      expect(deltaIds).toEqual(['m-1', 'm-2']);
+      expect(endedIds).toEqual(['m-1', 'm-2']);
+    });
+
+    it('invents an id when the agent does not send one', async () => {
+      agent.events = [
+        { type: 'TEXT_MESSAGE_START' },
+        { type: 'TEXT_MESSAGE_CONTENT', delta: 'hola' },
+      ];
+      const { handlers, startedIds, deltaIds } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(startedIds[0]).toBeTruthy();
+      expect(deltaIds).toEqual([startedIds[0]]);
+    });
+
+    it('forwards the thread snapshot', async () => {
+      agent.events = [
+        {
+          type: 'MESSAGES_SNAPSHOT',
+          messages: [
+            { id: 'm1', role: 'user', content: 'hola' },
+            { id: 'm2', role: 'assistant', content: 'no puedo ayudarte con eso' },
+          ],
+        },
+      ];
+      const { handlers, snapshots } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(snapshots[0].map((m) => m.role)).toEqual(['user', 'assistant']);
+      expect(snapshots[0][1].content).toBe('no puedo ayudarte con eso');
+    });
+
+    it('drops snapshot entries the UI cannot paint', async () => {
+      agent.events = [
+        {
+          type: 'MESSAGES_SNAPSHOT',
+          messages: [
+            { id: 'm1', role: 'tool', content: '[{"id": 1}]' },
+            { id: 'm2', role: 'assistant', content: null },
+            'basura',
+            { id: 'm3', role: 'assistant', content: 'ok' },
+          ],
+        },
+      ];
+      const { handlers, snapshots } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(snapshots[0].map((m) => m.id)).toEqual(['m1', 'm3']);
+    });
+
+    it('survives a snapshot that is not a list', async () => {
+      agent.events = [{ type: 'MESSAGES_SNAPSHOT', messages: null }];
+      const { handlers, snapshots } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(snapshots[0]).toEqual([]);
     });
 
     it('tolerates a tool event with no id', async () => {

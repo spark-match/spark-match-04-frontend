@@ -6,7 +6,12 @@ import { environment } from '../../../environments/environment';
 import { AgUiClient } from '../../core/agent/ag-ui.client';
 import { stepLabel } from '../../core/agent/step-labels';
 import { toolLabel } from '../../core/agent/tool-labels';
-import { RunAgentInput } from '../../core/agent/ag-ui.model';
+import {
+  SUBAGENT_END_EVENT,
+  SUBAGENT_START_EVENT,
+  subagentLabel,
+} from '../../core/agent/subagent-labels';
+import { AgUiEvent, AgUiSnapshotMessage, RunAgentInput } from '../../core/agent/ag-ui.model';
 import {
   ChatMessage,
   ChatThread,
@@ -106,6 +111,11 @@ export class ChatService {
       forwardedProps: {},
     };
 
+    // El id del mensaje que se esta escribiendo ahora. El protocolo lo trae
+    // en cada evento, pero no todos los caminos internos de ag_ui_langgraph
+    // lo rellenan, asi que se recuerda el ultimo como respaldo.
+    let openMessageId = '';
+
     for await (const event of this.agent.streamRun(input, signal)) {
       switch (event.type) {
         case 'STEP_STARTED': {
@@ -130,10 +140,21 @@ export class ChatService {
           handlers.onToolEnd(event.toolCallId ?? '');
           break;
         case 'TEXT_MESSAGE_START':
-          handlers.onAnswerStart();
+          openMessageId = String(event.messageId ?? crypto.randomUUID());
+          handlers.onAnswerStart(openMessageId);
           break;
         case 'TEXT_MESSAGE_CONTENT':
-          if (event.delta) handlers.onDelta(event.delta);
+          if (event.delta) handlers.onDelta(String(event.messageId ?? openMessageId), event.delta);
+          break;
+        case 'TEXT_MESSAGE_END':
+          handlers.onAnswerEnd(String(event.messageId ?? openMessageId));
+          openMessageId = '';
+          break;
+        case 'MESSAGES_SNAPSHOT':
+          handlers.onSnapshot(readSnapshotMessages(event.messages));
+          break;
+        case 'CUSTOM':
+          handleCustomEvent(event, handlers);
           break;
         case 'RUN_ERROR':
           throw new Error(event.message ?? 'run error');
@@ -142,6 +163,43 @@ export class ChatService {
       }
     }
   }
+}
+
+/**
+ * Eventos propios del agente, documentados en su `docs/ag-ui-events.md`.
+ *
+ * Llevan el mismo `toolCallId` que la tool call `task` que los envuelve, y
+ * eso es deliberado: el chip generico ya existe cuando llega el `start`, asi
+ * que la interfaz lo asciende a «Evaluando tu perfil vocacional…» en vez de
+ * pintar un segundo chip para lo mismo.
+ */
+function handleCustomEvent(event: AgUiEvent, handlers: ChatTurnHandlers): void {
+  const value = (event.value ?? {}) as Record<string, unknown>;
+  const toolCallId = String(value['toolCallId'] ?? '');
+
+  if (event.name === SUBAGENT_START_EVENT) {
+    handlers.onSubagentStart(toolCallId, subagentLabel(value['subagent'] as string | undefined));
+    return;
+  }
+  if (event.name === SUBAGENT_END_EVENT) {
+    // `ok !== false` y no `=== true`: si un agente viejo no manda el campo,
+    // lo razonable es asumir que fue bien, no pintar un fallo inventado.
+    handlers.onSubagentEnd(toolCallId, value['ok'] !== false, Number(value['durationMs'] ?? 0));
+  }
+}
+
+/** Se queda solo con lo que la UI puede pintar, y descarta el resto sin ruido. */
+function readSnapshotMessages(messages: unknown): AgUiSnapshotMessage[] {
+  if (!Array.isArray(messages)) return [];
+
+  return messages
+    .filter((message): message is Record<string, unknown> => typeof message === 'object' && message !== null)
+    .filter((message) => typeof message['content'] === 'string' && typeof message['role'] === 'string')
+    .map((message) => ({
+      id: String(message['id'] ?? ''),
+      role: String(message['role']),
+      content: String(message['content']),
+    }));
 }
 
 function toChatMessage(message: {
