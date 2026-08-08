@@ -1,0 +1,90 @@
+<div class="filters">
+  <h1 class="filters__title font-display">Configura tu búsqueda</h1>
+  <p class="filters__lead">
+    Estos filtros precargan el contexto del chat para que la IA te dé resultados precisos
+    desde el primer mensaje.
+  </p>
+
+  <section class="filters__field">
+    <label class="filters__label" for="region"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.1 7-12a7 7 0 10-14 0c0 6.9 7 12 7 12z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9" r="2.2" stroke="currentColor" stroke-width="1.8"/></svg>Región de estudio</label>
+    <select id="region" [formField]="filtersForm.region" class="filters__select">
+      <option value="" disabled>{{ loadingRegions() ? 'Cargando regiones...' : 'Selecciona tu región' }}</option>
+      @for (region of regions(); track region) {
+        <option [value]="region.name">{{ region.name }}</option>
+      }
+    </select>
+    @if (filtersForm.region().touched() && filtersForm.region().invalid()) {
+      <p class="filters__error" role="alert">{{ filtersForm.region().errors()[0].message }}</p>
+    }
+  </section>
+
+  <section class="filters__field">
+    <p class="filters__label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="m3 10 9-6 9 6M5 10h14M6 10v8m4-8v8m4-8v8m4-8v8M4 20h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>¿Pública o privada?</p>
+    <div class="filters__choices" role="radiogroup" aria-label="Tipo de institución">
+      @for (opt of institutionTypeOptions; track opt) {
+        <button
+          type="button"
+          class="filters__choice"
+          role="radio"
+          [class.selected]="filtersForm.institutionType().value() === opt.value"
+          [attr.aria-checked]="filtersForm.institutionType().value() === opt.value"
+          (click)="setInstitutionType(opt.value)"
+        >
+          <strong>{{ opt.label }}</strong>
+          <span>{{ opt.hint }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="filters__field">
+    <p class="filters__label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-5 9 5-9 5-9-5zm4 2.2V16l5 3 5-3v-4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>¿Universidad o instituto?</p>
+    <div class="filters__choices" role="radiogroup" aria-label="Tipo de academia">
+      @for (opt of academicTypeOptions; track opt) {
+        <button
+          type="button"
+          class="filters__choice"
+          role="radio"
+          [class.selected]="filtersForm.academicType().value() === opt.value"
+          [attr.aria-checked]="filtersForm.academicType().value() === opt.value"
+          (click)="setAcademicType(opt.value)"
+        >
+          <strong>{{ opt.label }}</strong>
+          <span>{{ opt.hint }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="filters__field">
+    <p class="filters__label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M7 14h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Presupuesto anual máximo</p>
+    <div class="filters__budget-card">
+      <span class="filters__budget-value font-display">{{ budgetLabel() }}</span>
+      <input
+        type="range"
+        min="0"
+        max="35000"
+        step="500"
+        [value]="filtersForm.budget().value()"
+        (input)="onBudgetInput($event)"
+        class="filters__slider"
+      />
+      <div class="filters__budget-range">
+        <span>S/. 0 (gratuito / público)</span>
+        <span>S/. 35000</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="filters__footer">
+    <button
+      type="button"
+      class="filters__submit"
+      [disabled]="!isReady()"
+      (click)="startChat()"
+    >
+      Iniciar chat de orientación →
+    </button>
+    <span class="filters__progress">Completa los 3 filtros ({{ completedCount() }}/3)</span>
+  </div>
+</div>

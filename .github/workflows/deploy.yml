@@ -1,0 +1,44 @@
+name: deploy
+
+on:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: deploy-${{ github.ref_name }}
+    uses: spark-match/spark-match-01-devops/.github/workflows/reusable-frontend-deploy.yml@main
+    with:
+      environment-name: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+      gh-environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+      aws-region: us-east-1
+      # Vars por ambiente con sufijo _DEV/_PROD: las vars de scope
+      # environment NO se resuelven en el with: de un reusable call
+      # (el environment se enlaza dentro del workflow llamado), asi que
+      # deben ser repo-level y elegirse por rama.
+      role-arn: ${{ github.ref_name == 'main' && vars.AWS_FRONTEND_DEPLOY_ROLE_ARN_PROD || vars.AWS_FRONTEND_DEPLOY_ROLE_ARN_DEV }}
+      working-directory: '.'
+      # dev compila con la configuration `cloud-dev`, que reemplaza el
+      # environment por uno que apunta al API Gateway real de dev y apaga los
+      # mocks. `build:ci` (production) apunta al dominio de prod, asi que
+      # usarlo en dev desplegaba una app que le pegaba al backend equivocado.
+      build-script: ${{ github.ref_name == 'main' && 'build:ci' || 'build:ci:dev' }}
+      node-version: '24'
+      bucket-name: ${{ github.ref_name == 'main' && 'spark-match-frontend-prod' || 'spark-match-frontend-dev' }}
+      distribution-id: ${{ github.ref_name == 'main' && vars.CLOUDFRONT_DISTRIBUTION_ID_PROD || vars.CLOUDFRONT_DISTRIBUTION_ID_DEV }}
+      # Angular 22 (application builder) emite en dist/<proyecto>/browser/;
+      # sincronizar un nivel arriba subiria index.html a s3://bucket/browser/.
+      source-dir: 'dist/spark-match-frontend/browser'
+      cache-control-hashed: 'public, max-age=31536000, immutable'
+      cache-control-html: 'no-cache, no-store, must-revalidate'
+      invalidation-paths: '/*'

@@ -1,0 +1,12 @@
+# Auto-detect text files, force LF line endings on commit
+* text=auto eol=lf
+
+# Markdown files: always LF (avoid CRLF in CI Linux runners)
+*.md text eol=lf
+
+# YAML files: always LF
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Shell scripts: always LF
+*.sh text eol=lf

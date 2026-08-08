@@ -1,0 +1,12 @@
+.app-layout {
+  display: flex;
+  height: 100vh; /* Ocupa todo el alto de la pantalla */
+  width: 100vw;
+  overflow: hidden; /* Evita scrolls dobles extraños */
+}
+
+.main-content {
+  flex: 1; /* Toma todo el espacio sobrante a la derecha del sidebar */
+  overflow-y: auto; /* Permite hacer scroll solo en el contenido */
+  background-color: var(--background); /* El color crema que configuramos */
+}

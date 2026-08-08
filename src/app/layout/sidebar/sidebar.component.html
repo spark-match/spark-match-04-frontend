@@ -1,0 +1,172 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+  <div class="sidebar__brand">
+    <span class="sidebar__logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-5 9 5-9 5-9-5zm4 2.2V16l5 3 5-3v-4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    @if (!collapsed()) {
+      <span class="sidebar__brand-name">Spark Match</span>
+    }
+    <button
+      type="button"
+      class="sidebar__collapse-btn"
+      (click)="toggleCollapsed()"
+      [attr.aria-label]="collapsed() ? 'Expandir menú' : 'Contraer menú'"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" [class.flipped]="collapsed()">
+        <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <nav class="sidebar__nav" ngToolbar orientation="vertical" aria-label="Navegación principal">
+    @for (item of navItems; track item) {
+      <a
+        ngToolbarWidget
+        [value]="item.path"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+        class="sidebar__nav-item"
+      >
+        @switch (item.icon) {
+          @case ('sparkles') {
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+          }
+          @case ('sliders') {
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M4 6h9M17 6h3M4 12h3M9 12h11M4 18h13M19 18h1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <circle cx="14" cy="6" r="2" stroke="currentColor" stroke-width="1.6"/>
+              <circle cx="7" cy="12" r="2" stroke="currentColor" stroke-width="1.6"/>
+              <circle cx="16" cy="18" r="2" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+          }
+          @case ('chat') {
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M4 5h16v11H8l-4 4V5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+          }
+          @case ('file') {
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M6 3h9l5 5v13H6V3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M14 3v5h5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+          }
+          @case ('user') {
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M5 21a7 7 0 0114 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          }
+        }
+        @if (!collapsed()) {
+          <span>{{ item.label }}</span>
+        }
+      </a>
+    }
+  </nav>
+
+  @if (!collapsed()) {
+    <div class="sidebar__recent" animate.enter="sidebar-section-in">
+      <p class="sidebar__section-label">Recientes</p>
+      @for (chat of recentChats(); track chat.thread_id) {
+        <button type="button" class="sidebar__recent-item" (click)="openChat(chat.thread_id)">
+          <span class="sidebar__recent-title">{{ chat.title }}</span>
+          <span class="sidebar__recent-when">{{ whenLabel(chat.updated_at) }}</span>
+        </button>
+      } @empty {
+        <p class="sidebar__recent-empty">Aún no tienes conversaciones.</p>
+      }
+    </div>
+  }
+
+  @if (!collapsed()) {
+    <button type="button" class="sidebar__new-chat" (click)="newChat()">
+      <span>+</span> Nuevo chat
+    </button>
+  }
+
+  <div class="sidebar__spacer"></div>
+
+  @if (!collapsed()) {
+    <div class="sidebar__admin">
+      <label class="sidebar__admin-toggle">
+        <input type="checkbox" [checked]="adminMode()" (change)="toggleAdminMode()" />
+        <span class="sidebar__section-label">Modo admin</span>
+      </label>
+
+      @if (adminMode()) {
+        <div class="sidebar__mlops">
+          <button type="button" class="sidebar__mlops-header" (click)="toggleMlops()">
+            <span class="sidebar__mlops-title"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.4-6.4-2.1 2.1M7.7 16.3l-2.1 2.1m12.8 0-2.1-2.1M7.7 7.7 5.6 5.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/></svg>MLOps</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" [class.flipped]="mlopsOpen()">
+              <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          @if (mlopsOpen()) {
+            <div class="sidebar__mlops-body" animate.enter="sidebar-section-in">
+              <label class="sidebar__field">
+                <span>Versión de prompt</span>
+                <select [value]="selectedPromptVersion()" (change)="selectedPromptVersion.set($any($event.target).value)">
+                  @for (v of promptVersions; track v) {
+                    <option [value]="v">{{ v }}</option>
+                  }
+                </select>
+              </label>
+
+              <label class="sidebar__field">
+                <span>Fórmula de scoring</span>
+                <select [value]="selectedScoringFormula()" (change)="selectedScoringFormula.set($any($event.target).value)">
+                  @for (f of scoringFormulas; track f) {
+                    <option [value]="f">{{ f }}</option>
+                  }
+                </select>
+              </label>
+
+              <label class="sidebar__field">
+                <span>Score de relevancia <b>{{ relevanceScore() }}%</b></span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  [value]="relevanceScore()"
+                  (input)="onScoreChange($event)"
+                />
+              </label>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  @if (user(); as u) {
+    <div class="sidebar__user">
+      <span class="sidebar__avatar">{{ u.fullName.charAt(0).toUpperCase() }}</span>
+      @if (!collapsed()) {
+        <div class="sidebar__user-info">
+          <span class="sidebar__user-name">{{ u.fullName }}</span>
+          <span class="sidebar__user-email">{{ u.email }}</span>
+        </div>
+      }
+      @if (!collapsed()) {
+        <button
+          type="button"
+          class="sidebar__logout"
+          aria-label="Cerrar sesión"
+          (click)="logout()"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      }
+    </div>
+  } @else {
+    @if (!collapsed()) {
+      <a routerLink="/auth/login" class="sidebar__user sidebar__user--guest">
+        Iniciar sesión
+      </a>
+    }
+  }
+</aside>
