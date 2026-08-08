@@ -120,4 +120,47 @@ describe('ReportsComponent', () => {
     component.exportPdf();
     expect(printSpy).toHaveBeenCalledOnce();
   });
+
+  /*
+   * El banner citaba la fuente escrita a mano en la plantilla: «Datos: Ponte en Carrera 2024».
+   * Cuando el 2026-08-08 se corrigió la atribución de las fichas, el banner no se enteró y la
+   * pantalla quedó diciendo dos fechas distintas a la vez. Se detectó descargando el bundle
+   * desplegado y buscando la cadena vieja, no leyendo el código.
+   *
+   * Estas pruebas fijan que la fuente del banner SALE DEL DATO. Por eso el fixture usa un
+   * valor deliberadamente inventado: si alguien vuelve a escribirla en la plantilla, el
+   * texto no coincidirá y la prueba caerá.
+   */
+  describe('la fuente del banner sale del dato, no de la plantilla', () => {
+    it('muestra en el banner la fuente que trae el reporte', () => {
+      const informe = buildReport();
+      informe.careers.forEach((c) => (c.source = 'FUENTE-DE-PRUEBA-XYZ'));
+      getReportMock.mockReturnValue(of(informe));
+
+      fixture = TestBed.createComponent(ReportsComponent);
+      fixture.detectChanges();
+
+      const banner = (fixture.nativeElement as HTMLElement).querySelector('.report__banner');
+      expect(banner?.textContent).toContain('FUENTE-DE-PRUEBA-XYZ');
+    });
+
+    it('no lleva ninguna fuente escrita a mano en la plantilla', () => {
+      const informe = buildReport();
+      informe.careers.forEach((c) => (c.source = 'FUENTE-DE-PRUEBA-XYZ'));
+      getReportMock.mockReturnValue(of(informe));
+
+      fixture = TestBed.createComponent(ReportsComponent);
+      fixture.detectChanges();
+
+      const html = (fixture.nativeElement as HTMLElement).textContent ?? '';
+      expect(html).not.toContain('Ponte en Carrera 2024');
+    });
+
+    it('no rompe el banner cuando el reporte viene vacío', () => {
+      component.report.set(null);
+      fixture.detectChanges();
+
+      expect(component.dataSource).toBe('');
+    });
+  });
 });

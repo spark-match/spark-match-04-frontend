@@ -29,6 +29,22 @@ export class ReportsComponent implements OnInit {
     return this.report()?.profileSummary ?? '';
   }
 
+  /**
+   * La fuente que se muestra en el banner sale del propio dato, no de la plantilla.
+   *
+   * Estaba escrita a mano ahi -«Datos: Ponte en Carrera 2024»- y por eso sobrevivio a la
+   * correccion del 2026-08-08, que solo toco el `source` de cada ficha. Quedaron dos
+   * verdades distintas en la misma pantalla: las tarjetas citando la fecha real del
+   * snapshot y la cabecera citando una que no existe.
+   *
+   * Derivarla del reporte hace imposible esa deriva: si cambia la fuente del dato, cambia
+   * sola la del banner. Se toma de la primera ficha porque todas comparten la misma; el dia
+   * que haya varias fuentes esto tendra que agregarlas, y el test de abajo lo dira.
+   */
+  get dataSource(): string {
+    return this.careers[0]?.source ?? '';
+  }
+
   ngOnInit(): void {
     const filters = this.filtersService.currentFilters();
     this.reportsService.getReport(filters).subscribe((report) => {
