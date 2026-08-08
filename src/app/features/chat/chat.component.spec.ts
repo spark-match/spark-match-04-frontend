@@ -91,6 +91,18 @@ describe('ChatComponent', () => {
       expect(component.messages()[0].text).toContain('orientador vocacional');
     });
 
+    it('promises only what the agent can actually deliver', () => {
+      // Decía «datos oficiales de Ponte en Carrera para darte recomendaciones
+      // basadas en el mercado laboral real peruano» cuando el agente no tenía
+      // ni un dato del MINEDU. Ahora sí los tiene, pero el 73% de los sueldos
+      // del dataset son la mediana de la familia de carrera, así que la
+      // bienvenida no los usa de gancho: eso lo matiza el agente dato a dato.
+      const welcome = component.messages()[0].text;
+
+      expect(welcome).toContain('Ponte en Carrera');
+      expect(welcome).not.toMatch(/sueldo|salario|mercado laboral/i);
+    });
+
     it('repopulates a previous conversation instead of greeting', async () => {
       const history: ChatMessage[] = [
         { id: 'h1', role: 'user', text: 'hola', timestamp: '2026-08-05T12:00:00.000Z' },
