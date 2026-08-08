@@ -28,10 +28,4 @@ export const environment = {
 
   // El punto de este ambiente: pegarle al backend de verdad.
   useMocks: false,
-
-  features: {
-    assessmentEnabled: true,
-    matchingEnabled: false,
-    chatbotEnabled: false,
-  },
 };

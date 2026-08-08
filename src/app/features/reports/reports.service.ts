@@ -6,6 +6,37 @@ import { environment } from '../../../environments/environment';
 import { OrientationReport } from '../careers/career.model';
 import { OrientationFilters } from '../filters/filters.model';
 
+/**
+ * La fecha es la del snapshot que hay en disco (`snapshots/raw_20260613_021109.xlsx` en
+ * spark-match-05-data-pipeline), no una fecha aproximada. Importa que sea exacta: el portal
+ * del MINEDU devuelve HTTP 500 desde el 2026-07-12 y la etapa `ingest` del dvc.yaml esta
+ * congelada, asi que este snapshot es, por ahora, el unico dato del producto y no se
+ * refresca solo. Si algun dia vuelve a ingestarse, esta constante tiene que moverse con el.
+ */
+const SOURCE_LABEL = 'Ponte en Carrera (MINEDU) · datos del 13/06/2026';
+
+/**
+ * Las tres fichas son FILAS REALES del `features.csv` de spark-match-05-data-pipeline,
+ * no valores escritos a mano. Antes lo eran: hasta el 2026-08-08 esta funcion devolvia
+ * Ingenieria de Sistemas/UNMSM con S/. 4.800 y 12% de admision, Ingenieria Biomedica/UNI
+ * y Ciencia de Datos/PUCP, todas rotuladas "Fuente: Ponte en Carrera 2024". Se comprobo
+ * contra el dataset: de las tres, DOS no existian en el (0 filas) y la tercera tenia otras
+ * cifras (S/. 4.582 y 5% de admision). O sea que se atribuian al MINEDU numeros que el
+ * MINEDU nunca publico.
+ *
+ * Criterio de eleccion de las de ahora: las tres tienen los cuatro flags de imputacion en
+ * False, es decir duracion, ingreso, costo y tasa de admision son valores medidos, no
+ * estimados por el pipeline. Solo 370 de las 6.208 filas cumplen eso, y 129 estan en Lima.
+ * Se descarto Ingenieria de Sistemas/UNMSM justamente por eso: su costo anual esta imputado.
+ *
+ * Lo que SIGUE sin respaldo es `matchPct`. La afinidad es la salida del motor de scoring
+ * multicriterio, que todavia no existe conectado en ningun repositorio, asi que ese numero
+ * es ilustrativo y el orden del Top-3 tambien. Se sustituye cuando exista el motor; hasta
+ * entonces el resto de la tarjeta si es verificable contra el dataset.
+ *
+ * El costo anual de tres cifras no es un error: son universidades publicas y el dataset
+ * recoge la tasa administrativa, no una matricula privada.
+ */
 function buildMockReport(filters: OrientationFilters | null): OrientationReport {
   const budget = filters?.budget ?? 8000;
   const region = filters?.region || 'Lima Metropolitana';
@@ -26,51 +57,51 @@ function buildMockReport(filters: OrientationFilters | null): OrientationReport 
         id: 'career-1',
         rank: 1,
         isTopMatch: true,
-        title: 'Ingeniería de Sistemas e Informática',
-        institution: 'Universidad Nacional Mayor de San Marcos',
+        title: 'Ingeniería de Sistemas',
+        institution: 'Universidad Nacional de Ingeniería',
         matchPct: 94,
         insight:
-          'Mayor empleabilidad en el sector privado. Demanda creciente del 28% anual según MTPE.',
+          'Ingreso mensual más alto de las tres opciones. Admisión del 13%, así que es selectiva.',
         metrics: {
           durationYears: 5,
-          admissionRatePct: 12,
-          monthlyIncomeAvg: 4800,
-          annualCostAvg: 1200,
+          admissionRatePct: 13,
+          monthlyIncomeAvg: 4900,
+          annualCostAvg: 110,
         },
-        source: 'Ponte en Carrera 2024',
+        source: SOURCE_LABEL,
       },
       {
         id: 'career-2',
         rank: 2,
         isTopMatch: false,
-        title: 'Ingeniería Biomédica',
+        title: 'Ingeniería Mecatrónica',
         institution: 'Universidad Nacional de Ingeniería',
         matchPct: 89,
         insight:
-          'Carrera emergente. Crecimiento del 34% en oferta laboral en los últimos 3 años en Perú.',
+          'La más selectiva de las tres: solo entra el 7% de quienes postulan. Mismo costo anual.',
         metrics: {
           durationYears: 5,
-          admissionRatePct: 8,
-          monthlyIncomeAvg: 5200,
-          annualCostAvg: 1400,
+          admissionRatePct: 7,
+          monthlyIncomeAvg: 4195,
+          annualCostAvg: 110,
         },
-        source: 'Ponte en Carrera 2024',
+        source: SOURCE_LABEL,
       },
       {
         id: 'career-3',
         rank: 3,
         isTopMatch: false,
-        title: 'Ciencia de Datos',
-        institution: 'Pontificia Universidad Católica del Perú',
+        title: 'Ingeniería Informática',
+        institution: 'Universidad Nacional Federico Villarreal',
         matchPct: 85,
-        insight: 'Uno de los perfiles más demandados por empresas tecnológicas y fintech en Lima.',
+        insight: 'La más accesible del grupo, con un 28% de admisión, a cambio de menor ingreso.',
         metrics: {
           durationYears: 5,
-          admissionRatePct: 15,
-          monthlyIncomeAvg: 5000,
-          annualCostAvg: 1300,
+          admissionRatePct: 28,
+          monthlyIncomeAvg: 3678,
+          annualCostAvg: 156,
         },
-        source: 'Ponte en Carrera 2024',
+        source: SOURCE_LABEL,
       },
     ],
   };
