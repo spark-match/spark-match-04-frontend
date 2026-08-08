@@ -26,7 +26,8 @@ export type AgUiEventType =
   | 'TOOL_CALL_START'
   | 'TOOL_CALL_ARGS'
   | 'TOOL_CALL_END'
-  | 'TOOL_CALL_RESULT';
+  | 'TOOL_CALL_RESULT'
+  | 'CUSTOM';
 
 export interface AgUiEvent {
   /** Uno de `AgUiEventType`, o cualquier otro que el agente agregue despues. */
@@ -48,7 +49,29 @@ export interface AgUiEvent {
   toolCallId?: string;
   /** TOOL_CALL_START: nombre de la funcion en el agente. Nunca se muestra. */
   toolCallName?: string;
+  /** CUSTOM: que evento propio es. Ver `docs/ag-ui-events.md` del agente. */
+  name?: string;
+  /** CUSTOM: su cuerpo. */
+  value?: unknown;
+  /** MESSAGES_SNAPSHOT: el hilo entero tal como lo tiene el checkpoint. */
+  messages?: unknown;
   [key: string]: unknown;
+}
+
+/**
+ * Un mensaje dentro de `MESSAGES_SNAPSHOT`.
+ *
+ * El agente lo emite al cerrar cada turno con el hilo completo, y es la
+ * unica via por la que llega una respuesta que NO se genero token a token:
+ * cuando un guardrail, el filtro de contenido o el tope de turnos cortan el
+ * turno, el mensaje se inyecta directo en el estado del grafo y no produce
+ * ningun `TEXT_MESSAGE_*`. Sin leer esto, el estudiante se queda mirando su
+ * pregunta sin respuesta ninguna.
+ */
+export interface AgUiSnapshotMessage {
+  id: string;
+  role: string;
+  content: string;
 }
 
 /** Lo que el agente espera en el cuerpo de `POST /ag-ui` (`RunAgentInput`). */

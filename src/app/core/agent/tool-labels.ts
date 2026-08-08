@@ -18,16 +18,25 @@ const LABELS: Record<string, string> = {
   calculate_affinity: 'Calculando tu afinidad…',
   evaluate_riasec_profile: 'Evaluando tu perfil vocacional…',
   search_memory: 'Repasando lo que conversamos…',
-  manage_prefs: 'Anotando tus preferencias…',
-  // `task` es cómo deepagents expone la delegación a un subagente: en el
-  // stream no hay ningún evento propio de subagentes, se ve como una tool
-  // call normal con este nombre.
+  // `manage_memory` y no `manage_prefs`: ese último es sólo el nombre de la
+  // variable de Python en `factory.py` del agente. La herramienta la
+  // construye langmem con `create_manage_memory_tool(...)` sin pasarle
+  // `name=`, así que lo que viaja en `toolCallName` es el nombre por defecto
+  // de la librería. Con la clave equivocada, anotar una preferencia se
+  // anunciaba como «Usando una herramienta…».
+  manage_memory: 'Anotando tus preferencias…',
+  // `task` es cómo deepagents expone la delegación a un subagente. Desde que
+  // el agente emite los eventos `spark.subagent.*` este chip se reemplaza
+  // por el del especialista concreto (ver `subagent-labels.ts`); queda como
+  // red de seguridad para un agente que aún no los emita.
   task: 'Consultando a un especialista…',
   write_todos: 'Organizando el plan…',
   write_file: 'Guardando notas…',
   edit_file: 'Actualizando sus notas…',
   read_file: 'Revisando sus notas…',
   ls: 'Revisando sus notas…',
+  glob: 'Revisando sus notas…',
+  grep: 'Revisando sus notas…',
 };
 
 /** Lo que se muestra para una herramienta que este mapa no conoce. */

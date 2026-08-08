@@ -5,6 +5,7 @@
  * `GET /threads/{id}/messages`, y el turno en vivo llega por SSE desde
  * `POST /ag-ui` (ver `src/app/core/agent/`).
  */
+import { AgUiSnapshotMessage } from '../../core/agent/ag-ui.model';
 import { OrientationFilters } from '../filters/filters.model';
 
 export type ChatRole = 'ai' | 'user';
@@ -40,16 +41,32 @@ export interface ThreadMessagesResponse {
  *
  * `onStep` puede dispararse varias veces antes de `onAnswerStart`: son los
  * pasos intermedios que el agente va anunciando mientras piensa.
+ *
+ * Los tres de mensaje llevan `messageId` porque un turno puede producir
+ * VARIAS burbujas: el coordinador escribe, delega, y vuelve a escribir. Sin
+ * el id, la segunda respuesta se pegaba a la primera y las burbujas
+ * anteriores se quedaban marcadas como «escribiendo» para siempre.
  */
 export interface ChatTurnHandlers {
   onStep(label: string): void;
-  onAnswerStart(): void;
-  onDelta(delta: string): void;
+  onAnswerStart(messageId: string): void;
+  onDelta(messageId: string, delta: string): void;
+  /** Esa respuesta quedó completa (`TEXT_MESSAGE_END`). */
+  onAnswerEnd(messageId: string): void;
   /** El agente empezo a usar una herramienta (buscar en internet, etc). */
   onToolStart(toolCallId: string, label: string): void;
   /** Esa herramienta termino. */
   onToolEnd(toolCallId: string): void;
+  /** El coordinador delegó en un especialista. Mismo id que la tool `task`. */
+  onSubagentStart(toolCallId: string, label: string): void;
+  /** El especialista terminó. `ok` es false si la delegación falló. */
+  onSubagentEnd(toolCallId: string, ok: boolean, durationMs: number): void;
+  /** El hilo completo tal como lo tiene el checkpoint del agente. */
+  onSnapshot(messages: AgUiSnapshotMessage[]): void;
 }
+
+/** De qué es el chip: una herramienta o una delegación en un especialista. */
+export type ChatActivityKind = 'subagent' | 'tool';
 
 /**
  * Una herramienta que el agente uso durante el turno, tal como se le muestra
@@ -63,6 +80,11 @@ export interface ChatActivity {
   id: string;
   label: string;
   running: boolean;
+  kind: ChatActivityKind;
+  /** Sólo en delegaciones ya terminadas. */
+  durationMs?: number;
+  /** `false` cuando la delegación falló. */
+  ok?: boolean;
 }
 
 /** Una conversación en la lista del sidebar (`GET /threads` del agente). */

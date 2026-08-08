@@ -394,6 +394,81 @@
   animation: chat-typing 1s infinite;
 }
 
+// Lo que el agente hizo para responder: búsquedas, catálogo, delegaciones en
+// un especialista. Esta regla faltaba entera, así que los chips se pintaban
+// como viñetas sueltas de <ul> con la sangría por defecto del navegador.
+.chat__activities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.55rem;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--input);
+    color: oklch(0.5 0.02 240);
+    font-size: 0.74rem;
+    line-height: 1.5;
+
+    // El punto de la izquierda. Cambia de color con el estado del chip, que
+    // es lo que distingue «buscando» de «buscó».
+    &::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.55;
+      flex: 0 0 auto;
+    }
+  }
+}
+
+// Ya terminado y pegado a la respuesta: más apagado, para que no compita con
+// el texto que el estudiante viene a leer.
+.chat__activities--done li {
+  background: transparent;
+  opacity: 0.75;
+}
+
+.chat__activity--running {
+  color: var(--teal-deep);
+  border-color: oklch(0.62 0.13 175 / 0.35);
+
+  &::before {
+    opacity: 1;
+    animation: chat-typing 1.1s infinite ease-in-out;
+  }
+}
+
+// Una delegación no es una herramienta más: es el agente pidiéndole trabajo a
+// otro agente, y merece verse distinto.
+.chat__activity--subagent {
+  border-color: oklch(0.62 0.13 175 / 0.4);
+  background: oklch(0.62 0.13 175 / 0.1);
+  color: var(--teal-deep);
+  font-weight: 600;
+}
+
+.chat__activity--failed {
+  border-color: oklch(0.72 0.13 25 / 0.45);
+  background: oklch(0.96 0.03 25);
+  color: oklch(0.45 0.13 25);
+}
+
+.chat__activity-detail {
+  opacity: 0.7;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
 .chat__error {
   display: flex;
   align-items: center;

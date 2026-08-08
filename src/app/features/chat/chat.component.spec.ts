@@ -19,8 +19,9 @@ import { ChatSessionsStore } from './chat-sessions.store';
 function turnThatStreams(steps: string[], chunks: string[]) {
   return vi.fn(async (_thread: string, _text: string, handlers: ChatTurnHandlers) => {
     for (const step of steps) handlers.onStep(step);
-    handlers.onAnswerStart();
-    for (const chunk of chunks) handlers.onDelta(chunk);
+    handlers.onAnswerStart('m-1');
+    for (const chunk of chunks) handlers.onDelta('m-1', chunk);
+    handlers.onAnswerEnd('m-1');
   });
 }
 
@@ -151,7 +152,7 @@ describe('ChatComponent', () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
         handlers.onStep('Recordando lo que ya sé de ti…');
         seen.push(component.currentStep());
-        handlers.onAnswerStart();
+        handlers.onAnswerStart('m-1');
         seen.push(component.currentStep());
       });
       component.draft = 'hola';
@@ -185,8 +186,8 @@ describe('ChatComponent', () => {
         handlers.onToolStart('tc-1', 'Buscando en internet…');
         seenDuringTurn.push(component.activities().map((a) => a.label));
         handlers.onToolEnd('tc-1');
-        handlers.onAnswerStart();
-        handlers.onDelta('listo');
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'listo');
       });
       component.draft = 'hola';
 
@@ -224,8 +225,8 @@ describe('ChatComponent', () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
         handlers.onToolStart('tc-1', 'Buscando en internet…');
         handlers.onToolEnd('tc-1');
-        handlers.onAnswerStart();
-        handlers.onDelta('listo');
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'listo');
       });
       component.draft = 'hola';
 
@@ -245,6 +246,170 @@ describe('ChatComponent', () => {
       await fixture.whenStable();
 
       expect(component.messages().at(-1)?.activities).toBeUndefined();
+    });
+
+    it('upgrades the generic task chip to the specialist it delegated to', async () => {
+      // El evento de subagente llega con el MISMO toolCallId que la tool
+      // `task` que lo envuelve. Si se tratara como un chip nuevo, el
+      // estudiante veria dos veces la misma delegacion.
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onToolStart('tc-1', 'Consultando a un especialista…');
+        handlers.onSubagentStart('tc-1', 'Evaluando tu perfil vocacional…');
+        handlers.onSubagentEnd('tc-1', true, 8400);
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'listo');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      const chips = component.messages().at(-1)?.activities ?? [];
+      expect(chips.length).toBe(1);
+      expect(chips[0].label).toBe('Evaluando tu perfil vocacional…');
+      expect(chips[0].kind).toBe('subagent');
+      expect(component.activityDetail(chips[0])).toBe(' · 8.4 s');
+    });
+
+    it('says so when a delegation could not be completed', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onSubagentStart('tc-1', 'Armando tu plan de acción…');
+        handlers.onSubagentEnd('tc-1', false, 1200);
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'listo');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      const chip = (component.messages().at(-1)?.activities ?? [])[0];
+      expect(chip.ok).toBe(false);
+      expect(component.activityDetail(chip)).toContain('no pudo completarse');
+    });
+
+    it('keeps the chips when the turn produces several bubbles', async () => {
+      // Antes se pegaban a la ULTIMA burbuja. Ahora van a la primera: las
+      // herramientas corren antes del texto que producen, y la ultima
+      // respuesta suele ser un cierre corto al que no pertenecen.
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'déjame consultarlo');
+        handlers.onAnswerEnd('m-1');
+        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        handlers.onToolEnd('tc-1');
+        handlers.onAnswerStart('m-2');
+        handlers.onDelta('m-2', 'esto encontré');
+        handlers.onAnswerEnd('m-2');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      const bubbles = component.messages().filter((m) => m.role === 'ai' && m.text);
+      expect(bubbles.map((m) => m.text)).toEqual([
+        expect.stringContaining('orientador vocacional'),
+        'déjame consultarlo',
+        'esto encontré',
+      ]);
+      expect(bubbles.at(-2)?.activities?.length).toBe(1);
+    });
+
+    it('never leaves an earlier bubble stuck as if it were still being written', async () => {
+      // Con un solo id por turno, la primera burbuja se quedaba con
+      // streaming:true para siempre: el cursor parpadeando bajo un texto
+      // que ya estaba completo.
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'primera');
+        handlers.onAnswerStart('m-2');
+        handlers.onDelta('m-2', 'segunda');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(component.messages().some((m) => m.streaming)).toBe(false);
+    });
+
+    it('opens a bubble for a delta whose start never arrived', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onDelta('m-huerfano', 'texto sin START');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(component.messages().at(-1)?.text).toBe('texto sin START');
+    });
+  });
+
+  describe('a turn that answers without streaming any text', () => {
+    // Un guardrail, el filtro de contenido o el tope de turnos cortan el
+    // turno inyectando el mensaje directo en el estado del grafo: no hay
+    // ningun TEXT_MESSAGE_*. Sin leer el snapshot, el estudiante se queda
+    // mirando su pregunta sin ninguna respuesta en pantalla.
+    it('recovers the answer from the messages snapshot', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onSnapshot([
+          { id: 'h1', role: 'user', content: 'hola' },
+          { id: 'bloqueo', role: 'assistant', content: 'No puedo ayudarte con eso.' },
+        ]);
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(component.messages().at(-1)?.text).toBe('No puedo ayudarte con eso.');
+      expect(component.messages().at(-1)?.role).toBe('ai');
+    });
+
+    it('keeps the chips of what it did before being cut off', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onToolStart('tc-1', 'Buscando en internet…');
+        handlers.onToolEnd('tc-1');
+        handlers.onSnapshot([{ id: 'x', role: 'assistant', content: 'No puedo ayudarte.' }]);
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(component.messages().at(-1)?.activities?.length).toBe(1);
+    });
+
+    it('does not duplicate a message that is already on screen', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'respuesta');
+        handlers.onSnapshot([{ id: 'm-1', role: 'assistant', content: 'respuesta' }]);
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(component.messages().filter((m) => m.text === 'respuesta').length).toBe(1);
+    });
+
+    it('does not resurrect a stale answer when the turn failed', async () => {
+      // El snapshot puede haberse emitido antes del fallo. Pintar ese
+      // mensaje seria enseñar como respuesta algo que no lo es.
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onSnapshot([{ id: 'viejo', role: 'assistant', content: 'de otro turno' }]);
+        throw new AgentStreamError('agent', 'boom', 500);
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(component.messages().some((m) => m.text === 'de otro turno')).toBe(false);
+      expect(component.errorMessage()).toBeTruthy();
     });
   });
 
@@ -279,7 +444,7 @@ describe('ChatComponent', () => {
 
     it('does not leave an empty bubble behind', async () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onAnswerStart();
+        handlers.onAnswerStart('m-1');
         throw new AgentStreamError('agent', 'boom', 500);
       });
       component.draft = 'hola';

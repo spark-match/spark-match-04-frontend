@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ChatService } from './chat.service';
 import { FiltersService } from '../filters/filters.service';
 import { ChatActivity, ChatMessage } from './chat.model';
+import { AgUiSnapshotMessage } from '../../core/agent/ag-ui.model';
 import { AgentStreamError, agentErrorMessage } from '../../core/agent/ag-ui.client';
 import { INITIAL_STEP_LABEL } from '../../core/agent/step-labels';
 import { AuthService } from '../../core/auth/auth.service';
@@ -123,7 +124,12 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   private async runTurn(text: string): Promise<void> {
     this.abort = new AbortController();
-    let answerId: string | null = null;
+    // Un turno puede producir varias burbujas: el coordinador escribe,
+    // delega en un especialista, y vuelve a escribir. Antes se guardaba un
+    // solo id y las anteriores quedaban en «escribiendo» para siempre.
+    const answerIds: string[] = [];
+    let snapshot: AgUiSnapshotMessage[] = [];
+    let failed = false;
 
     try {
       await this.chatService.sendTurn(
@@ -131,46 +137,63 @@ export class ChatComponent implements OnInit, OnDestroy {
         text,
         {
           onStep: (label) => this.currentStep.set(label),
-          onAnswerStart: () => {
+          onAnswerStart: (messageId) => {
             // La respuesta empieza: el indicador de progreso ya no aporta,
             // el texto que aparece es señal suficiente.
             this.currentStep.set(null);
-            answerId = crypto.randomUUID();
-            this.appendMessage({
-              id: answerId,
-              role: 'ai',
-              text: '',
-              timestamp: new Date().toISOString(),
-              streaming: true,
-            });
+            answerIds.push(messageId);
+            this.openBubble(messageId);
           },
-          onDelta: (delta) => {
-            if (answerId) this.appendDelta(answerId, delta);
+          onDelta: (messageId, delta) => {
+            // Abre la burbuja si el START no llegó: un token perdido es una
+            // frase cortada en mitad de la pantalla del estudiante.
+            if (!answerIds.includes(messageId)) {
+              answerIds.push(messageId);
+              this.openBubble(messageId);
+            }
+            this.appendDelta(messageId, delta);
           },
+          onAnswerEnd: (messageId) => this.finishStreaming(messageId),
           onToolStart: (toolCallId, label) => {
             // El paso genérico deja de aportar en cuanto se puede decir algo
             // concreto ("Buscando en internet…" en vez de "Pensando…").
             this.currentStep.set(null);
-            this.activities.update((list) => [...list, { id: toolCallId, label, running: true }]);
+            this.upsertActivity({ id: toolCallId, label, running: true, kind: 'tool' });
           },
-          onToolEnd: (toolCallId) => {
-            this.activities.update((list) =>
-              list.map((a) => (a.id === toolCallId ? { ...a, running: false } : a)),
-            );
+          onToolEnd: (toolCallId) => this.patchActivity(toolCallId, { running: false }),
+          onSubagentStart: (toolCallId, label) => {
+            this.currentStep.set(null);
+            // Mismo `toolCallId` que la tool `task` que lo envuelve, así que
+            // esto asciende el chip genérico en vez de duplicarlo.
+            this.upsertActivity({ id: toolCallId, label, running: true, kind: 'subagent' });
+          },
+          onSubagentEnd: (toolCallId, ok, durationMs) =>
+            this.patchActivity(toolCallId, { running: false, kind: 'subagent', ok, durationMs }),
+          onSnapshot: (messages) => {
+            snapshot = messages;
           },
         },
         this.abort.signal,
       );
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
-      this.handleTurnError(error, answerId);
+      failed = true;
+      this.handleTurnError(error, answerIds);
       return;
     } finally {
       this.abort = null;
       this.sending.set(false);
       this.currentStep.set(null);
-      if (answerId) this.attachActivities(answerId);
-      if (answerId) this.finishStreaming(answerId);
+      answerIds.forEach((id) => this.finishStreaming(id));
+
+      // Un turno cortado por un guardrail, por el filtro de contenido o por
+      // el tope de turnos no genera NINGÚN TEXT_MESSAGE_*: el agente inyecta
+      // la respuesta directo en el estado del grafo. Sin rescatarla del
+      // snapshot, el estudiante se queda mirando su pregunta sin respuesta.
+      const recovered = failed || answerIds.length ? null : this.recoverAnswer(snapshot);
+      const carrier = answerIds[0] ?? recovered;
+      if (carrier) this.attachActivities(carrier);
+
       this.activities.set([]);
       // El indice del agente se escribe al procesar el turno, asi que la
       // lista del sidebar solo es correcta despues de esto: una conversacion
@@ -180,9 +203,9 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
   }
 
-  private handleTurnError(error: unknown, answerId: string | null): void {
+  private handleTurnError(error: unknown, answerIds: string[]): void {
     // Una burbuja vacía a medio escribir es peor que ninguna.
-    if (answerId) this.dropIfEmpty(answerId);
+    answerIds.forEach((id) => this.dropIfEmpty(id));
     this.errorMessage.set(agentErrorMessage(error));
 
     // El interceptor que cierra sesión en 401 solo cubre HttpClient, y esto
@@ -198,10 +221,59 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.messages.update((msgs) => [...msgs, message]);
   }
 
+  /** Abre una burbuja vacía para el mensaje que el agente empieza a escribir. */
+  private openBubble(id: string): void {
+    if (this.messages().some((msg) => msg.id === id)) return;
+    this.appendMessage({
+      id,
+      role: 'ai',
+      text: '',
+      timestamp: new Date().toISOString(),
+      streaming: true,
+    });
+  }
+
   private appendDelta(id: string, delta: string): void {
     this.messages.update((msgs) =>
       msgs.map((msg) => (msg.id === id ? { ...msg, text: msg.text + delta } : msg)),
     );
+  }
+
+  private upsertActivity(activity: ChatActivity): void {
+    this.activities.update((list) =>
+      list.some((a) => a.id === activity.id)
+        ? list.map((a) => (a.id === activity.id ? { ...a, ...activity } : a))
+        : [...list, activity],
+    );
+  }
+
+  private patchActivity(id: string, patch: Partial<ChatActivity>): void {
+    this.activities.update((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+  }
+
+  /**
+   * Rescata del snapshot la respuesta de un turno que no emitió texto.
+   *
+   * Devuelve el id de la burbuja creada, o `null` si no había nada que
+   * rescatar. Se coge sólo el último mensaje del asistente que no estuviera
+   * ya en pantalla: es el del turno que acaba de terminar, y los anteriores
+   * o ya están o pertenecen a otro turno.
+   */
+  private recoverAnswer(snapshot: AgUiSnapshotMessage[]): string | null {
+    const known = new Set(this.messages().map((msg) => msg.id));
+    const pending = snapshot.filter(
+      (msg) => msg.role === 'assistant' && msg.content.trim() && msg.id && !known.has(msg.id),
+    );
+    const answer = pending.at(-1);
+    if (!answer) return null;
+
+    this.appendMessage({
+      id: answer.id,
+      role: 'ai',
+      text: answer.content,
+      timestamp: new Date().toISOString(),
+    });
+    return answer.id;
   }
 
   /**
@@ -210,6 +282,10 @@ export class ChatComponent implements OnInit, OnDestroy {
    * Se hace al cerrar el turno y no mientras corre, porque durante el turno
    * la lista se pinta aparte (encima del texto que se está escribiendo) y
    * duplicarla en los dos sitios se vería dos veces.
+   *
+   * Va a la PRIMERA burbuja del turno, no a la última: las herramientas
+   * corren antes del texto que producen, y cuando hay varias respuestas la
+   * última suele ser un cierre corto al que esos chips no pertenecen.
    */
   private attachActivities(id: string): void {
     const used = this.activities().map((a) => ({ ...a, running: false }));
@@ -247,6 +323,24 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   timeLabel(iso: string): string {
     return new Date(iso).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  /**
+   * El sufijo del chip: cuánto tardó el especialista, o que no pudo.
+   *
+   * Vacío mientras corre — un contador subiendo distrae del texto que se
+   * está escribiendo — y vacío también para las herramientas normales, que
+   * no reportan duración.
+   */
+  activityDetail(activity: ChatActivity): string {
+    if (activity.running) return '';
+    if (activity.ok === false) return ' · no pudo completarse';
+    if (activity.durationMs === undefined) return '';
+    // Los milisegundos por debajo del segundo se dejan tal cual en vez de
+    // redondear a «1 s»: redondear hacia arriba exagera lo que costó.
+    return activity.durationMs < 1000
+      ? ` · ${activity.durationMs} ms`
+      : ` · ${(activity.durationMs / 1000).toFixed(1)} s`;
   }
 }
 
