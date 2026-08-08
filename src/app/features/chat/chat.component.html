@@ -29,7 +29,14 @@
           @if (msg.activities?.length) {
             <ul class="chat__activities chat__activities--done">
               @for (activity of msg.activities; track activity.id) {
-                <li>{{ activity.label }}</li>
+                <li
+                  [class.chat__activity--subagent]="activity.kind === 'subagent'"
+                  [class.chat__activity--failed]="activity.ok === false"
+                >
+                  {{ activity.label }}<span class="chat__activity-detail">{{
+                    activityDetail(activity)
+                  }}</span>
+                </li>
               }
             </ul>
           }
@@ -51,7 +58,15 @@
         <div class="chat__bubble">
           <ul class="chat__activities" aria-live="polite">
             @for (activity of activities(); track activity.id) {
-              <li [class.chat__activity--running]="activity.running">{{ activity.label }}</li>
+              <li
+                [class.chat__activity--running]="activity.running"
+                [class.chat__activity--subagent]="activity.kind === 'subagent'"
+                [class.chat__activity--failed]="activity.ok === false"
+              >
+                {{ activity.label }}<span class="chat__activity-detail">{{
+                  activityDetail(activity)
+                }}</span>
+              </li>
             }
           </ul>
         </div>
