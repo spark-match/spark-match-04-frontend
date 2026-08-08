@@ -33,10 +33,24 @@ export class LandingPage {
     },
   ];
 
-  // TODO: estos totales vendrán de GET /api/stats (backend aún no disponible)
+  /**
+   * Verificado contra `data/features.csv` de spark-match-05-data-pipeline el 2026-08-08:
+   * 554 carreras únicas, 1.071 instituciones únicas y 25 departamentos, sobre 6.208
+   * combinaciones carrera-institución. Los dos primeros valores se dejan con "+" a
+   * propósito, para que sigan siendo ciertos si el dataset crece.
+   *
+   * El tercero era «98% Satisfacción» y se ha quitado, no reemplazado por otra estimación:
+   * no existe endpoint de feedback ni persistencia de valoraciones, y el modal de estrellas
+   * nunca llega a mostrarse porque `isFinalRecommendation` no se asigna en ningún punto.
+   * O sea que no se ha recogido ni una sola valoración y ese número no salía de ningún sitio.
+   * Vuelve cuando exista la recogida de feedback, con el dato real que produzca.
+   *
+   * TODO: los tres saldrán de GET /api/stats cuando el backend exponga el catálogo; hasta
+   * entonces son literales y hay que moverlos a mano si cambia el dataset.
+   */
   stats = [
     { value: '550+', label: 'Carreras analizadas' },
     { value: '1.000+', label: 'Instituciones' },
-    { value: '98%', label: 'Satisfacción' },
+    { value: '25', label: 'Regiones del Perú' },
   ];
 }
