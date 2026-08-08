@@ -2,9 +2,9 @@
  * Los 25 departamentos del Perú (24 más la Provincia Constitucional del Callao).
  *
  * ESTA ES LA ÚNICA FUENTE DE VERDAD. Había dos, y no coincidían: `FiltersService`
- * tenía las 25 y el formulario de registro tenía SEIS escritas a mano, con un TODO
- * pidiendo justamente esto. Como el campo de región es obligatorio en el alta, un
- * estudiante de Loreto, Puno o Piura —19 de los 25 departamentos— no podía
+ * tenía las 25 y el formulario de registro tenía SEIS escritas a mano, con una nota
+ * pendiente pidiendo justamente esto. Como el campo de región es obligatorio en el
+ * alta, un estudiante de Loreto, Puno o Piura —19 de los 25 departamentos— no podía
  * terminar de registrarse. No era un detalle cosmético: era la puerta cerrada.
  *
  * Peor aún, la lista corta ofrecía «Lima Metropolitana», que no existe en los
