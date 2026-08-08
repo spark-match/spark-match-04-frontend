@@ -10,10 +10,4 @@ export const environment = {
 
   // En prod el backend real responde; los mocks quedan deshabilitados.
   useMocks: false,
-
-  features: {
-    assessmentEnabled: true,
-    matchingEnabled: true,
-    chatbotEnabled: true,
-  },
 };
