@@ -28,6 +28,16 @@ export class SidebarComponent implements OnInit {
   readonly recentChats = this.sessions.threads;
 
   user = this.authService.user;
+
+  /**
+   * Solo `admin` ve el panel. Falla cerrado: sin rol, no eres admin.
+   *
+   * Antes no habia comprobacion ninguna, asi que cualquier estudiante veia la
+   * casilla y, al marcarla, un panel de MLOps con versiones de prompt y
+   * formulas de scoring inventadas.
+   */
+  readonly isAdmin = this.authService.isAdmin;
+
   readonly collapsed = signal(false);
   readonly adminMode = signal(false);
   readonly mlopsOpen = signal(true);
