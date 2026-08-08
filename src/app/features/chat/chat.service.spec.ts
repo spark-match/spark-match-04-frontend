@@ -26,9 +26,10 @@ function recordingHandlers() {
   const deltaIds: string[] = [];
   const startedIds: string[] = [];
   const endedIds: string[] = [];
-  const toolsStarted: { id: string; label: string }[] = [];
+  const toolsStarted: { id: string; label: string; reason: string }[] = [];
+  const toolDetails: { id: string; detail: string }[] = [];
   const toolsEnded: string[] = [];
-  const subagentsStarted: { id: string; label: string }[] = [];
+  const subagentsStarted: { id: string; label: string; reason: string }[] = [];
   const subagentsEnded: { id: string; ok: boolean; durationMs: number }[] = [];
   const snapshots: AgUiSnapshotMessage[][] = [];
   const handlers: ChatTurnHandlers = {
@@ -39,9 +40,10 @@ function recordingHandlers() {
       deltas.push(delta);
     },
     onAnswerEnd: (messageId) => endedIds.push(messageId),
-    onToolStart: (id, label) => toolsStarted.push({ id, label }),
+    onToolStart: (id, label, reason) => toolsStarted.push({ id, label, reason }),
+    onToolDetail: (id, detail) => toolDetails.push({ id, detail }),
     onToolEnd: (id) => toolsEnded.push(id),
-    onSubagentStart: (id, label) => subagentsStarted.push({ id, label }),
+    onSubagentStart: (id, label, reason) => subagentsStarted.push({ id, label, reason }),
     onSubagentEnd: (id, ok, durationMs) => subagentsEnded.push({ id, ok, durationMs }),
     onSnapshot: (messages) => snapshots.push(messages),
   };
@@ -53,6 +55,7 @@ function recordingHandlers() {
     startedIds,
     endedIds,
     toolsStarted,
+    toolDetails,
     toolsEnded,
     subagentsStarted,
     subagentsEnded,
@@ -151,12 +154,121 @@ describe('ChatService', () => {
         { type: 'TOOL_CALL_END', toolCallId: 'tc-1' },
         { type: 'TOOL_CALL_RESULT', toolCallId: 'tc-1', content: '[...]' },
       ];
-      const { handlers, toolsStarted, toolsEnded } = recordingHandlers();
+      const { handlers, toolsStarted, toolsEnded, toolDetails } = recordingHandlers();
 
       await service.sendTurn('t-1', 'hola', handlers);
 
-      expect(toolsStarted).toEqual([{ id: 'tc-1', label: 'Buscando en internet…' }]);
+      expect(toolsStarted).toEqual([
+        {
+          id: 'tc-1',
+          label: 'Buscando en internet…',
+          reason: 'porque eso cambia con el tiempo y no está en los datos que trae',
+        },
+      ]);
       expect(toolsEnded).toEqual(['tc-1']);
+      // El JSON de este caso viene cortado a proposito: sin cerrar, no hay
+      // detalle que contar y no se anuncia ninguno.
+      expect(toolDetails).toEqual([]);
+    });
+
+    it('reassembles the arguments the model dictated in pieces', async () => {
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-1', toolCallName: 'search_programs' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'tc-1', delta: '{"career": "ingenie' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'tc-1', delta: 'ría", "location": "Áncash"}' },
+        { type: 'TOOL_CALL_END', toolCallId: 'tc-1' },
+        { type: 'TOOL_CALL_RESULT', toolCallId: 'tc-1', content: '{}' },
+      ];
+      const { handlers, toolDetails } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolDetails).toEqual([{ id: 'tc-1', detail: '«ingeniería» · en Áncash' }]);
+    });
+
+    it('announces the detail while the tool is still running', async () => {
+      // END llega cuando el modelo termina de dictar los argumentos y RESULT
+      // cuando la herramienta acaba. Contar el detalle en END es lo que hace
+      // que el chip diga QUE esta buscando mientras busca, y no despues.
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-1', toolCallName: 'web_search' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'tc-1', delta: '{"query": "becas Pronabec"}' },
+        { type: 'TOOL_CALL_END', toolCallId: 'tc-1' },
+      ];
+      const { handlers, toolDetails, toolsEnded } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolDetails).toEqual([{ id: 'tc-1', detail: '«becas Pronabec»' }]);
+      expect(toolsEnded).toEqual([]);
+    });
+
+    it('still reads the arguments when no END arrives', async () => {
+      // El camino de respaldo de ag_ui_langgraph (`on_tool_end`) reconstruye
+      // la llamada sin emitir END. Sin leerlos tambien en RESULT, por ese
+      // camino el detalle no se veria nunca.
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-1', toolCallName: 'web_search' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'tc-1', delta: '{"query": "carreras"}' },
+        { type: 'TOOL_CALL_RESULT', toolCallId: 'tc-1', content: '[]' },
+      ];
+      const { handlers, toolDetails } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolDetails).toEqual([{ id: 'tc-1', detail: '«carreras»' }]);
+    });
+
+    it('does not announce the same detail twice', async () => {
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-1', toolCallName: 'web_search' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'tc-1', delta: '{"query": "carreras"}' },
+        { type: 'TOOL_CALL_END', toolCallId: 'tc-1' },
+        { type: 'TOOL_CALL_RESULT', toolCallId: 'tc-1', content: '[]' },
+      ];
+      const { handlers, toolDetails } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolDetails.length).toBe(1);
+    });
+
+    it('keeps the arguments of two tools running at once apart', async () => {
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-1', toolCallName: 'web_search' },
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-2', toolCallName: 'search_careers' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'tc-1', delta: '{"query": "becas"}' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'tc-2', delta: '{"query": "psicología"}' },
+        { type: 'TOOL_CALL_END', toolCallId: 'tc-2' },
+        { type: 'TOOL_CALL_END', toolCallId: 'tc-1' },
+      ];
+      const { handlers, toolDetails } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolDetails).toEqual([
+        { id: 'tc-2', detail: '«psicología»' },
+        { id: 'tc-1', detail: '«becas»' },
+      ]);
+    });
+
+    it('never sends the instruction the coordinator dictates to a specialist', async () => {
+      // El `description` de una `task` es el prompt interno del coordinador.
+      // Viaja por el stream; lo que no puede es llegar a la pantalla.
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-9', toolCallName: 'task' },
+        {
+          type: 'TOOL_CALL_ARGS',
+          toolCallId: 'tc-9',
+          delta: '{"subagent_type": "matching", "description": "Devuelve 5 carreras en JSON"}',
+        },
+        { type: 'TOOL_CALL_END', toolCallId: 'tc-9' },
+      ];
+      const { handlers, toolDetails } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolDetails).toEqual([]);
     });
 
     it('closes a tool on its RESULT, not on TOOL_CALL_END', async () => {
@@ -219,7 +331,11 @@ describe('ChatService', () => {
       await service.sendTurn('t-1', 'hola', handlers);
 
       expect(subagentsStarted).toEqual([
-        { id: 'tc-9', label: 'Buscando carreras que encajen contigo…' },
+        {
+          id: 'tc-9',
+          label: 'Buscando carreras que encajen contigo…',
+          reason: 'un especialista cruza ese perfil con el catálogo real del MINEDU',
+        },
       ]);
       expect(subagentsEnded).toEqual([{ id: 'tc-9', ok: true, durationMs: 4200 }]);
     });
@@ -238,6 +354,9 @@ describe('ChatService', () => {
 
       expect(subagentsStarted[0].label).toBe('Consultando a un especialista…');
       expect(subagentsStarted[0].label).not.toContain('especialista_secreto');
+      // Y sin motivo: describir lo que hace un especialista que no se conoce
+      // seria inventarselo.
+      expect(subagentsStarted[0].reason).toBe('');
     });
 
     it('assumes a delegation went fine when the agent does not say otherwise', async () => {

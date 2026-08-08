@@ -6,10 +6,12 @@ import { environment } from '../../../environments/environment';
 import { AgUiClient } from '../../core/agent/ag-ui.client';
 import { stepLabel } from '../../core/agent/step-labels';
 import { toolLabel } from '../../core/agent/tool-labels';
+import { toolDetail, toolReason } from '../../core/agent/tool-details';
 import {
   SUBAGENT_END_EVENT,
   SUBAGENT_START_EVENT,
   subagentLabel,
+  subagentReason,
 } from '../../core/agent/subagent-labels';
 import { AgUiEvent, AgUiSnapshotMessage, RunAgentInput } from '../../core/agent/ag-ui.model';
 import {
@@ -116,6 +118,25 @@ export class ChatService {
     // lo rellenan, asi que se recuerda el ultimo como respaldo.
     let openMessageId = '';
 
+    // Lo que hace falta para contar CON QUE se llamo a cada herramienta.
+    // `TOOL_CALL_ARGS` trae el id y un trozo de JSON, pero no el nombre de la
+    // herramienta — sin recordarlo del START no hay forma de saber que campos
+    // de esos argumentos se pueden ensenar. Y los trozos por separado no
+    // parsean, asi que se acumulan hasta que el modelo termina de dictarlos.
+    const toolNames = new Map<string, string>();
+    const pendingArgs = new Map<string, string>();
+
+    const flushDetail = (toolCallId: string): void => {
+      const rawArgs = pendingArgs.get(toolCallId);
+      if (rawArgs === undefined) return;
+      // Se consume una sola vez: lo llaman END y RESULT, y el detalle no
+      // cambia entre uno y otro.
+      pendingArgs.delete(toolCallId);
+
+      const detail = toolDetail(toolNames.get(toolCallId), rawArgs);
+      if (detail) handlers.onToolDetail(toolCallId, detail);
+    };
+
     for await (const event of this.agent.streamRun(input, signal)) {
       switch (event.type) {
         case 'STEP_STARTED': {
@@ -125,15 +146,36 @@ export class ChatService {
           if (label) handlers.onStep(label);
           break;
         }
-        case 'TOOL_CALL_START':
+        case 'TOOL_CALL_START': {
           // toolCallName es el nombre de la funcion en el agente; toolLabel
           // lo traduce y nunca lo deja pasar crudo al navegador.
+          const toolCallId = event.toolCallId ?? '';
+          toolNames.set(toolCallId, event.toolCallName ?? '');
           handlers.onToolStart(
-            String(event['toolCallId'] ?? ''),
-            toolLabel(event['toolCallName'] as string),
+            toolCallId,
+            toolLabel(event.toolCallName),
+            toolReason(event.toolCallName),
           );
           break;
+        }
+        case 'TOOL_CALL_ARGS': {
+          // Trozo a trozo, sin intentar parsear: cada delta es un pedazo del
+          // JSON y por si solo no es JSON valido.
+          const toolCallId = event.toolCallId ?? '';
+          pendingArgs.set(toolCallId, (pendingArgs.get(toolCallId) ?? '') + (event.delta ?? ''));
+          break;
+        }
+        case 'TOOL_CALL_END':
+          // END significa que el modelo termino de dictar los argumentos, asi
+          // que aqui ya hay un JSON entero que leer. El chip sigue corriendo:
+          // quien lo cierra es RESULT.
+          flushDetail(event.toolCallId ?? '');
+          break;
         case 'TOOL_CALL_RESULT':
+          // Tambien aqui, porque el camino de respaldo de ag_ui_langgraph
+          // (`on_tool_end`) reconstruye la llamada sin emitir END: sin esto,
+          // por ese camino el detalle no se veria nunca.
+          flushDetail(event.toolCallId ?? '');
           // Se cierra con el RESULT y no con TOOL_CALL_END: END puede llegar
           // en cuanto el modelo termina de dictar los argumentos, antes de
           // que la herramienta se haya ejecutado.
@@ -178,7 +220,8 @@ function handleCustomEvent(event: AgUiEvent, handlers: ChatTurnHandlers): void {
   const toolCallId = asText(value['toolCallId']);
 
   if (event.name === SUBAGENT_START_EVENT) {
-    handlers.onSubagentStart(toolCallId, subagentLabel(asText(value['subagent']) || undefined));
+    const subagent = asText(value['subagent']) || undefined;
+    handlers.onSubagentStart(toolCallId, subagentLabel(subagent), subagentReason(subagent));
     return;
   }
   if (event.name === SUBAGENT_END_EVENT) {
