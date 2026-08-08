@@ -6,6 +6,7 @@ import { SidebarComponent } from './sidebar.component';
 import { ChatSessionsStore } from '../../features/chat/chat-sessions.store';
 import { ChatService } from '../../features/chat/chat.service';
 import { ChatThread } from '../../features/chat/chat.model';
+import { AuthService } from '../../core/auth/auth.service';
 
 const THREADS: ChatThread[] = [
   {
@@ -71,6 +72,9 @@ describe('SidebarComponent', () => {
     expect(component.collapsed()).toBe(true);
   });
 
+  // Ojo: esta prueba llama al metodo y no mira el DOM, asi que pasaba igual
+  // cuando el panel se le enseñaba a cualquiera. Las de abajo comprueban lo
+  // que de verdad se pinta.
   it('toggles admin mode when admin toggle handler is called', () => {
     expect(component.adminMode()).toBe(false);
     component.toggleAdminMode();
@@ -118,6 +122,52 @@ describe('SidebarComponent', () => {
 
       expect(chatStub.startNewThread).toHaveBeenCalledOnce();
       expect(navigate).toHaveBeenCalledWith(['/assessment', 'nuevo-id']);
+    });
+  });
+
+  /*
+   * El panel de administración no tenía ninguna comprobación de rol: la casilla
+   * la veía cualquiera y, al marcarla, aparecía un cuadro de MLOps con versiones
+   * de prompt y fórmulas de scoring que no existen en ningún repositorio.
+   *
+   * Se comprueba sobre el DOM y no sobre el signal: un estudiante no debe ver
+   * ni la casilla. Y se cubre el caso sin rol, que es el que ocurre con sesiones
+   * guardadas antes de que el backend lo enviara.
+   */
+  describe('panel de administración', () => {
+    async function montarCon(isAdmin: boolean) {
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [SidebarComponent],
+        providers: [
+          provideRouter([]),
+          { provide: ChatSessionsStore, useValue: sessionsStub },
+          { provide: ChatService, useValue: chatStub },
+          {
+            provide: AuthService,
+            useValue: {
+              user: signal({ id: 'x', email: 'a@b.com', fullName: 'A B' }),
+              isAdmin: signal(isAdmin),
+            },
+          },
+        ],
+      }).compileComponents();
+
+      const f = TestBed.createComponent(SidebarComponent);
+      f.detectChanges();
+      return f.nativeElement as HTMLElement;
+    }
+
+    it('no se lo enseña a un estudiante', async () => {
+      const html = await montarCon(false);
+      expect(html.querySelector('.sidebar__admin')).toBeNull();
+      expect(html.textContent).not.toContain('Modo admin');
+    });
+
+    it('se lo enseña a un admin', async () => {
+      const html = await montarCon(true);
+      expect(html.querySelector('.sidebar__admin')).not.toBeNull();
+      expect(html.textContent).toContain('Modo admin');
     });
   });
 });
