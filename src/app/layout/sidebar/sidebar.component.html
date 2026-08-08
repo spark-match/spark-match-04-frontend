@@ -87,7 +87,17 @@
 
   <div class="sidebar__spacer"></div>
 
-  @if (!collapsed()) {
+  <!--
+    `isAdmin` decide si esto existe siquiera. Antes no habia ninguna condicion:
+    la casilla la veia cualquiera, y con ella un panel de MLOps con versiones de
+    prompt y formulas de scoring que no existen en ningun repositorio.
+
+    Esto es cosmetica, no seguridad. Quien decide es el servidor: /v1/users y
+    /v1/audit devuelven 403 a quien no es admin, y eso ya esta vivo. Quitar el
+    panel evita enseñar puertas que al abrirlas dan 403; no protege nada por si
+    mismo, y `isAdmin` lo dice por escrito.
+  -->
+  @if (!collapsed() && isAdmin()) {
     <div class="sidebar__admin">
       <label class="sidebar__admin-toggle">
         <input type="checkbox" [checked]="adminMode()" (change)="toggleAdminMode()" />
