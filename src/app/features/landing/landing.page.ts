@@ -45,8 +45,8 @@ export class LandingPage {
    * O sea que no se ha recogido ni una sola valoración y ese número no salía de ningún sitio.
    * Vuelve cuando exista la recogida de feedback, con el dato real que produzca.
    *
-   * TODO: los tres saldrán de GET /api/stats cuando el backend exponga el catálogo; hasta
-   * entonces son literales y hay que moverlos a mano si cambia el dataset.
+   * Los tres pasarán a salir de GET /api/stats cuando el backend exponga el catálogo. Hasta
+   * entonces son literales y hay que moverlos a mano si el dataset cambia.
    */
   stats = [
     { value: '550+', label: 'Carreras analizadas' },
