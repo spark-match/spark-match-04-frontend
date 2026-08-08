@@ -175,17 +175,36 @@ export class ChatService {
  */
 function handleCustomEvent(event: AgUiEvent, handlers: ChatTurnHandlers): void {
   const value = (event.value ?? {}) as Record<string, unknown>;
-  const toolCallId = String(value['toolCallId'] ?? '');
+  const toolCallId = asText(value['toolCallId']);
 
   if (event.name === SUBAGENT_START_EVENT) {
-    handlers.onSubagentStart(toolCallId, subagentLabel(value['subagent'] as string | undefined));
+    handlers.onSubagentStart(toolCallId, subagentLabel(asText(value['subagent']) || undefined));
     return;
   }
   if (event.name === SUBAGENT_END_EVENT) {
     // `ok !== false` y no `=== true`: si un agente viejo no manda el campo,
     // lo razonable es asumir que fue bien, no pintar un fallo inventado.
-    handlers.onSubagentEnd(toolCallId, value['ok'] !== false, Number(value['durationMs'] ?? 0));
+    handlers.onSubagentEnd(toolCallId, value['ok'] !== false, asNumber(value['durationMs']));
   }
+}
+
+/**
+ * Lee un campo del cuerpo de un evento como texto.
+ *
+ * `String(x)` no vale: sobre un objeto devuelve `'[object Object]'`, que como
+ * clave de chip casaria con la de cualquier otro objeto — dos delegaciones
+ * distintas compartirian indicador. El cuerpo de un evento CUSTOM es
+ * `unknown`, asi que lo que no sea texto ni numero no es un identificador y
+ * se trata como ausente.
+ */
+function asText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  return typeof value === 'number' ? String(value) : '';
+}
+
+/** Misma idea para los numeros: `Number({})` es `NaN`, y `NaN ms` en pantalla. */
+function asNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
 /** Se queda solo con lo que la UI puede pintar, y descarta el resto sin ruido. */
@@ -193,10 +212,15 @@ function readSnapshotMessages(messages: unknown): AgUiSnapshotMessage[] {
   if (!Array.isArray(messages)) return [];
 
   return messages
-    .filter((message): message is Record<string, unknown> => typeof message === 'object' && message !== null)
-    .filter((message) => typeof message['content'] === 'string' && typeof message['role'] === 'string')
+    .filter(
+      (message): message is Record<string, unknown> =>
+        typeof message === 'object' && message !== null,
+    )
+    .filter(
+      (message) => typeof message['content'] === 'string' && typeof message['role'] === 'string',
+    )
     .map((message) => ({
-      id: String(message['id'] ?? ''),
+      id: asText(message['id']),
       role: String(message['role']),
       content: String(message['content']),
     }));
