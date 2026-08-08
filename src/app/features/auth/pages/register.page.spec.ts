@@ -54,6 +54,19 @@ describe('RegisterPage (Signal Forms)', () => {
       component.registerModel.set({ ...validModel, region: '' });
       expect(component.registerForm.region().invalid()).toBe(true);
     });
+
+    // La región es obligatoria, y hasta el 2026-08-08 el desplegable ofrecía
+    // seis opciones. Las dos cosas juntas cerraban el registro a 19 de los 25
+    // departamentos: no era una carencia de catálogo, era la puerta cerrada.
+    it('ofrece los 25 departamentos, no un subconjunto', () => {
+      expect(component.regions.length).toBe(25);
+    });
+
+    it('deja registrarse a un estudiante de Loreto', () => {
+      expect(component.regions).toContain('Loreto');
+      component.registerModel.set({ ...validModel, region: 'Loreto' });
+      expect(component.registerForm.region().invalid()).toBe(false);
+    });
   });
 
   describe('registro exitoso', () => {
