@@ -27,25 +27,7 @@
         }
         <div class="chat__bubble">
           @if (msg.activities?.length) {
-            <ul class="chat__activities chat__activities--done">
-              @for (activity of msg.activities; track activity.id) {
-                <li
-                  [class.chat__activity--subagent]="activity.kind === 'subagent'"
-                  [class.chat__activity--failed]="activity.ok === false"
-                >
-                  <span class="chat__activity-head">
-                    <span>{{ activity.label }}</span>
-                    @if (activity.detail) {
-                      <span class="chat__activity-args">{{ activity.detail }}</span>
-                    }
-                    <span class="chat__activity-timing">{{ activityTiming(activity) }}</span>
-                  </span>
-                  @if (activity.reason) {
-                    <span class="chat__activity-reason">{{ activity.reason }}</span>
-                  }
-                </li>
-              }
-            </ul>
+            <app-activity-list [groups]="activityGroups(msg.activities)" />
           }
           <div
             class="chat__text prose"
@@ -63,26 +45,7 @@
       <div class="chat__bubble-row">
         <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
         <div class="chat__bubble">
-          <ul class="chat__activities" aria-live="polite">
-            @for (activity of activities(); track activity.id) {
-              <li
-                [class.chat__activity--running]="activity.running"
-                [class.chat__activity--subagent]="activity.kind === 'subagent'"
-                [class.chat__activity--failed]="activity.ok === false"
-              >
-                <span class="chat__activity-head">
-                  <span>{{ activity.label }}</span>
-                  @if (activity.detail) {
-                    <span class="chat__activity-args">{{ activity.detail }}</span>
-                  }
-                  <span class="chat__activity-timing">{{ activityTiming(activity) }}</span>
-                </span>
-                @if (activity.reason) {
-                  <span class="chat__activity-reason">{{ activity.reason }}</span>
-                }
-              </li>
-            }
-          </ul>
+          <app-activity-list [groups]="activityGroups(activities())" [live]="true" />
         </div>
       </div>
     }

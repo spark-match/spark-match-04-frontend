@@ -1,0 +1,177 @@
+// Lo que el agente hizo para responder: búsquedas, catálogo, delegaciones en
+// un especialista. Esta regla faltaba entera, así que los chips se pintaban
+// como viñetas sueltas de <ul> con la sangría por defecto del navegador.
+// En columna y no en fila: cada chip lleva ahora dos renglones — qué está
+// haciendo y por qué —, y varios de esos envueltos en una fila se leían como
+// un párrafo roto.
+// Altura acotada: medido en dev, un coordinador que reformula la misma
+// búsqueda varias veces seguidas (y cualquier turno con muchas herramientas
+// distintas) puede llenar chips suficientes para empujar la respuesta fuera
+// de la pantalla. Con scroll propio, la lista de actividad nunca gana esa
+// pelea — el texto que el estudiante vino a leer sigue siendo lo primero
+// visible.
+.chat__activities {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  margin: 0 0 0.55rem;
+  padding: 0;
+  max-height: 11rem;
+  overflow-y: auto;
+  list-style: none;
+
+  li {
+    display: grid;
+    // El punto en su propia columna, para que el segundo renglón quede
+    // alineado con el texto del primero y no debajo del punto.
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.35rem;
+    max-width: 100%;
+    padding: 0.25rem 0.65rem;
+    border: 1px solid var(--border);
+    // Ya no es una píldora de una línea: con dos renglones, un radio de 999px
+    // deja las esquinas comiéndose el texto.
+    border-radius: 0.7rem;
+    background: var(--input);
+    color: oklch(0.5 0.02 240);
+    font-size: 0.74rem;
+    line-height: 1.45;
+
+    // El punto de la izquierda. Cambia de color con el estado del chip, que
+    // es lo que distingue «buscando» de «buscó».
+    &::before {
+      content: '';
+      grid-column: 1;
+      grid-row: 1;
+      align-self: center;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.55;
+    }
+  }
+}
+
+// Primer renglón: qué herramienta, con qué, y cuánto tardó.
+.chat__activity-head {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.3rem;
+}
+
+// Los argumentos con los que se llamó. En redonda aunque el chip sea de un
+// subagente: es lo que el estudiante escribió o lo que el agente dedujo de
+// ello, no un título.
+.chat__activity-args {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+// Segundo renglón: por qué. Va apagado a propósito — es contexto para quien
+// quiera mirarlo, no debe competir con la respuesta.
+.chat__activity-reason {
+  grid-column: 2;
+  font-size: 0.7rem;
+  font-weight: 400;
+  line-height: 1.35;
+  opacity: 0.7;
+}
+
+// Ya terminado y pegado a la respuesta: más apagado, para que no compita con
+// el texto que el estudiante viene a leer.
+.chat__activities--done li {
+  background: transparent;
+  opacity: 0.75;
+}
+
+// Los tres estados van calificados con `.chat__activities li`, no sueltos como
+// `.chat__activity--running`. Sueltos pesan menos (0,1,0) que la regla base del
+// chip (`.chat__activities li`, 0,1,1), así que el color, el borde y el fondo
+// de base les ganaban y de estas reglas sólo llegaba a pintarse lo que la base
+// no declara: el `font-weight` del subagente y la animación del punto. Se veía
+// sobre todo en el chip fallido, que no se ponía rojo. Venía así desde que se
+// escribieron, en chat.component.scss.
+.chat__activities li.chat__activity--running {
+  color: var(--teal-deep);
+  border-color: oklch(0.62 0.13 175 / 0.35);
+
+  &::before {
+    opacity: 1;
+    animation: chat-typing 1.1s infinite ease-in-out;
+  }
+}
+
+// Una delegación no es una herramienta más: es el agente pidiéndole trabajo a
+// otro agente, y merece verse distinto.
+.chat__activities li.chat__activity--subagent {
+  border-color: oklch(0.62 0.13 175 / 0.4);
+  background: oklch(0.62 0.13 175 / 0.1);
+  color: var(--teal-deep);
+  font-weight: 600;
+}
+
+// Gana también a `.chat__activities--done li`: que un chip haya terminado no
+// debe borrar que falló.
+.chat__activities li.chat__activity--failed {
+  border-color: oklch(0.72 0.13 25 / 0.45);
+  background: oklch(0.96 0.03 25);
+  color: oklch(0.45 0.13 25);
+}
+
+// Cuánto tardó, o que no pudo. Se llamaba `-detail`, y ahora `detail` es otra
+// cosa: con qué se llamó a la herramienta.
+.chat__activity-timing {
+  opacity: 0.7;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+// «· 6 veces»: se pinta en vez de los argumentos de una sola llamada cuando
+// el chip agrupa varias. Mismo tratamiento visual que `-timing` — es un
+// dato de acompañamiento, no el foco del chip.
+.chat__activity-count {
+  opacity: 0.7;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+// El desplegable con el detalle de cada llamada, cuando el chip agrupa más
+// de una. Colapsado por defecto a propósito: lo que importa es que buscó
+// seis veces, no qué buscó cada vez — eso se mira solo si alguien lo pide.
+.chat__activity-calls {
+  grid-column: 2;
+  font-size: 0.7rem;
+
+  summary {
+    cursor: pointer;
+    opacity: 0.7;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  ul {
+    margin: 0.3rem 0 0;
+    padding: 0 0 0 0.9rem;
+    list-style: disc;
+  }
+
+  li {
+    // Se resetean los estilos de chip que hereda `.chat__activities li`
+    // (borde, fondo, punto): dentro del desplegable es una lista simple.
+    display: list-item;
+    padding: 0.1rem 0;
+    border: none;
+    background: none;
+    opacity: 0.85;
+
+    &::before {
+      content: none;
+    }
+  }
+}
