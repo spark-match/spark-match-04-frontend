@@ -21,6 +21,11 @@ const LABELS: Record<string, string> = {
   // distintos y el estudiante tiene que poder distinguirlos.
   search_programs: 'Buscando carreras en universidades e institutos…',
   calculate_affinity: 'Calculando tu afinidad…',
+  // Llegó con el motor multicriterio (spark-match-08-deep-agent#81) y se
+  // quedó sin etiqueta hasta el 2026-08-09: la herramienta que más trabajo
+  // hace se anunciaba como «Usando una herramienta…». De ahí el test de
+  // cobertura que hay al lado de este mapa.
+  recommend_programs: 'Buscando los programas que mejor te encajan…',
   evaluate_riasec_profile: 'Evaluando tu perfil vocacional…',
   search_memory: 'Repasando lo que conversamos…',
   // `manage_memory` y no `manage_prefs`: ese último es sólo el nombre de la
@@ -50,4 +55,30 @@ export const UNKNOWN_TOOL_LABEL = 'Usando una herramienta…';
 export function toolLabel(toolName: string | undefined): string {
   if (!toolName) return UNKNOWN_TOOL_LABEL;
   return LABELS[toolName] ?? UNKNOWN_TOOL_LABEL;
+}
+
+/**
+ * Las herramientas que salen a internet.
+ *
+ * Distinguirlas no es decoración. Todo lo demás que hace el agente sale de un
+ * dataset fechado del MINEDU que podemos citar; esto sale de la web de hoy,
+ * que nadie ha revisado. Que el estudiante pueda ver de un vistazo cuál de las
+ * dos cosas está leyendo es una cuestión de cuánto fiarse del dato, y por eso
+ * se le da tratamiento propio en vez de mezclarlo con las demás herramientas.
+ */
+const HERRAMIENTAS_DE_INTERNET = new Set(['web_search']);
+
+/**
+ * Qué clase de chip le toca a una herramienta.
+ *
+ * `subagent` no sale de aquí: lo decide `subagent-labels.ts` cuando llega un
+ * evento `spark.subagent.*`, que asciende el chip genérico de la tool `task`.
+ */
+export function toolKind(toolName: string | undefined): 'search' | 'tool' {
+  return toolName && HERRAMIENTAS_DE_INTERNET.has(toolName) ? 'search' : 'tool';
+}
+
+/** Nombres con etiqueta propia. Para el test de cobertura contra el agente. */
+export function labelledToolNames(): string[] {
+  return Object.keys(LABELS);
 }

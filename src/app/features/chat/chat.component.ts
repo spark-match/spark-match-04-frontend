@@ -263,11 +263,11 @@ export class ChatComponent implements OnInit, OnDestroy {
             this.appendDelta(messageId, delta);
           },
           onAnswerEnd: (messageId) => this.finishStreaming(messageId),
-          onToolStart: (toolCallId, label, reason) => {
+          onToolStart: (toolCallId, label, reason, kind) => {
             // El paso genérico deja de aportar en cuanto se puede decir algo
             // concreto ("Buscando en internet…" en vez de "Pensando…").
             this.currentStep.set(null);
-            this.upsertActivity({ id: toolCallId, label, reason, running: true, kind: 'tool' });
+            this.upsertActivity({ id: toolCallId, label, reason, running: true, kind });
           },
           // Los argumentos llegan después del START, así que esto llena el
           // chip que ya está en pantalla en vez de crear otro.

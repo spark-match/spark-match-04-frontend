@@ -4,12 +4,13 @@
 // En columna y no en fila: cada chip lleva ahora dos renglones — qué está
 // haciendo y por qué —, y varios de esos envueltos en una fila se leían como
 // un párrafo roto.
-// Altura acotada: medido en dev, un coordinador que reformula la misma
-// búsqueda varias veces seguidas (y cualquier turno con muchas herramientas
-// distintas) puede llenar chips suficientes para empujar la respuesta fuera
-// de la pantalla. Con scroll propio, la lista de actividad nunca gana esa
-// pelea — el texto que el estudiante vino a leer sigue siendo lo primero
-// visible.
+// Sin altura máxima ni scroll propio, a propósito y como cambio respecto de
+// antes. Se acotaba con `max-height: 11rem` y `overflow-y: auto` para que una
+// ristra de herramientas no empujara la respuesta fuera de pantalla: el
+// problema era real, pero la cura se leía como el defecto — una cajita que
+// esconde lo que tiene dentro y hay que rascar en una barra de scroll enana
+// para verlo. Ahora quien acota la altura es el plegado: en reposo esto es una
+// sola línea, y desplegarlo es una decisión del lector.
 .chat__activities {
   display: flex;
   flex-direction: column;
@@ -17,8 +18,6 @@
   gap: 0.3rem;
   margin: 0 0 0.55rem;
   padding: 0;
-  max-height: 11rem;
-  overflow-y: auto;
   list-style: none;
 
   li {
@@ -114,6 +113,17 @@
   font-weight: 600;
 }
 
+// Una búsqueda en internet tampoco es una herramienta más, y su color es ámbar
+// y no verde a propósito: el verde de esta paleta significa «nuestro», y esto
+// es justo lo contrario. Todo lo demás sale de un dataset fechado del MINEDU
+// que se puede citar; esto sale de la web de hoy, que no ha revisado nadie.
+// Poder distinguirlo de un vistazo es una cuestión de cuánto fiarse del dato.
+.chat__activities li.chat__activity--search {
+  border-color: oklch(0.75 0.12 75 / 0.5);
+  background: oklch(0.75 0.12 75 / 0.1);
+  color: oklch(0.48 0.09 70);
+}
+
 // Gana también a `.chat__activities--done li`: que un chip haya terminado no
 // debe borrar que falló.
 .chat__activities li.chat__activity--failed {
@@ -174,4 +184,51 @@
       content: none;
     }
   }
+}
+
+// La línea plegada. Es un botón y no un `<summary>` porque el estado vive en
+// una señal del componente: con `<details>` el navegador lo guardaría por su
+// cuenta y habría dos fuentes de verdad para lo mismo.
+.chat__activity-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.55rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: var(--input);
+  color: oklch(0.5 0.02 240);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    border-color: oklch(0.62 0.13 175 / 0.4);
+    color: var(--teal-deep);
+  }
+
+  &--failed {
+    border-color: oklch(0.72 0.13 25 / 0.45);
+    background: oklch(0.96 0.03 25);
+    color: oklch(0.45 0.13 25);
+  }
+}
+
+.chat__activity-summary-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+  flex: 0 0 auto;
+}
+
+// Discreto a propósito: es una salida, no una llamada a la acción. Lo que el
+// estudiante vino a leer es la respuesta, no de dónde salió.
+.chat__activity-summary-more {
+  margin-left: 0.2rem;
+  opacity: 0.7;
+  text-decoration: underline;
 }

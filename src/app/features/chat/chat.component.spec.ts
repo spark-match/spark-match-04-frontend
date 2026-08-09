@@ -195,7 +195,7 @@ describe('ChatComponent', () => {
       // despues de leerla, no solo mientras se genera.
       const seenDuringTurn: string[][] = [];
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
         seenDuringTurn.push(component.activities().map((a) => a.label));
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-1');
@@ -222,7 +222,7 @@ describe('ChatComponent', () => {
       const stepWhenToolStarted: (string | null)[] = [];
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
         handlers.onStep('Pensando…');
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
         stepWhenToolStarted.push(component.currentStep());
       });
       component.draft = 'hola';
@@ -235,7 +235,7 @@ describe('ChatComponent', () => {
 
     it('renders the activity list in the bubble, not just in memory', async () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-1');
         handlers.onDelta('m-1', 'listo');
@@ -259,6 +259,7 @@ describe('ChatComponent', () => {
           'tc-1',
           'Buscando carreras en universidades e institutos…',
           'para recomendarte carreras que existen de verdad',
+          'tool',
         );
         handlers.onToolDetail('tc-1', '«ingeniería» · en Áncash');
         handlers.onToolEnd('tc-1');
@@ -282,7 +283,7 @@ describe('ChatComponent', () => {
       // modelo token a token. Si abriera un chip nuevo, cada busqueda se
       // veria dos veces.
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
         handlers.onToolDetail('tc-1', '«becas Pronabec»');
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-1');
@@ -313,7 +314,7 @@ describe('ChatComponent', () => {
       // `task` que lo envuelve. Si se tratara como un chip nuevo, el
       // estudiante veria dos veces la misma delegacion.
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Consultando a un especialista…', '');
+        handlers.onToolStart('tc-1', 'Consultando a un especialista…', '', 'tool');
         handlers.onSubagentStart(
           'tc-1',
           'Evaluando tu perfil vocacional…',
@@ -368,7 +369,7 @@ describe('ChatComponent', () => {
         handlers.onAnswerStart('m-1');
         handlers.onDelta('m-1', 'déjame consultarlo');
         handlers.onAnswerEnd('m-1');
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-2');
         handlers.onDelta('m-2', 'esto encontré');
@@ -418,6 +419,7 @@ describe('ChatComponent', () => {
               `tc-${i}`,
               'Consultando el catálogo de carreras…',
               'para describirte la carrera con el catálogo delante',
+              'tool',
             );
             handlers.onToolDetail(`tc-${i}`, `«${q}»`);
             handlers.onToolEnd(`tc-${i}`);
@@ -476,7 +478,7 @@ describe('ChatComponent', () => {
 
     it('keeps the chips of what it did before being cut off', async () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo');
+        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
         handlers.onToolEnd('tc-1');
         handlers.onSnapshot([{ id: 'x', role: 'assistant', content: 'No puedo ayudarte.' }]);
       });

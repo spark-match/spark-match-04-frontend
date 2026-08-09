@@ -4,7 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { firstValueFrom } from 'rxjs';
 
 import { ChatService } from './chat.service';
-import { ChatTurnHandlers } from './chat.model';
+import { ChatActivityKind, ChatTurnHandlers } from './chat.model';
 import { AgUiClient } from '../../core/agent/ag-ui.client';
 import { AgUiEvent, AgUiSnapshotMessage } from '../../core/agent/ag-ui.model';
 import { environment } from '../../../environments/environment';
@@ -26,7 +26,7 @@ function recordingHandlers() {
   const deltaIds: string[] = [];
   const startedIds: string[] = [];
   const endedIds: string[] = [];
-  const toolsStarted: { id: string; label: string; reason: string }[] = [];
+  const toolsStarted: { id: string; label: string; reason: string; kind: ChatActivityKind }[] = [];
   const toolDetails: { id: string; detail: string }[] = [];
   const toolsEnded: string[] = [];
   const subagentsStarted: { id: string; label: string; reason: string }[] = [];
@@ -40,7 +40,7 @@ function recordingHandlers() {
       deltas.push(delta);
     },
     onAnswerEnd: (messageId) => endedIds.push(messageId),
-    onToolStart: (id, label, reason) => toolsStarted.push({ id, label, reason }),
+    onToolStart: (id, label, reason, kind) => toolsStarted.push({ id, label, reason, kind }),
     onToolDetail: (id, detail) => toolDetails.push({ id, detail }),
     onToolEnd: (id) => toolsEnded.push(id),
     onSubagentStart: (id, label, reason) => subagentsStarted.push({ id, label, reason }),
@@ -163,6 +163,9 @@ describe('ChatService', () => {
           id: 'tc-1',
           label: 'Buscando en internet…',
           reason: 'porque eso cambia con el tiempo y no está en los datos que trae',
+          // Sale de aquí y no de la pantalla: quien sabe qué herramientas van
+          // a internet es el mapa de `tool-labels.ts`.
+          kind: 'search',
         },
       ]);
       expect(toolsEnded).toEqual(['tc-1']);
