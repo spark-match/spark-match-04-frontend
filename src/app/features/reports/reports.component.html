@@ -21,9 +21,11 @@
   @if (loading()) {
     <p class="report__loading">Generando tu reporte de orientación...</p>
   } @else if (failed()) {
-    <!-- role="alert" para que un lector de pantalla anuncie el fallo al aparecer:
-         quien no ve la pantalla no tiene forma de enterarse de que el spinner
-         se convirtio en otra cosa. -->
+    <!-- El rol de alerta del div de abajo hace que un lector de pantalla anuncie
+         el fallo en cuanto aparece: quien no ve la pantalla no tiene forma de
+         enterarse de que el spinner se convirtio en otra cosa. Escrito sin la
+         sintaxis del atributo a proposito, que Sonar la lee como HTML
+         comentado (Web:AvoidCommentedOutCodeCheck). -->
     <div class="report__error" role="alert">
       <p class="report__error-title">No pudimos generar tu reporte</p>
       <p class="report__error-body">
