@@ -2,6 +2,7 @@ import { Service, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../auth/auth.service';
 import { AgUiEvent, RunAgentInput } from './ag-ui.model';
+import { mockTurnEvents } from './ag-ui.mock-stream';
 
 /**
  * Cliente SSE del protocolo AG-UI.
@@ -72,6 +73,15 @@ export class AgUiClient {
    * deja propagar tal cual para que quien llama lo distinga de un fallo real.
    */
   async *streamRun(input: RunAgentInput, signal?: AbortSignal): AsyncGenerator<AgUiEvent> {
+    // El único sitio del chat donde `useMocks` no llegaba. Sin esto, en local
+    // el chat no respondía nunca — `fetch` salía a un agente que no está — y
+    // los chips de actividad no se podían ver en absoluto: había que
+    // desplegar a dev para mirarlos. Ver `ag-ui.mock-stream.ts`.
+    if (environment.useMocks) {
+      yield* mockTurnEvents(input, signal);
+      return;
+    }
+
     const token = this.auth.token();
     if (!token) {
       throw new AgentStreamError('unauthorized', 'no token in storage', 401);
