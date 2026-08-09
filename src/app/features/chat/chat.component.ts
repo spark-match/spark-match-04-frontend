@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ChatService } from './chat.service';
 import { FiltersService } from '../filters/filters.service';
+import { ActivityGroup, groupActivities } from './activity-grouping';
 import { ChatActivity, ChatMessage } from './chat.model';
 import { AgUiSnapshotMessage } from '../../core/agent/ag-ui.model';
 import { AgentStreamError, agentErrorMessage } from '../../core/agent/ag-ui.client';
@@ -358,6 +359,15 @@ export class ChatComponent implements OnInit, OnDestroy {
    * No confundir con `activity.detail`, que es CON QUÉ se llamó a la
    * herramienta: esto sólo mide.
    */
+  /**
+   * Colapsa llamadas repetidas a la misma herramienta en un chip, para que
+   * pintar en el template sea `@for (group of activityGroups(...))` en vez
+   * de repetir la lógica de agrupación ahí. Ver `activity-grouping.ts`.
+   */
+  activityGroups(activities: ChatActivity[]): ActivityGroup[] {
+    return groupActivities(activities);
+  }
+
   activityTiming(activity: ChatActivity): string {
     if (activity.running) return '';
     if (activity.ok === false) return ' · no pudo completarse';

@@ -400,6 +400,12 @@
 // En columna y no en fila: cada chip lleva ahora dos renglones — qué está
 // haciendo y por qué —, y varios de esos envueltos en una fila se leían como
 // un párrafo roto.
+// Altura acotada: medido en dev, un coordinador que reformula la misma
+// búsqueda varias veces seguidas (y cualquier turno con muchas herramientas
+// distintas) puede llenar chips suficientes para empujar la respuesta fuera
+// de la pantalla. Con scroll propio, la lista de actividad nunca gana esa
+// pelea — el texto que el estudiante vino a leer sigue siendo lo primero
+// visible.
 .chat__activities {
   display: flex;
   flex-direction: column;
@@ -407,6 +413,8 @@
   gap: 0.3rem;
   margin: 0 0 0.55rem;
   padding: 0;
+  max-height: 11rem;
+  overflow-y: auto;
   list-style: none;
 
   li {
@@ -507,6 +515,52 @@
   opacity: 0.7;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
+}
+
+// «· 6 veces»: se pinta en vez de los argumentos de una sola llamada cuando
+// el chip agrupa varias. Mismo tratamiento visual que `-timing` — es un
+// dato de acompañamiento, no el foco del chip.
+.chat__activity-count {
+  opacity: 0.7;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+// El desplegable con el detalle de cada llamada, cuando el chip agrupa más
+// de una. Colapsado por defecto a propósito: lo que importa es que buscó
+// seis veces, no qué buscó cada vez — eso se mira solo si alguien lo pide.
+.chat__activity-calls {
+  grid-column: 2;
+  font-size: 0.7rem;
+
+  summary {
+    cursor: pointer;
+    opacity: 0.7;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  ul {
+    margin: 0.3rem 0 0;
+    padding: 0 0 0 0.9rem;
+    list-style: disc;
+  }
+
+  li {
+    // Se resetean los estilos de chip que hereda `.chat__activities li`
+    // (borde, fondo, punto): dentro del desplegable es una lista simple.
+    display: list-item;
+    padding: 0.1rem 0;
+    border: none;
+    background: none;
+    opacity: 0.85;
+
+    &::before {
+      content: none;
+    }
+  }
 }
 
 .chat__error {

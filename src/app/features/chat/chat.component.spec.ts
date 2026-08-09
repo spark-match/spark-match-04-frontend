@@ -402,6 +402,40 @@ describe('ChatComponent', () => {
       expect(component.messages().some((m) => m.streaming)).toBe(false);
     });
 
+    it('collapses six repeated calls to the same tool into one chip', async () => {
+      // El caso real (dev, 2026-08-09): el coordinador reformuló la misma
+      // búsqueda seis veces contra la misma herramienta. Sin agrupar, eso
+      // pintaba seis <li> casi idénticos que empujaban la respuesta fuera
+      // de la pantalla.
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        ['*', 'ingeniería', 'salud medicina', 'educación', 'derecho', 'artes'].forEach(
+          (q, i) => {
+            handlers.onToolStart(
+              `tc-${i}`,
+              'Consultando el catálogo de carreras…',
+              'para describirte la carrera con el catálogo delante',
+            );
+            handlers.onToolDetail(`tc-${i}`, `«${q}»`);
+            handlers.onToolEnd(`tc-${i}`);
+          },
+        );
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'listo');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      // `> li` y no `li`: el desplegable con el detalle de cada llamada
+      // también son <li>, y sin el hijo directo el conteo los mezclaría.
+      const rendered = fixture.nativeElement.querySelectorAll('.chat__activities--done > li');
+      expect(rendered.length).toBe(1);
+      expect(rendered[0].textContent).toContain('6 veces');
+      expect(rendered[0].querySelectorAll('.chat__activity-calls li').length).toBe(6);
+    });
+
     it('opens a bubble for a delta whose start never arrived', async () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
         handlers.onDelta('m-huerfano', 'texto sin START');
