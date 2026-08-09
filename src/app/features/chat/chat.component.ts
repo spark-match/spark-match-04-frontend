@@ -1,4 +1,13 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  afterRenderEffect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ChatService } from './chat.service';
@@ -12,6 +21,7 @@ import { INITIAL_STEP_LABEL } from '../../core/agent/step-labels';
 import { AuthService } from '../../core/auth/auth.service';
 import { MarkdownPipe } from '../../shared/markdown.pipe';
 import { ChatSessionsStore } from './chat-sessions.store';
+import { estaPegadoAlFondo } from './scroll-anchoring';
 import { Subscription } from 'rxjs';
 
 /**
@@ -58,6 +68,24 @@ export class ChatComponent implements OnInit, OnDestroy {
   private abort: AbortController | null = null;
   private routeSub: Subscription | null = null;
 
+  private readonly cajaDeMensajes = viewChild<ElementRef<HTMLElement>>('cajaDeMensajes');
+
+  /**
+   * El lector se subió a releer algo. Mientras esté en true no se le mueve la
+   * pantalla por su cuenta, y se le enseña el botón para volver.
+   */
+  readonly despegado = signal(false);
+
+  /**
+   * Hay que aterrizar abajo en el próximo repintado, de golpe y sin animación.
+   *
+   * Es un booleano suelto y no una señal porque nadie lo lee para pintar: solo
+   * marca que el siguiente render es una llegada (abrir una conversación) y no
+   * una continuación (un token más). No es lo mismo: al llegar se aterriza
+   * abajo aunque el lector estuviera despegado en la conversación anterior.
+   */
+  private aterrizarAbajo = false;
+
   draft = '';
   readonly sending = signal(false);
   readonly loadingSession = signal(true);
@@ -78,6 +106,33 @@ export class ChatComponent implements OnInit, OnDestroy {
     const institution =
       filters.institutionType === 'ambas' ? 'Pública/Privada' : capitalize(filters.institutionType);
     return `${filters.region} · ${institution}`;
+  }
+
+  constructor() {
+    // `afterRenderEffect` y no `effect`: un efecto corriente se ejecuta ANTES
+    // de que el DOM tenga las burbujas nuevas, así que `scrollHeight` seguiría
+    // valiendo lo de antes y el salto se quedaría corto justo por el mensaje
+    // que lo provocó. Aquí el navegador ya midió.
+    afterRenderEffect(() => {
+      // Depender de los mensajes es lo que hace que esto corra: cada token que
+      // llega los reemplaza, y cada reemplazo es una oportunidad de seguir.
+      this.messages();
+
+      const caja = this.cajaDeMensajes()?.nativeElement;
+      if (!caja) return;
+
+      if (this.aterrizarAbajo) {
+        this.aterrizarAbajo = false;
+        // Sin `behavior: 'smooth'` a propósito. Al abrir una conversación no
+        // estás bajando: estás llegando donde la conversación se quedó, y ver
+        // pasar volando cien mensajes que no has leído no es información, es
+        // ruido.
+        caja.scrollTop = caja.scrollHeight;
+        return;
+      }
+
+      if (!this.despegado()) caja.scrollTop = caja.scrollHeight;
+    });
   }
 
   ngOnInit(): void {
@@ -115,14 +170,46 @@ export class ChatComponent implements OnInit, OnDestroy {
       next: (history) => {
         this.messages.set(history.length ? history : [welcomeMessage()]);
         this.loadingSession.set(false);
+        this.aterrizarAbajo = true;
       },
       // Que falle el historial no debe dejar al estudiante sin chat: se
       // arranca la conversación igual, solo que sin lo anterior.
       error: () => {
         this.messages.set([welcomeMessage()]);
         this.loadingSession.set(false);
+        this.aterrizarAbajo = true;
       },
     });
+  }
+
+  /**
+   * Vigila si el lector sigue abajo.
+   *
+   * Se marca aquí y no se calcula al pintar porque el efecto de render corre
+   * DESPUÉS de que el contenido creció: en ese momento la caja ya no está al
+   * fondo aunque el lector no haya tocado nada, y preguntar ahí daría
+   * «despegado» en cuanto llega el primer token. Este handler solo se dispara
+   * con desplazamientos reales, que es cuando la respuesta significa algo.
+   */
+  alDesplazar(): void {
+    const caja = this.cajaDeMensajes()?.nativeElement;
+    if (!caja) return;
+    this.despegado.set(!estaPegadoAlFondo(caja));
+  }
+
+  /**
+   * El botón de volver abajo. Aquí sí con animación: es un gesto que el lector
+   * pidió, y ver el recorrido le dice dónde estaba.
+   *
+   * No se apaga `despegado` a mano: lo pisaría el primer evento de scroll de
+   * la propia animación, que todavía está lejos del fondo. Quien lo apaga es
+   * `alDesplazar` al llegar, y la plantilla escucha `scrollend` además de
+   * `scroll` para que ese último recálculo no dependa de que el navegador
+   * emita un evento en el fotograma final.
+   */
+  irAlUltimo(): void {
+    const caja = this.cajaDeMensajes()?.nativeElement;
+    caja?.scrollTo({ top: caja.scrollHeight, behavior: 'smooth' });
   }
 
   send(): void {
