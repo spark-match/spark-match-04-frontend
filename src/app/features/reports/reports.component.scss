@@ -52,14 +52,59 @@
   cursor: pointer;
   white-space: nowrap;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--teal-glow);
+  }
+
+  // Sin informe no hay nada que exportar. `:hover` va excluido arriba a
+  // proposito: sin eso el boton sigue cambiando de color al pasar por encima y
+  // se lee como pulsable cuando no lo es.
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 }
 
 .report__loading {
   color: oklch(0.55 0.02 240);
   font-size: 0.9rem;
+}
+
+.report__error {
+  max-width: 34rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
+.report__error-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  margin: 0 0 0.35rem;
+}
+
+.report__error-body {
+  margin: 0 0 1.1rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: oklch(0.5 0.02 240);
+}
+
+.report__retry {
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--teal-glow);
+  }
 }
 
 .report__banner {
