@@ -4,7 +4,7 @@
       <h1 class="font-display">Reporte de Orientación</h1>
       <p class="report__profile">Perfil: {{ profile }}</p>
     </div>
-    <button type="button" class="report__export" (click)="exportPdf()">
+    <button type="button" class="report__export" [disabled]="!report()" (click)="exportPdf()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
         <path
           d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"
@@ -20,6 +20,20 @@
 
   @if (loading()) {
     <p class="report__loading">Generando tu reporte de orientación...</p>
+  } @else if (failed()) {
+    <!-- El rol de alerta del div de abajo hace que un lector de pantalla anuncie
+         el fallo en cuanto aparece: quien no ve la pantalla no tiene forma de
+         enterarse de que el spinner se convirtio en otra cosa. Escrito sin la
+         sintaxis del atributo a proposito, que Sonar la lee como HTML
+         comentado (Web:AvoidCommentedOutCodeCheck). -->
+    <div class="report__error" role="alert">
+      <p class="report__error-title">No pudimos generar tu reporte</p>
+      <p class="report__error-body">
+        Puede ser un problema temporal de conexión. Inténtalo de nuevo en unos segundos; si
+        sigue fallando, vuelve más tarde.
+      </p>
+      <button type="button" class="report__retry" (click)="load()">Reintentar</button>
+    </div>
   } @else {
     <div class="report__banner">
       <span class="report__banner-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-5 9 5-9 5-9-5zm4 2.2V16l5 3 5-3v-4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>

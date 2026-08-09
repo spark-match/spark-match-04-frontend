@@ -16,6 +16,7 @@ export class ReportsComponent implements OnInit {
 
   readonly loading = signal(true);
   readonly report = signal<OrientationReport | null>(null);
+  readonly failed = signal(false);
 
   get careers(): CareerMatch[] {
     return this.report()?.careers ?? [];
@@ -46,10 +47,47 @@ export class ReportsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  /**
+   * Carga —o recarga— el informe.
+   *
+   * La suscripción lleva rama de `error` a propósito. Hasta el 2026-08-09 solo
+   * tenía la de éxito, así que un fallo no bajaba nunca `loading` y la pantalla
+   * se quedaba en «Generando tu reporte de orientación...» indefinidamente, sin
+   * mensaje y sin salida: ni el usuario sabía que algo había ido mal ni podía
+   * hacer nada al respecto.
+   *
+   * Y no era un caso raro, era EL caso: en los entornos desplegados
+   * `useMocks` va en false (`environment.cloud-dev.ts`, `environment.production.ts`)
+   * y `GET /reports/latest` todavía no existe en el backend, así que la petición
+   * siempre terminaba en 404. El spinner eterno de la captura del usuario es
+   * exactamente esto.
+   *
+   * Es público porque lo llama el botón de reintentar de la plantilla.
+   */
+  load(): void {
+    this.loading.set(true);
+    this.failed.set(false);
+
     const filters = this.filtersService.currentFilters();
-    this.reportsService.getReport(filters).subscribe((report) => {
-      this.report.set(report);
-      this.loading.set(false);
+    this.reportsService.getReport(filters).subscribe({
+      next: (report) => {
+        this.report.set(report);
+        this.loading.set(false);
+      },
+      error: () => {
+        // El informe anterior se descarta: dejarlo en pantalla junto a un aviso
+        // de fallo haría creer que lo que se ve es el resultado del reintento.
+        //
+        // El detalle del error no se enseña. Puede traer rutas internas del
+        // backend, y a un estudiante de secundaria no le dice nada útil; lo que
+        // necesita saber es que falló y que puede volver a intentarlo.
+        this.report.set(null);
+        this.failed.set(true);
+        this.loading.set(false);
+      },
     });
   }
 
