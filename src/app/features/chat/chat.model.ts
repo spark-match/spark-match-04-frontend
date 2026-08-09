@@ -53,8 +53,14 @@ export interface ChatTurnHandlers {
   onDelta(messageId: string, delta: string): void;
   /** Esa respuesta quedó completa (`TEXT_MESSAGE_END`). */
   onAnswerEnd(messageId: string): void;
-  /** El agente empezo a usar una herramienta (buscar en internet, etc). */
-  onToolStart(toolCallId: string, label: string, reason: string): void;
+  /**
+   * El agente empezo a usar una herramienta (buscar en internet, etc).
+   *
+   * `kind` viaja desde aqui y no lo deduce la pantalla: quien sabe si un
+   * nombre de herramienta sale a internet es el mapa de `tool-labels.ts`, y
+   * repetir ese criterio en el componente serian dos sitios que se separan.
+   */
+  onToolStart(toolCallId: string, label: string, reason: string, kind: ChatActivityKind): void;
   /**
    * Con qué se llamó a esa herramienta.
    *
@@ -74,7 +80,15 @@ export interface ChatTurnHandlers {
 }
 
 /** De qué es el chip: una herramienta o una delegación en un especialista. */
-export type ChatActivityKind = 'subagent' | 'tool';
+/**
+ * `search` sale de `tool` a propósito, y no es un matiz estético.
+ *
+ * Todo lo demás que hace el agente sale de un dataset fechado del MINEDU que
+ * se puede citar; una búsqueda sale de la web de hoy, que no ha revisado
+ * nadie. Poder distinguir de un vistazo cuál de las dos está detrás de una
+ * frase es una cuestión de cuánto fiarse de ella.
+ */
+export type ChatActivityKind = 'subagent' | 'search' | 'tool';
 
 /**
  * Una herramienta que el agente uso durante el turno, tal como se le muestra

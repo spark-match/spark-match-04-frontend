@@ -1,43 +1,65 @@
-<ul
-  class="chat__activities"
-  [class.chat__activities--done]="!live()"
-  [attr.aria-live]="live() ? 'polite' : null"
->
-  @for (group of groups(); track group.key) {
-    <li
-      [class.chat__activity--running]="group.running"
-      [class.chat__activity--subagent]="group.kind === 'subagent'"
-      [class.chat__activity--failed]="group.ok === false"
-    >
-      <span class="chat__activity-head">
-        <span>{{ group.label }}</span>
-        @if (group.calls.length === 1) {
-          @if (group.calls[0].detail) {
-            <span class="chat__activity-args">{{ group.calls[0].detail }}</span>
-          }
-          <span class="chat__activity-timing">{{ activityTiming(group.calls[0]) }}</span>
-        } @else {
-          <span class="chat__activity-count">· {{ group.calls.length }} veces</span>
-        }
-      </span>
-      @if (group.reason) {
-        <span class="chat__activity-reason">{{ group.reason }}</span>
-      }
-      @if (group.calls.length > 1) {
-        <details class="chat__activity-calls">
-          <summary>Ver el detalle de cada llamada</summary>
-          <ul>
-            @for (call of group.calls; track call.id) {
-              <li>
-                @if (call.detail) {
-                  <span class="chat__activity-args">{{ call.detail }}</span>
-                }
-                <span class="chat__activity-timing">{{ activityTiming(call) }}</span>
-              </li>
+@if (plegable()) {
+  <!-- Plegado, la altura queda acotada por construcción: una línea con lo que
+       hizo y cuántos pasos fueron. Por eso ya no hace falta la caja con scroll
+       de 11rem que antes recortaba los chips. -->
+  <button
+    type="button"
+    class="chat__activity-summary"
+    [class.chat__activity-summary--open]="desplegado()"
+    [class.chat__activity-summary--failed]="resumen()?.ok === false"
+    [attr.aria-expanded]="desplegado()"
+    (click)="alternar()"
+  >
+    <span class="chat__activity-summary-dot" aria-hidden="true"></span>
+    <span>{{ resumen()?.titulo }}</span>
+    <span class="chat__activity-count">· {{ resumen()?.pasos }} pasos</span>
+    <span class="chat__activity-summary-more">{{ desplegado() ? 'Ocultar' : 'Ver detalle' }}</span>
+  </button>
+}
+
+@if (!plegable() || desplegado()) {
+  <ul
+    class="chat__activities"
+    [class.chat__activities--done]="!live()"
+    [attr.aria-live]="live() ? 'polite' : null"
+  >
+    @for (group of groups(); track group.key) {
+      <li
+        [class.chat__activity--running]="group.running"
+        [class.chat__activity--subagent]="group.kind === 'subagent'"
+        [class.chat__activity--search]="group.kind === 'search'"
+        [class.chat__activity--failed]="group.ok === false"
+      >
+        <span class="chat__activity-head">
+          <span>{{ group.label }}</span>
+          @if (group.calls.length === 1) {
+            @if (group.calls[0].detail) {
+              <span class="chat__activity-args">{{ group.calls[0].detail }}</span>
             }
-          </ul>
-        </details>
-      }
-    </li>
-  }
-</ul>
+            <span class="chat__activity-timing">{{ activityTiming(group.calls[0]) }}</span>
+          } @else {
+            <span class="chat__activity-count">· {{ group.calls.length }} veces</span>
+          }
+        </span>
+        @if (group.reason) {
+          <span class="chat__activity-reason">{{ group.reason }}</span>
+        }
+        @if (group.calls.length > 1) {
+          <details class="chat__activity-calls">
+            <summary>Ver el detalle de cada llamada</summary>
+            <ul>
+              @for (call of group.calls; track call.id) {
+                <li>
+                  @if (call.detail) {
+                    <span class="chat__activity-args">{{ call.detail }}</span>
+                  }
+                  <span class="chat__activity-timing">{{ activityTiming(call) }}</span>
+                </li>
+              }
+            </ul>
+          </details>
+        }
+      </li>
+    }
+  </ul>
+}

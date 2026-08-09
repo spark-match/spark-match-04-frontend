@@ -1,4 +1,4 @@
-import { UNKNOWN_TOOL_LABEL, toolLabel } from './tool-labels';
+import { UNKNOWN_TOOL_LABEL, toolKind, toolLabel } from './tool-labels';
 
 describe('toolLabel', () => {
   it('says what a web search is in plain words', () => {
@@ -69,5 +69,59 @@ describe('toolLabel', () => {
   it('handles a missing tool name', () => {
     expect(toolLabel(undefined)).toBe(UNKNOWN_TOOL_LABEL);
     expect(toolLabel('')).toBe(UNKNOWN_TOOL_LABEL);
+  });
+});
+
+/**
+ * Guarda contra la deriva entre el agente y esta pantalla.
+ *
+ * `recommend_programs` llego con el motor multicriterio y estuvo semanas sin
+ * etiqueta: la herramienta que mas trabajo hace se anunciaba como «Usando una
+ * herramienta…». El fallo no se nota, que es lo peor que puede tener — no
+ * revienta nada, solo empobrece el chat en silencio.
+ *
+ * La lista se mantiene A MANO porque el frontend no puede leer el `__all__`
+ * del agente: son dos repos y dos despliegues. Copiada de
+ * `spark-match-08-deep-agent/src/tools/__init__.py`. Si el agente añade una
+ * herramienta y nadie toca esto, el test no se entera; lo que sí atrapa es lo
+ * contrario, que es el caso que se dio: alguien añade la herramienta a las dos
+ * listas y se olvida de la etiqueta.
+ */
+describe('cobertura de etiquetas frente al agente', () => {
+  const HERRAMIENTAS_DEL_AGENTE = [
+    'calculate_affinity',
+    'evaluate_riasec_profile',
+    'recommend_programs',
+    'search_careers',
+    'search_programs',
+    'web_search',
+  ];
+
+  it.each(HERRAMIENTAS_DEL_AGENTE)('%s tiene etiqueta propia', (herramienta) => {
+    expect(toolLabel(herramienta)).not.toBe(UNKNOWN_TOOL_LABEL);
+  });
+});
+
+describe('toolKind', () => {
+  it('marca la busqueda web como busqueda', () => {
+    // Es la unica que sale a internet, y de eso depende cuanto fiarse del dato.
+    expect(toolKind('web_search')).toBe('search');
+  });
+
+  it('el resto son herramientas normales', () => {
+    expect(toolKind('search_careers')).toBe('tool');
+    expect(toolKind('recommend_programs')).toBe('tool');
+  });
+
+  it('leer el catalogo NO es salir a internet', () => {
+    // `search_programs` suena a busqueda y no lo es: lee el CSV del MINEDU que
+    // viaja dentro del agente. Confundirlas le diria al estudiante que un dato
+    // citable viene de la web de hoy.
+    expect(toolKind('search_programs')).toBe('tool');
+  });
+
+  it('una herramienta desconocida no se presume de internet', () => {
+    expect(toolKind('herramienta_nueva')).toBe('tool');
+    expect(toolKind(undefined)).toBe('tool');
   });
 });
