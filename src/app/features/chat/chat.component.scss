@@ -3,6 +3,40 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  // Ancla del botón de «bajar al último», que flota sobre el composer.
+  position: relative;
+}
+
+// Flota sobre el composer en vez de ocupar sitio en la columna: si empujara el
+// layout, aparecer y desaparecer movería los mensajes bajo el cursor del
+// lector — y aparece justo cuando está leyendo con atención.
+.chat__to-latest {
+  position: absolute;
+  bottom: 5.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 4px 14px oklch(0 0 0 / 0.13);
+  font-size: 0.78rem;
+  cursor: pointer;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    border-color: var(--teal-glow);
+    color: var(--teal-deep);
+  }
 }
 
 .chat__header {
