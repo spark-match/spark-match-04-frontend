@@ -8,8 +8,12 @@
   <section class="filters__field">
     <label class="filters__label" for="region"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-5.1 7-12a7 7 0 10-14 0c0 6.9 7 12 7 12z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9" r="2.2" stroke="currentColor" stroke-width="1.8"/></svg>Región de estudio</label>
     <select id="region" [formField]="filtersForm.region" class="filters__select">
-      <option value="" disabled>{{ loadingRegions() ? 'Cargando regiones...' : 'Selecciona tu región' }}</option>
-      @for (region of regions(); track region) {
+      <option value="" disabled>Selecciona tu región</option>
+      <!-- `region.name` y no `region.code`: este valor viaja al agente y se
+           cruza contra la columna `location` del dataset, que trae los nombres
+           ("La Libertad", no "la-libertad"). El cruce aguanta acentos y
+           mayusculas porque `search_programs` normaliza los dos lados. -->
+      @for (region of regions; track region.code) {
         <option [value]="region.name">{{ region.name }}</option>
       }
     </select>
@@ -66,7 +70,7 @@
         min="0"
         max="35000"
         step="500"
-        [value]="filtersForm.budget().value()"
+        [value]="budgetSliderValue()"
         (input)="onBudgetInput($event)"
         class="filters__slider"
       />
@@ -86,6 +90,15 @@
     >
       Iniciar chat de orientación →
     </button>
-    <span class="filters__progress">Completa los 3 filtros ({{ completedCount() }}/3)</span>
+    <!-- Antes decía «Completa los 3 filtros (n/3)» y el botón estaba
+         deshabilitado hasta llegar a 3. Ninguna preferencia es obligatoria:
+         el agente pregunta lo que necesite durante la conversación. -->
+    <span class="filters__progress">
+      @if (completedCount() === 0) {
+        Opcional: puedes contármelo en el chat
+      } @else {
+        {{ completedCount() }} de 4 preferencias indicadas · puedes cambiarlas hablando
+      }
+    </span>
   </div>
 </div>
