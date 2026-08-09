@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ChatService } from './chat.service';
 import { FiltersService } from '../filters/filters.service';
+import { ActivityGroup, groupActivities } from './activity-grouping';
+import { ActivityListComponent } from './activity-list.component';
 import { ChatActivity, ChatMessage } from './chat.model';
 import { AgUiSnapshotMessage } from '../../core/agent/ag-ui.model';
 import { AgentStreamError, agentErrorMessage } from '../../core/agent/ag-ui.client';
@@ -40,7 +42,7 @@ const WELCOME_TEXT =
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [FormsModule, RouterLink, MarkdownPipe],
+  imports: [FormsModule, RouterLink, MarkdownPipe, ActivityListComponent],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.scss',
 })
@@ -349,24 +351,16 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * El sufijo del chip: cuánto tardó el especialista, o que no pudo.
+   * Colapsa llamadas repetidas a la misma herramienta en un chip, para que
+   * pintar en el template sea `@for (group of activityGroups(...))` en vez
+   * de repetir la lógica de agrupación ahí. Ver `activity-grouping.ts`.
    *
-   * Vacío mientras corre — un contador subiendo distrae del texto que se
-   * está escribiendo — y vacío también para las herramientas normales, que
-   * no reportan duración.
-   *
-   * No confundir con `activity.detail`, que es CON QUÉ se llamó a la
-   * herramienta: esto sólo mide.
+   * Quien pinta los chips es `ActivityListComponent`, y el formateo de la
+   * duración vive con él en `activity-timing.ts`: este componente ya sólo
+   * decide QUÉ actividades pasa, no cómo se ven.
    */
-  activityTiming(activity: ChatActivity): string {
-    if (activity.running) return '';
-    if (activity.ok === false) return ' · no pudo completarse';
-    if (activity.durationMs === undefined) return '';
-    // Los milisegundos por debajo del segundo se dejan tal cual en vez de
-    // redondear a «1 s»: redondear hacia arriba exagera lo que costó.
-    return activity.durationMs < 1000
-      ? ` · ${activity.durationMs} ms`
-      : ` · ${(activity.durationMs / 1000).toFixed(1)} s`;
+  activityGroups(activities: ChatActivity[]): ActivityGroup[] {
+    return groupActivities(activities);
   }
 }
 
