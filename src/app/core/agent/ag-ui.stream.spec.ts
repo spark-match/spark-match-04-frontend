@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { AgUiClient, AgentStreamError, agentErrorMessage } from './ag-ui.client';
 import { AgUiEvent, RunAgentInput } from './ag-ui.model';
 import { AuthService } from '../auth/auth.service';
+import { environment } from '../../../environments/environment';
 
 const INPUT: RunAgentInput = {
   threadId: 't-1',
@@ -43,11 +44,18 @@ describe('AgUiClient.streamRun', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    // Estos tests son los del camino REAL, el que corre en producción. Con
+    // `useMocks` en true —que es como viene `environment.ts` en local y en los
+    // tests— el turno se sirve del stream simulado y no se llega a tocar
+    // `fetch`, así que la bandera se apaga aquí y se restaura al salir. Mismo
+    // patrón que usa `chat.service.spec.ts` para sus caminos HTTP.
+    environment.useMocks = false;
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
   });
 
   afterEach(() => {
+    environment.useMocks = true;
     vi.unstubAllGlobals();
   });
 

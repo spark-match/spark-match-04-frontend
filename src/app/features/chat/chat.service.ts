@@ -5,7 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AgUiClient } from '../../core/agent/ag-ui.client';
 import { stepLabel } from '../../core/agent/step-labels';
-import { toolLabel } from '../../core/agent/tool-labels';
+import { toolKind, toolLabel } from '../../core/agent/tool-labels';
 import { toolDetail, toolReason } from '../../core/agent/tool-details';
 import {
   SUBAGENT_END_EVENT,
@@ -155,6 +155,7 @@ export class ChatService {
             toolCallId,
             toolLabel(event.toolCallName),
             toolReason(event.toolCallName),
+            toolKind(event.toolCallName),
           );
           break;
         }
