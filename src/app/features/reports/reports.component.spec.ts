@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { ReportsComponent } from './reports.component';
 import { ReportsService } from './reports.service';
@@ -161,6 +161,76 @@ describe('ReportsComponent', () => {
       fixture.detectChanges();
 
       expect(component.dataSource).toBe('');
+    });
+  });
+
+  /*
+   * Hasta el 2026-08-09 la suscripción de `ngOnInit` solo tenía callback de éxito, así que
+   * cualquier fallo dejaba `loading` en true para siempre: la pantalla se quedaba en
+   * «Generando tu reporte de orientación...» sin mensaje, sin reintento y sin forma de
+   * saber que algo había ido mal.
+   *
+   * No era el caso raro, era el normal. En los entornos desplegados `useMocks` va en false
+   * y `GET /reports/latest` todavía no existe en el backend, así que la petición terminaba
+   * siempre en 404 y el spinner no se iba nunca.
+   */
+  describe('cuando la petición falla', () => {
+    const montarConFallo = (): HTMLElement => {
+      getReportMock.mockReturnValue(throwError(() => new Error('404')));
+
+      fixture = TestBed.createComponent(ReportsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      return fixture.nativeElement as HTMLElement;
+    };
+
+    it('sale del estado de carga en vez de quedarse colgado', () => {
+      montarConFallo();
+
+      expect(component.loading()).toBe(false);
+      expect(component.failed()).toBe(true);
+    });
+
+    it('deja de mostrar el mensaje de "Generando tu reporte"', () => {
+      const html = montarConFallo();
+
+      expect(html.textContent).not.toContain('Generando tu reporte');
+    });
+
+    it('muestra un aviso accesible con un botón de reintentar', () => {
+      const html = montarConFallo();
+
+      const aviso = html.querySelector('.report__error');
+      expect(aviso).not.toBeNull();
+      expect(aviso?.getAttribute('role')).toBe('alert');
+      expect(html.querySelector('.report__retry')).not.toBeNull();
+    });
+
+    it('no deja a la vista un informe anterior junto al aviso de fallo', () => {
+      const html = montarConFallo();
+
+      expect(component.report()).toBeNull();
+      expect(html.querySelectorAll('.report__card').length).toBe(0);
+    });
+
+    it('deshabilita el botón de exportar mientras no hay informe', () => {
+      const html = montarConFallo();
+
+      expect((html.querySelector('.report__export') as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('se recupera al pulsar reintentar', () => {
+      const html = montarConFallo();
+      getReportMock.mockReturnValue(of(buildReport()));
+
+      (html.querySelector('.report__retry') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(component.failed()).toBe(false);
+      expect(component.careersFound).toBe(2);
+      expect(html.querySelectorAll('.report__card').length).toBe(2);
+      expect((html.querySelector('.report__export') as HTMLButtonElement).disabled).toBe(false);
     });
   });
 });
