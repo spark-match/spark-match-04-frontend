@@ -332,10 +332,12 @@ describe('ChatComponent', () => {
       expect(chips.length).toBe(1);
       expect(chips[0].label).toBe('Evaluando tu perfil vocacional…');
       expect(chips[0].kind).toBe('subagent');
-      expect(component.activityTiming(chips[0])).toBe(' · 8.4 s');
+      // Que 8400 ms se lean como « · 8.4 s» lo cubre activity-timing.spec.ts;
+      // aquí lo que importa es que la duración llegó al chip.
+      expect(chips[0].durationMs).toBe(8400);
     });
 
-    it('says so when a delegation could not be completed', async () => {
+    it('marks the chip as failed when a delegation could not be completed', async () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
         handlers.onSubagentStart(
           'tc-1',
@@ -353,7 +355,9 @@ describe('ChatComponent', () => {
 
       const chip = (component.messages().at(-1)?.activities ?? [])[0];
       expect(chip.ok).toBe(false);
-      expect(component.activityTiming(chip)).toContain('no pudo completarse');
+      // El texto « · no pudo completarse» es de activity-timing.spec.ts. Aquí:
+      // que el fallo del especialista quedó marcado en el chip, con su duración.
+      expect(chip.durationMs).toBe(1200);
     });
 
     it('keeps the chips when the turn produces several bubbles', async () => {

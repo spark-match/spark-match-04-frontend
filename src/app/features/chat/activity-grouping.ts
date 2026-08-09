@@ -36,23 +36,28 @@ export function groupActivities(activities: ChatActivity[]): ActivityGroup[] {
 
   for (const activity of activities) {
     const current = groups.at(-1);
-    if (current && current.label === activity.label && current.kind === activity.kind) {
-      current.calls.push(activity);
-      current.running = current.running || activity.running;
-      if (activity.ok === false) current.ok = false;
-      if (!current.reason && activity.reason) current.reason = activity.reason;
+
+    // La condición va invertida y con `current?.` en vez de
+    // `current && current.label === …`: no haber grupo previo rompe la racha
+    // igual que romperla por label, así que los dos casos comparten rama. De
+    // paso evita el acceso encadenado que SonarCloud marca (S6582).
+    if (current?.label !== activity.label || current.kind !== activity.kind) {
+      groups.push({
+        key: activity.id,
+        label: activity.label,
+        kind: activity.kind,
+        running: activity.running,
+        ok: activity.ok,
+        reason: activity.reason,
+        calls: [activity],
+      });
       continue;
     }
 
-    groups.push({
-      key: activity.id,
-      label: activity.label,
-      kind: activity.kind,
-      running: activity.running,
-      ok: activity.ok,
-      reason: activity.reason,
-      calls: [activity],
-    });
+    current.calls.push(activity);
+    current.running = current.running || activity.running;
+    if (activity.ok === false) current.ok = false;
+    if (!current.reason && activity.reason) current.reason = activity.reason;
   }
 
   return groups;
