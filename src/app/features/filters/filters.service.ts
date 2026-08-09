@@ -99,8 +99,8 @@ export function filtersToProfilePayload(filters: OrientationFilters): ProfilePre
 
 @Service()
 export class FiltersService {
-  private http = inject(HttpClient);
-  private base = `${environment.agentUrl}/profile`;
+  private readonly http = inject(HttpClient);
+  private readonly base = `${environment.agentUrl}/profile`;
 
   private readonly _currentFilters = signal<OrientationFilters | null>(null);
   readonly currentFilters = this._currentFilters.asReadonly();

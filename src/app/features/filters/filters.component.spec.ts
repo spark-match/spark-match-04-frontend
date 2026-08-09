@@ -110,7 +110,7 @@ describe('FiltersComponent', () => {
    * `budget` valía 8000 por defecto y eso era un dato inventado: quien no
    * tocara el deslizador acababa con una restricción que nunca pidió. Ahora que
    * el agente aplica el presupuesto como exclusión, un valor por defecto no da
-   * una respuesta mala: borra en silencio todo lo que cueste más.
+   * una respuesta mala: borra en silencio las opciones que cuesten más.
    */
   describe('el presupuesto no se inventa', () => {
     it('arranca sin definir', () => {

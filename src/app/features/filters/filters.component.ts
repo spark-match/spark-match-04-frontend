@@ -20,7 +20,7 @@ type FiltersModel = OrientationFilters;
  * estudiante que no tocara el deslizador acababa con una restricción de
  * S/ 8.000/año que nunca pidió. Ahora que estas preferencias se guardan en el
  * perfil y el agente las aplica como exclusión, un valor por defecto no
- * produce una respuesta mala: borra en silencio todo lo que cueste más.
+ * produce una respuesta mala: borra en silencio las opciones que cuesten más.
  */
 const DEFAULT_FILTERS: FiltersModel = {
   region: '',
