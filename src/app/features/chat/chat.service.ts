@@ -23,7 +23,7 @@ import {
   ThreadMessagesResponse,
   ThreadsResponse,
 } from './chat.model';
-import { mockHistory, mockThreads } from './chat.mock-threads';
+import { mockHistory, mockRename, mockThreads } from './chat.mock-threads';
 import { actividadRehidratada } from './activity-rehydration';
 
 const THREAD_STORAGE_KEY = 'spark-match:chat-thread';
@@ -82,6 +82,19 @@ export class ChatService {
     return this.http
       .get<ThreadsResponse>(`${environment.agentUrl}/threads`)
       .pipe(map((response) => response.threads ?? []));
+  }
+
+  /**
+   * Cambia el nombre de una conversación.
+   *
+   * El título que pone el agente es el primer mensaje recortado, que sirve
+   * para reconocer una conversación recién tenida y no para encontrarla
+   * dentro de tres semanas entre otras diez que empiezan igual.
+   */
+  renameThread(threadId: string, title: string): Observable<ChatThread> {
+    if (environment.useMocks) return of(mockRename(threadId, title));
+
+    return this.http.patch<ChatThread>(`${environment.agentUrl}/threads/${threadId}`, { title });
   }
 
   /**
