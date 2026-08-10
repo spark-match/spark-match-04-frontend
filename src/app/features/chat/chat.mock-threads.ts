@@ -234,6 +234,20 @@ const CONVERSACIONES: readonly { id: string; dias: number; mensajes: ThreadMessa
 ];
 
 /**
+ * Los nombres que el estudiante puso a mano durante esta sesión.
+ *
+ * Sin esto, renombrar en local se veía un instante y se perdía al refrescar
+ * la lista — o sea que lo único que se podía comprobar era el optimismo de la
+ * interfaz, no que el nombre se queda. Se pierde al recargar la página, como
+ * todo lo demás del mock.
+ */
+const RENOMBRADAS = new Map<string, string>();
+
+export function olvidarLosRenombrados(): void {
+  RENOMBRADAS.clear();
+}
+
+/**
  * Las conversaciones del sidebar, más recientes primero.
  *
  * `ChatThread` ya es la forma de la respuesta —`thread_id`, `created_at`: eso
@@ -241,12 +255,30 @@ const CONVERSACIONES: readonly { id: string; dias: number; mensajes: ThreadMessa
  * con los mensajes.
  */
 export function mockThreads(): ChatThread[] {
-  return CONVERSACIONES.map((conversacion) => ({
+  return CONVERSACIONES.map((conversacion) => unaConversacion(conversacion));
+}
+
+function unaConversacion(conversacion: { id: string; dias: number; mensajes: ThreadMessage[] }) {
+  return {
     thread_id: conversacion.id,
-    title: titulo(conversacion.mensajes[0].content),
+    title: RENOMBRADAS.get(conversacion.id) ?? titulo(conversacion.mensajes[0].content),
     created_at: haceDias(conversacion.dias, 9),
     updated_at: haceDias(conversacion.dias),
-  }));
+  };
+}
+
+/**
+ * Renombra una conversación simulada y la devuelve como el endpoint.
+ *
+ * No mueve `updated_at`, igual que el agente: ese campo ordena el sidebar por
+ * actividad, y ponerle nombre a un hilo viejo no debería mandarlo arriba.
+ */
+export function mockRename(threadId: string, title: string): ChatThread {
+  const conversacion = CONVERSACIONES.find((c) => c.id === threadId);
+  if (!conversacion) throw new Error(`No existe la conversación ${threadId}`);
+
+  RENOMBRADAS.set(threadId, title);
+  return unaConversacion(conversacion);
 }
 
 /**

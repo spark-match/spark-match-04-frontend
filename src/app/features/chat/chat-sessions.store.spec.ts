@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 
 import { ChatSessionsStore, relativeDayLabel } from './chat-sessions.store';
 import { ChatService } from './chat.service';
@@ -10,10 +10,13 @@ function thread(id: string, updated = '2026-08-05T12:00:00.000Z'): ChatThread {
 }
 
 describe('ChatSessionsStore', () => {
-  function build(listThreads: ReturnType<typeof vi.fn>): ChatSessionsStore {
+  function build(
+    listThreads: ReturnType<typeof vi.fn>,
+    renameThread: ReturnType<typeof vi.fn> = vi.fn(),
+  ): ChatSessionsStore {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [{ provide: ChatService, useValue: { listThreads } }],
+      providers: [{ provide: ChatService, useValue: { listThreads, renameThread } }],
     });
     return TestBed.inject(ChatSessionsStore);
   }
@@ -44,6 +47,94 @@ describe('ChatSessionsStore', () => {
 
     expect(store.threads()).toEqual([]);
     expect(store.loading()).toBe(false);
+  });
+
+  describe('renaming', () => {
+    /** El agente recorta y colapsa, así que puede devolver otro texto. */
+    function renombrada(id: string, title: string): ChatThread {
+      return { ...thread(id), title };
+    }
+
+    it('shows the new name before the agent answers', () => {
+      // Renombrar es un gesto pequeño y frecuente; esperar a que vuelva un
+      // PATCH para ver la letra que acabas de escribir se siente roto.
+      let responder: (t: ChatThread) => void = () => undefined;
+      const rename = vi.fn(
+        () =>
+          new Observable<ChatThread>((subscriber) => {
+            responder = (t) => {
+              subscriber.next(t);
+              subscriber.complete();
+            };
+          }),
+      );
+      const store = build(vi.fn().mockReturnValue(of([thread('a')])), rename);
+      store.refresh();
+
+      store.rename('a', 'Becas y costos');
+
+      expect(store.threads()[0].title).toBe('Becas y costos');
+      responder(renombrada('a', 'Becas y costos'));
+    });
+
+    it('keeps what the agent stored, not what was typed', () => {
+      // Quien recorta y colapsa es el agente: enseñar lo escrito dejaria la
+      // pantalla diciendo algo distinto de lo que quedo guardado.
+      const rename = vi.fn().mockReturnValue(of(renombrada('a', 'recortado por el agente')));
+      const store = build(vi.fn().mockReturnValue(of([thread('a')])), rename);
+      store.refresh();
+
+      store.rename('a', '   recortado   por  el agente   ');
+
+      expect(store.threads()[0].title).toBe('recortado por el agente');
+    });
+
+    it('only touches the conversation that was renamed', () => {
+      const rename = vi.fn().mockReturnValue(of(renombrada('a', 'nuevo')));
+      const store = build(vi.fn().mockReturnValue(of([thread('a'), thread('b')])), rename);
+      store.refresh();
+
+      store.rename('a', 'nuevo');
+
+      expect(store.threads().map((t) => t.title)).toEqual(['nuevo', 'conversación b']);
+    });
+
+    it('puts the old name back when it fails', () => {
+      const rename = vi.fn().mockReturnValue(throwError(() => new Error('down')));
+      const store = build(vi.fn().mockReturnValue(of([thread('a')])), rename);
+      store.refresh();
+
+      store.rename('a', 'no va a cuajar');
+
+      expect(store.threads()[0].title).toBe('conversación a');
+    });
+
+    it('says so, instead of letting the name change back on its own', () => {
+      // Un nombre que vuelve solo a lo que era, sin explicacion, parece un
+      // fallo de la aplicacion.
+      const rename = vi.fn().mockReturnValue(throwError(() => new Error('down')));
+      const store = build(vi.fn().mockReturnValue(of([thread('a')])), rename);
+      store.refresh();
+
+      store.rename('a', 'no va a cuajar');
+
+      expect(store.renameError()).toContain('No se pudo cambiar el nombre');
+    });
+
+    it('clears an earlier failure when trying again', () => {
+      const rename = vi
+        .fn()
+        .mockReturnValueOnce(throwError(() => new Error('down')))
+        .mockReturnValueOnce(of(renombrada('a', 'a la segunda')));
+      const store = build(vi.fn().mockReturnValue(of([thread('a')])), rename);
+      store.refresh();
+      store.rename('a', 'primera');
+
+      store.rename('a', 'a la segunda');
+
+      expect(store.renameError()).toBeNull();
+      expect(store.threads()[0].title).toBe('a la segunda');
+    });
   });
 });
 

@@ -23,12 +23,20 @@ describe('SidebarComponent', () => {
   let sessionsStub: {
     threads: ReturnType<typeof signal>;
     loading: ReturnType<typeof signal>;
+    renameError: ReturnType<typeof signal>;
     refresh: ReturnType<typeof vi.fn>;
+    rename: ReturnType<typeof vi.fn>;
   };
   let chatStub: { startNewThread: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
-    sessionsStub = { threads: signal(THREADS), loading: signal(false), refresh: vi.fn() };
+    sessionsStub = {
+      threads: signal(THREADS),
+      loading: signal(false),
+      renameError: signal(null),
+      refresh: vi.fn(),
+      rename: vi.fn(),
+    };
     chatStub = { startNewThread: vi.fn().mockReturnValue('nuevo-id') };
 
     await TestBed.configureTestingModule({
@@ -108,6 +116,133 @@ describe('SidebarComponent', () => {
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('Aún no tienes conversaciones');
+    });
+  });
+
+  /**
+   * El título que pone el agente es el primer mensaje recortado: sirve para
+   * reconocer una conversación recién tenida y no para encontrarla dentro de
+   * tres semanas entre otras diez que empiezan igual.
+   */
+  describe('renaming a conversation', () => {
+    function elInput(): HTMLInputElement | null {
+      return fixture.nativeElement.querySelector('.sidebar__recent-input');
+    }
+
+    function editar(): HTMLInputElement {
+      component.empezarARenombrar('abc-1');
+      fixture.detectChanges();
+      const input = elInput();
+      if (!input) throw new Error('no se abrió el campo de edición');
+      return input;
+    }
+
+    it('opens an input in place instead of a dialog', () => {
+      const input = editar();
+
+      expect(input.value).toBe('Ingeniería vs Medicina');
+    });
+
+    it('caps the input at the same length the agent does', () => {
+      // Escribir treinta caracteres de mas para que te los rechacen al
+      // enviar es peor que no dejarte escribirlos.
+      expect(editar().getAttribute('maxlength')).toBe('60');
+    });
+
+    it('has a visible way in, not just a double click', () => {
+      // El doble clic no se descubre solo y quien navega con teclado no lo
+      // tiene.
+      const boton = fixture.nativeElement.querySelector('.sidebar__recent-rename');
+
+      expect(boton).not.toBeNull();
+      expect(boton.getAttribute('aria-label')).toContain('Ingeniería vs Medicina');
+    });
+
+    it('saves the new name', () => {
+      editar();
+
+      component.confirmarRenombrado('abc-1', 'Becas y costos');
+
+      expect(sessionsStub.rename).toHaveBeenCalledWith('abc-1', 'Becas y costos');
+    });
+
+    it('closes the input once saved', () => {
+      editar();
+
+      component.confirmarRenombrado('abc-1', 'Becas y costos');
+      fixture.detectChanges();
+
+      expect(elInput()).toBeNull();
+    });
+
+    it('trims what was typed', () => {
+      editar();
+
+      component.confirmarRenombrado('abc-1', '  Becas y costos  ');
+
+      expect(sessionsStub.rename).toHaveBeenCalledWith('abc-1', 'Becas y costos');
+    });
+
+    it('an empty name means «I changed my mind», not «call it nothing»', () => {
+      editar();
+
+      component.confirmarRenombrado('abc-1', '   ');
+
+      expect(sessionsStub.rename).not.toHaveBeenCalled();
+    });
+
+    it('does not send a rename that changes nothing', () => {
+      editar();
+
+      component.confirmarRenombrado('abc-1', 'Ingeniería vs Medicina');
+
+      expect(sessionsStub.rename).not.toHaveBeenCalled();
+    });
+
+    it('escape discards it', () => {
+      editar();
+
+      component.cancelarRenombrado();
+      fixture.detectChanges();
+
+      expect(elInput()).toBeNull();
+      expect(sessionsStub.rename).not.toHaveBeenCalled();
+    });
+
+    it('the blur that escape causes does not save what was discarded', () => {
+      // Quitar el input de la pantalla dispara un `blur`, y el `blur`
+      // guarda. Sin la guarda, Escape acabaria guardando justo lo que se
+      // queria descartar.
+      editar();
+
+      component.cancelarRenombrado();
+      component.confirmarRenombrado('abc-1', 'lo que se estaba escribiendo');
+
+      expect(sessionsStub.rename).not.toHaveBeenCalled();
+    });
+
+    it('does not save twice when enter is followed by a blur', () => {
+      editar();
+
+      component.confirmarRenombrado('abc-1', 'Becas y costos');
+      component.confirmarRenombrado('abc-1', 'Becas y costos');
+
+      expect(sessionsStub.rename).toHaveBeenCalledOnce();
+    });
+
+    it('shows a failure instead of letting the name change back on its own', () => {
+      sessionsStub.renameError.set('No se pudo cambiar el nombre. Inténtalo de nuevo.');
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('No se pudo cambiar el nombre');
+    });
+
+    it('clears an earlier failure when starting again', () => {
+      sessionsStub.renameError.set('No se pudo cambiar el nombre. Inténtalo de nuevo.');
+
+      component.empezarARenombrar('abc-1');
+
+      expect(sessionsStub.renameError()).toBeNull();
     });
   });
 

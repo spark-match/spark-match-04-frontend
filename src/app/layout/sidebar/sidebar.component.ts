@@ -1,9 +1,26 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnInit,
+  afterRenderEffect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { Toolbar, ToolbarWidget } from '@angular/aria/toolbar';
 import { AuthService } from '../../core/auth/auth.service';
 import { ChatService } from '../../features/chat/chat.service';
 import { ChatSessionsStore, relativeDayLabel } from '../../features/chat/chat-sessions.store';
+
+/**
+ * El mismo tope que aplica el agente (`threads/registry.py`).
+ *
+ * Repetido aquí a propósito: el `maxlength` del input evita que el estudiante
+ * escriba treinta caracteres de más para que se los rechacen al enviar. Quien
+ * manda sigue siendo el agente — esto sólo evita el viaje.
+ */
+const MAX_TITULO = 60;
 
 interface NavItem {
   label: string;
@@ -42,6 +59,30 @@ export class SidebarComponent implements OnInit {
   readonly adminMode = signal(false);
   readonly mlopsOpen = signal(true);
 
+  /** Id de la conversación que se está renombrando, o `null`. */
+  readonly renombrando = signal<string | null>(null);
+  readonly renameError = this.sessions.renameError;
+
+  /** El mismo tope que el agente, para que el input no deje escribir de más. */
+  readonly MAX_TITULO = MAX_TITULO;
+
+  private readonly entradaDeTitulo = viewChild<ElementRef<HTMLInputElement>>('entradaDeTitulo');
+
+  constructor() {
+    // El input aparece porque cambió una señal, así que hay que esperar al
+    // repintado para poder enfocarlo: en el momento de pulsar todavía no
+    // existe en el DOM. Y se selecciona el texto entero — quien renombra
+    // suele querer otro nombre, no añadir al que hay.
+    afterRenderEffect(() => {
+      if (!this.renombrando()) return;
+      const input = this.entradaDeTitulo()?.nativeElement;
+      if (input && document.activeElement !== input) {
+        input.focus();
+        input.select();
+      }
+    });
+  }
+
   navItems: NavItem[] = [
     { label: 'Inicio', icon: 'sparkles', path: '/home' },
     { label: 'Filtros', icon: 'sliders', path: '/filters' },
@@ -63,6 +104,41 @@ export class SidebarComponent implements OnInit {
   /** Etiqueta de la columna derecha: "Hoy", "Ayer", "Hace 3 días". */
   whenLabel(iso: string): string {
     return relativeDayLabel(iso);
+  }
+
+  empezarARenombrar(threadId: string): void {
+    this.sessions.renameError.set(null);
+    this.renombrando.set(threadId);
+  }
+
+  cancelarRenombrado(): void {
+    // Antes que el `blur` que provocará quitar el input de la pantalla: ese
+    // `blur` llama a `confirmarRenombrado`, y si esto no hubiera pasado ya,
+    // Escape acabaría guardando justo lo que se quería descartar.
+    this.renombrando.set(null);
+  }
+
+  /**
+   * Guarda el nombre nuevo, si es que hay uno.
+   *
+   * Lo llaman Enter y el `blur`, y con Escape llega también un `blur` — de
+   * ahí la primera guarda. Sin ella, cada renombrado se mandaría dos veces y
+   * un Escape guardaría en vez de descartar.
+   */
+  confirmarRenombrado(threadId: string, propuesto: string): void {
+    if (this.renombrando() !== threadId) return;
+    this.renombrando.set(null);
+
+    const limpio = propuesto.trim();
+    // Vacío es «no quería cambiarlo», no «llámala vacío». Igual el título de
+    // siempre: mandar un PATCH para dejarlo como estaba es ruido.
+    if (!limpio || limpio === this.tituloActual(threadId)) return;
+
+    this.sessions.rename(threadId, limpio);
+  }
+
+  private tituloActual(threadId: string): string | undefined {
+    return this.recentChats().find((chat) => chat.thread_id === threadId)?.title;
   }
 
   openChat(threadId: string): void {

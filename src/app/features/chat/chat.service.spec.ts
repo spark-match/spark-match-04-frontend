@@ -679,6 +679,22 @@ describe('ChatService', () => {
       expect((await history).messages[0].activities).toBeUndefined();
     });
 
+    it('renames a conversation', async () => {
+      const renombrada = firstValueFrom(service.renameThread('t-1', 'Becas y costos'));
+
+      const peticion = http.expectOne(`${environment.agentUrl}/threads/t-1`);
+      expect(peticion.request.method).toBe('PATCH');
+      expect(peticion.request.body).toEqual({ title: 'Becas y costos' });
+
+      peticion.flush({
+        thread_id: 't-1',
+        title: 'Becas y costos',
+        created_at: 'x',
+        updated_at: 'x',
+      });
+      expect((await renombrada).title).toBe('Becas y costos');
+    });
+
     it('lists the threads', async () => {
       const threads = firstValueFrom(service.listThreads());
 

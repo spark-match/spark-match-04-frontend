@@ -10,7 +10,13 @@
  * confiarla a un comentario.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { mockHistory, mockThreads, reiniciarElHiloEnCurso } from './chat.mock-threads';
+import {
+  mockHistory,
+  mockRename,
+  mockThreads,
+  olvidarLosRenombrados,
+  reiniciarElHiloEnCurso,
+} from './chat.mock-threads';
 import { relativeDayLabel } from './chat-sessions.store';
 import { ThreadActivity, ThreadMessage } from './chat.model';
 
@@ -37,7 +43,10 @@ function todaLaActividad(): ThreadActivity[] {
   );
 }
 
-beforeEach(reiniciarElHiloEnCurso);
+beforeEach(() => {
+  reiniciarElHiloEnCurso();
+  olvidarLosRenombrados();
+});
 
 describe('mockThreads', () => {
   it('devuelve las conversaciones de más reciente a más antigua', () => {
@@ -149,6 +158,46 @@ describe('el hilo en curso', () => {
     const asentado = historialAsentado(EN_CURSO);
 
     expect(asentado.at(-1)?.activity?.length).toBeGreaterThan(0);
+  });
+});
+
+describe('mockRename', () => {
+  beforeEach(olvidarLosRenombrados);
+
+  it('el listado se queda con el nombre nuevo', () => {
+    // Sin esto, renombrar en local se veia un instante y se perdia en cuanto
+    // el chat refrescaba la lista al terminar un turno: lo unico que se
+    // podia comprobar era el optimismo de la interfaz, no que el nombre dura.
+    mockRename('mock-hilo-antiguo', 'Mi primer saludo');
+
+    const thread = mockThreads().find((t) => t.thread_id === 'mock-hilo-antiguo');
+    expect(thread?.title).toBe('Mi primer saludo');
+  });
+
+  it('devuelve la conversación renombrada, como el endpoint', () => {
+    const renombrada = mockRename('mock-hilo-antiguo', 'Mi primer saludo');
+
+    expect(renombrada.thread_id).toBe('mock-hilo-antiguo');
+    expect(renombrada.title).toBe('Mi primer saludo');
+  });
+
+  it('no mueve la conversación en el sidebar', () => {
+    const antes = mockThreads().find((t) => t.thread_id === 'mock-hilo-antiguo');
+
+    const despues = mockRename('mock-hilo-antiguo', 'Otro nombre');
+
+    expect(despues.updated_at).toBe(antes?.updated_at);
+  });
+
+  it('no toca las demás', () => {
+    mockRename('mock-hilo-antiguo', 'Mi primer saludo');
+
+    const otra = mockThreads().find((t) => t.thread_id === 'mock-hilo-becas');
+    expect(otra?.title).toContain('Mis papás');
+  });
+
+  it('una conversación que no existe revienta en vez de fingir', () => {
+    expect(() => mockRename('no-existe', 'algo')).toThrow();
   });
 });
 
