@@ -533,9 +533,37 @@ describe('ChatService', () => {
   describe('with mocks enabled (the default of environment.ts in tests)', () => {
     it('does not call the agent at all', async () => {
       expect(environment.useMocks).toBe(true);
+      const http = TestBed.inject(HttpTestingController);
 
-      expect(await firstValueFrom(service.loadHistory('t-1'))).toEqual([]);
-      expect(await firstValueFrom(service.listThreads())).toEqual([]);
+      await firstValueFrom(service.loadHistory('t-1'));
+      await firstValueFrom(service.listThreads());
+
+      http.verify();
+    });
+
+    it('lists the simulated conversations instead of nothing', async () => {
+      const threads = await firstValueFrom(service.listThreads());
+
+      expect(threads.length).toBeGreaterThan(0);
+      expect(threads[0].title).toBeTruthy();
+    });
+
+    // Es lo que mantiene «nueva conversación» funcionando en local: al abrir
+    // la app el id es un UUID recién creado y el chat tiene que salir limpio.
+    it('leaves an unknown conversation empty, like the real endpoint', async () => {
+      expect(await firstValueFrom(service.loadHistory('un-id-cualquiera'))).toEqual([]);
+    });
+
+    it('rehydrates a simulated conversation through the same mapping as the real one', async () => {
+      const [primero] = await firstValueFrom(service.listThreads());
+
+      const history = await firstValueFrom(service.loadHistory(primero.thread_id));
+
+      expect(history.length).toBeGreaterThan(1);
+      // `assistant` -> `ai` lo hace `toChatMessage`, o sea el camino de
+      // produccion: el mock sustituye al servidor, no al servicio.
+      expect(history.map((m) => m.role)).toContain('ai');
+      expect(history.every((m) => m.id && m.timestamp)).toBe(true);
     });
   });
 
