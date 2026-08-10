@@ -17,7 +17,7 @@
  * se lea igual antes y después de recargar. Dos tablas de copia que se
  * separan con el tiempo son la forma habitual de que eso deje de cumplirse.
  *
- * ## Todo llega terminado
+ * ## Aquí nada sigue en curso
  *
  * `running` va siempre en false y no hay duración. Rehidratar es mirar algo
  * que ya pasó: un chip girando en una conversación de hace cuatro días sería

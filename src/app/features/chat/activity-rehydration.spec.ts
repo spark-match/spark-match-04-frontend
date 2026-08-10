@@ -75,7 +75,7 @@ describe('actividadRehidratada', () => {
   });
 
   describe('estado', () => {
-    it('todo llega terminado: nada gira en una conversación vieja', () => {
+    it('nada gira en una conversación vieja', () => {
       const chips = actividadRehidratada([llamada(), llamada({ id: 'tc2', ok: false })]);
 
       expect(chips.every((c) => !c.running)).toBe(true);
