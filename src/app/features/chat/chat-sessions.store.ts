@@ -17,6 +17,41 @@ export class ChatSessionsStore {
 
   readonly threads = signal<ChatThread[]>([]);
   readonly loading = signal(false);
+  /** Lo que se le dice al estudiante cuando un renombrado no llegó. */
+  readonly renameError = signal<string | null>(null);
+
+  /**
+   * Cambia el nombre de una conversación.
+   *
+   * El nombre nuevo se pinta antes de que el agente conteste. Renombrar es un
+   * gesto pequeño y frecuente, y esperar medio segundo a que vuelva un PATCH
+   * para ver la letra que acabas de escribir se siente roto.
+   *
+   * A cambio hay que deshacerlo bien si falla: se guarda la lista de antes y
+   * se restaura entera. Y se avisa — un nombre que vuelve solo a lo que era,
+   * sin explicación, parece un fallo de la aplicación.
+   */
+  rename(threadId: string, title: string): void {
+    const anterior = this.threads();
+    this.renameError.set(null);
+    this.threads.update((lista) =>
+      lista.map((thread) => (thread.thread_id === threadId ? { ...thread, title } : thread)),
+    );
+
+    this.chatService.renameThread(threadId, title).subscribe({
+      // Se toma la conversación que devuelve el agente y no la de aquí: es
+      // él quien recorta y colapsa el título, así que lo que se enseña tiene
+      // que ser lo que quedó guardado, no lo que se escribió.
+      next: (renombrada) =>
+        this.threads.update((lista) =>
+          lista.map((thread) => (thread.thread_id === threadId ? renombrada : thread)),
+        ),
+      error: () => {
+        this.threads.set(anterior);
+        this.renameError.set('No se pudo cambiar el nombre. Inténtalo de nuevo.');
+      },
+    });
+  }
 
   refresh(): void {
     this.loading.set(true);

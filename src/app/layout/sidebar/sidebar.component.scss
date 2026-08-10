@@ -37,11 +37,21 @@
   width: 24px;
   height: 24px;
 
-  svg { width: 24px; height: 24px; }
+  svg {
+    width: 24px;
+    height: 24px;
+  }
 }
 
-.sidebar__mlops-title { display: flex; align-items: center; gap: 0.4rem; }
-.sidebar__mlops-title svg { width: 15px; height: 15px; }
+.sidebar__mlops-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.sidebar__mlops-title svg {
+  width: 15px;
+  height: 15px;
+}
 
 .sidebar__brand-name {
   flex: 1;
@@ -132,6 +142,60 @@
   &:hover {
     background: oklch(1 0 0 / 0.06);
   }
+}
+
+// El lápiz va superpuesto sobre la fila y no al lado: en columna le quitaría
+// ancho al título, que es lo que hay que poder leer.
+.sidebar__recent-row {
+  position: relative;
+
+  &:hover .sidebar__recent-rename,
+  .sidebar__recent-rename:focus-visible {
+    opacity: 1;
+  }
+}
+
+.sidebar__recent-rename {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  display: grid;
+  place-items: center;
+  padding: 0.25rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--sidebar-muted);
+  cursor: pointer;
+  // Oculto hasta que haga falta, pero nunca `display: none`: tiene que
+  // seguir en el orden de tabulación para quien no usa ratón.
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  &:hover {
+    color: var(--sidebar-fg);
+    background: oklch(1 0 0 / 0.1);
+  }
+}
+
+// Tapa la hora mientras se escribe. Es a propósito: la hora no se puede
+// editar y competir por el sitio con el nombre sólo estorba.
+.sidebar__recent-input {
+  width: 100%;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid oklch(1 0 0 / 0.3);
+  border-radius: var(--radius);
+  background: oklch(1 0 0 / 0.08);
+  color: var(--sidebar-fg);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.sidebar__recent-error {
+  margin: 0.2rem 0 0;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  color: var(--danger, oklch(0.72 0.17 25));
 }
 
 .sidebar__recent-empty {
@@ -313,7 +377,10 @@
 }
 
 @media (max-width: 860px) {
-  :host { width: 100%; height: auto; }
+  :host {
+    width: 100%;
+    height: auto;
+  }
 
   .sidebar,
   .sidebar.collapsed {
@@ -328,20 +395,41 @@
     overflow-y: hidden;
   }
 
-  .sidebar__brand { margin: 0; flex: 0 0 auto; }
+  .sidebar__brand {
+    margin: 0;
+    flex: 0 0 auto;
+  }
   .sidebar__brand-name,
   .sidebar__collapse-btn,
   .sidebar__recent,
   .sidebar__new-chat,
   .sidebar__admin,
   .sidebar__spacer,
-  .sidebar__user-info { display: none; }
+  .sidebar__user-info {
+    display: none;
+  }
 
-  .sidebar__nav { flex-direction: row; margin: 0; gap: 0.25rem; }
-  .sidebar__nav-item { flex: 0 0 auto; padding: 0.5rem 0.6rem; }
-  .sidebar__nav-item span { display: none; }
-  .sidebar__user { margin: 0 0 0 auto; padding: 0; border: 0; flex: 0 0 auto; }
-  .sidebar__logout { padding: 0.35rem; }
+  .sidebar__nav {
+    flex-direction: row;
+    margin: 0;
+    gap: 0.25rem;
+  }
+  .sidebar__nav-item {
+    flex: 0 0 auto;
+    padding: 0.5rem 0.6rem;
+  }
+  .sidebar__nav-item span {
+    display: none;
+  }
+  .sidebar__user {
+    margin: 0 0 0 auto;
+    padding: 0;
+    border: 0;
+    flex: 0 0 auto;
+  }
+  .sidebar__logout {
+    padding: 0.35rem;
+  }
 }
 
 @keyframes sidebar-section-in {
