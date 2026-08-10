@@ -48,7 +48,7 @@ function haceDias(dias: number, hora = 16): string {
 const MAX_TITULO = 60;
 
 function titulo(primerMensaje: string): string {
-  const plano = primerMensaje.split(/\s+/).join(' ');
+  const plano = primerMensaje.trim().replaceAll(/\s+/g, ' ');
   return plano.length <= MAX_TITULO ? plano : `${plano.slice(0, MAX_TITULO - 1).trimEnd()}…`;
 }
 
@@ -144,8 +144,8 @@ const CONVERSACIONES: readonly { id: string; dias: number; mensajes: ThreadMessa
         [llamada('mock-1-t9', 'web_search', 'becas UCSM 2026', false)],
       ),
       usuario('mock-1-u4', 'Ya, gracias'),
-      // Sin actividad: no todo turno usa herramientas, y el hueco tiene que
-      // quedar limpio en vez de dejar una lista vacía ocupando sitio.
+      // Sin actividad: hay turnos que no usan ninguna herramienta, y el hueco
+      // tiene que quedar limpio en vez de dejar una lista vacía ocupando sitio.
       asistente('mock-1-a4', 'A ti. Cuando quieras seguimos con las fechas de admisión.'),
     ],
   },
