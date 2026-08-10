@@ -18,6 +18,7 @@ import {
   ChatMessage,
   ChatThread,
   ChatTurnHandlers,
+  ThreadHistory,
   ThreadMessage,
   ThreadMessagesResponse,
   ThreadsResponse,
@@ -83,16 +84,22 @@ export class ChatService {
       .pipe(map((response) => response.threads ?? []));
   }
 
-  /** Historial de la conversacion, para repoblar el chat al recargar. */
-  loadHistory(threadId: string): Observable<ChatMessage[]> {
+  /**
+   * Historial de la conversacion, para repoblar el chat al recargar.
+   *
+   * Trae tambien si hay un turno generandose ahora mismo: desde que el turno
+   * sobrevive a que cierres la pestaña, volver a entrar puede pillarlo a
+   * medias, y sin saberlo la pantalla enseñaria la pregunta sin respuesta.
+   */
+  loadHistory(threadId: string): Observable<ThreadHistory> {
     // El mock devuelve la forma de la RESPUESTA y se traduce igual que la de
     // verdad, con el mismo `toChatMessage`. Devolver aquí `ChatMessage[]` ya
     // hechos dejaría sin ejercitar en local justo el trozo que traduce.
-    if (environment.useMocks) return of(mockHistory(threadId).map(toChatMessage));
+    if (environment.useMocks) return of(toThreadHistory(mockHistory(threadId)));
 
     return this.http
       .get<ThreadMessagesResponse>(`${environment.agentUrl}/threads/${threadId}/messages`)
-      .pipe(map((response) => (response.messages ?? []).map(toChatMessage)));
+      .pipe(map(toThreadHistory));
   }
 
   /**
@@ -274,6 +281,21 @@ function readSnapshotMessages(messages: unknown): AgUiSnapshotMessage[] {
       role: String(message['role']),
       content: String(message['content']),
     }));
+}
+
+/**
+ * La respuesta del endpoint, traducida a lo que pinta la pantalla.
+ *
+ * `running` por defecto en false: un agente anterior a
+ * `spark-match-08-deep-agent#88` no manda el campo, y ausencia no es «hay un
+ * turno corriendo» — dar por cierto lo contrario dejaria la pantalla clavada
+ * en «respondiendo» contra un agente que nunca va a decir que termino.
+ */
+function toThreadHistory(response: Partial<ThreadMessagesResponse>): ThreadHistory {
+  return {
+    messages: (response.messages ?? []).map(toChatMessage),
+    running: response.running === true,
+  };
 }
 
 function toChatMessage(message: ThreadMessage): ChatMessage {
