@@ -71,6 +71,21 @@ export interface ThreadMessage {
 export interface ThreadMessagesResponse {
   thread_id: string;
   messages: ThreadMessage[];
+  /**
+   * Hay un turno generándose ahora mismo en esta conversación.
+   *
+   * Lo manda el agente desde `spark-match-08-deep-agent#88`. Desde que el
+   * turno sobrevive a que cierres la pestaña (#89), volver a entrar puede
+   * pillarlo a medias: sin este campo el estudiante vería su pregunta sin
+   * respuesta, la repetiría, y se llevaría un 409.
+   */
+  running?: boolean;
+}
+
+/** El historial de una conversación y si sigue viva. */
+export interface ThreadHistory {
+  messages: ChatMessage[];
+  running: boolean;
 }
 
 /**

@@ -3,21 +3,41 @@
  *
  * Este mock existe para que los casos difíciles se puedan mirar en local: dos
  * especialistas en un turno, una racha de llamadas a la misma herramienta, un
- * fallo, un turno mudo. Si alguien recorta una conversación al editarlo, el
- * mock sigue funcionando —enseña un chat, nadie se entera— y a la vez deja de
- * servir para lo único que lo justifica. Así que la cobertura del fixture se
- * afirma aquí en vez de confiarla a un comentario.
+ * fallo, un turno mudo, una conversación que se abre a medio responder. Si
+ * alguien recorta una conversación al editarlo, el mock sigue funcionando
+ * —enseña un chat, nadie se entera— y a la vez deja de servir para lo único
+ * que lo justifica. Así que la cobertura del fixture se afirma aquí en vez de
+ * confiarla a un comentario.
  */
-import { describe, expect, it } from 'vitest';
-import { mockHistory, mockThreads } from './chat.mock-threads';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mockHistory, mockThreads, reiniciarElHiloEnCurso } from './chat.mock-threads';
 import { relativeDayLabel } from './chat-sessions.store';
-import { ThreadActivity } from './chat.model';
+import { ThreadActivity, ThreadMessage } from './chat.model';
+
+/**
+ * El historial de una conversación ya terminada.
+ *
+ * El hilo en curso contesta a medias las primeras veces —esa es su gracia—
+ * así que para barrerlo junto a los demás hay que dejarlo llegar al final
+ * primero. Sondear hasta que pare es lo mismo que hace la pantalla.
+ */
+function historialAsentado(threadId: string): ThreadMessage[] {
+  let historial = mockHistory(threadId);
+  while (historial.running) historial = mockHistory(threadId);
+  return historial.messages;
+}
+
+function todosLosHistoriales(): ThreadMessage[][] {
+  return mockThreads().map((thread) => historialAsentado(thread.thread_id));
+}
 
 function todaLaActividad(): ThreadActivity[] {
-  return mockThreads().flatMap((thread) =>
-    mockHistory(thread.thread_id).flatMap((message) => message.activity ?? []),
+  return todosLosHistoriales().flatMap((mensajes) =>
+    mensajes.flatMap((message) => message.activity ?? []),
   );
 }
+
+beforeEach(reiniciarElHiloEnCurso);
 
 describe('mockThreads', () => {
   it('devuelve las conversaciones de más reciente a más antigua', () => {
@@ -34,7 +54,7 @@ describe('mockThreads', () => {
 
   it('el título sale del primer mensaje del estudiante, no de un texto aparte', () => {
     for (const thread of mockThreads()) {
-      const primero = mockHistory(thread.thread_id)[0];
+      const [primero] = historialAsentado(thread.thread_id);
 
       expect(primero.role).toBe('user');
       expect(primero.content.startsWith(thread.title.replace(/…$/, ''))).toBe(true);
@@ -58,38 +78,84 @@ describe('mockThreads', () => {
 
 describe('mockHistory', () => {
   it('una conversación desconocida está vacía, como en el endpoint de verdad', () => {
-    expect(mockHistory('no-existe')).toEqual([]);
+    expect(mockHistory('no-existe')).toEqual({ messages: [], running: false });
+  });
+
+  it('una conversación terminada no dice que siga corriendo', () => {
+    expect(mockHistory('mock-hilo-antiguo').running).toBe(false);
   });
 
   it('alterna estudiante y asistente sin dos seguidos del mismo', () => {
-    for (const thread of mockThreads()) {
-      const roles = mockHistory(thread.thread_id).map((message) => message.role);
+    for (const mensajes of todosLosHistoriales()) {
+      const roles = mensajes.map((message) => message.role);
 
       expect(roles.every((role, i) => i === 0 || role !== roles[i - 1])).toBe(true);
     }
   });
 
   it('todos los ids son distintos, que es de lo que tira `@for track`', () => {
-    const ids = mockThreads().flatMap((thread) =>
-      mockHistory(thread.thread_id).map((message) => message.id),
-    );
+    const ids = todosLosHistoriales()
+      .flat()
+      .map((message) => message.id);
 
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('la actividad sólo cuelga de mensajes del asistente', () => {
-    for (const thread of mockThreads()) {
-      const conActividad = mockHistory(thread.thread_id).filter((message) => message.activity);
+    for (const mensajes of todosLosHistoriales()) {
+      const conActividad = mensajes.filter((message) => message.activity);
 
       expect(conActividad.every((message) => message.role === 'assistant')).toBe(true);
     }
   });
 });
 
+/**
+ * El turno que sigue vivo al volver a entrar. Es lo único del mock que tiene
+ * estado, y es lo que permite ver el sondeo en local sin desplegar.
+ */
+describe('el hilo en curso', () => {
+  const EN_CURSO = 'mock-hilo-en-curso';
+
+  it('empieza con la pregunta y sin respuesta, como el checkpoint a medio turno', () => {
+    const historial = mockHistory(EN_CURSO);
+
+    expect(historial.running).toBe(true);
+    expect(historial.messages).toHaveLength(1);
+    expect(historial.messages[0].role).toBe('user');
+  });
+
+  it('acaba contestando: si no, lo que se probaría es una pantalla clavada', () => {
+    const asentado = historialAsentado(EN_CURSO);
+
+    expect(asentado.at(-1)?.role).toBe('assistant');
+  });
+
+  it('deja de decir que corre en cuanto contesta', () => {
+    historialAsentado(EN_CURSO);
+
+    expect(mockHistory(EN_CURSO).running).toBe(false);
+  });
+
+  it('se puede volver a empezar, para no arrastrar estado entre casos', () => {
+    historialAsentado(EN_CURSO);
+
+    reiniciarElHiloEnCurso();
+
+    expect(mockHistory(EN_CURSO).running).toBe(true);
+  });
+
+  it('la respuesta trae actividad, que es lo que aparece al terminar el sondeo', () => {
+    const asentado = historialAsentado(EN_CURSO);
+
+    expect(asentado.at(-1)?.activity?.length).toBeGreaterThan(0);
+  });
+});
+
 describe('los casos que el fixture tiene que cubrir', () => {
   it('una racha de la misma herramienta, para ver la agrupación con contador', () => {
-    const rachas = mockThreads()
-      .flatMap((thread) => mockHistory(thread.thread_id))
+    const rachas = todosLosHistoriales()
+      .flat()
       .map((message) => (message.activity ?? []).map((a) => a.tool))
       .filter((tools) => tools.some((tool, i) => i > 0 && tool === tools[i - 1]));
 
@@ -97,8 +163,8 @@ describe('los casos que el fixture tiene que cubrir', () => {
   });
 
   it('dos especialistas en un mismo turno', () => {
-    const turnos = mockThreads()
-      .flatMap((thread) => mockHistory(thread.thread_id))
+    const turnos = todosLosHistoriales()
+      .flat()
       .map((message) => (message.activity ?? []).filter((a) => a.subagent));
 
     expect(turnos.some((delegaciones) => delegaciones.length >= 2)).toBe(true);
@@ -117,8 +183,8 @@ describe('los casos que el fixture tiene que cubrir', () => {
   });
 
   it('un turno del asistente sin actividad ninguna', () => {
-    const respuestas = mockThreads()
-      .flatMap((thread) => mockHistory(thread.thread_id))
+    const respuestas = todosLosHistoriales()
+      .flat()
       .filter((message) => message.role === 'assistant');
 
     expect(respuestas.some((message) => !message.activity)).toBe(true);

@@ -17,7 +17,7 @@ import { mockTurnEvents } from './ag-ui.mock-stream';
  */
 
 export type AgentErrorKind =
-  'unauthorized' | 'forbidden' | 'rate-limited' | 'budget-exhausted' | 'network' | 'agent';
+  'unauthorized' | 'forbidden' | 'rate-limited' | 'budget-exhausted' | 'busy' | 'network' | 'agent';
 
 export class AgentStreamError extends Error {
   constructor(
@@ -37,6 +37,10 @@ const MESSAGES: Record<AgentErrorKind, string> = {
   'rate-limited': 'Vas muy rápido. Espera unos segundos y vuelve a intentarlo.',
   'budget-exhausted':
     'Alcanzaste el límite de consultas por hoy. Podrás seguir conversando mañana.',
+  // Un turno a la vez por conversación: el agente rechaza el segundo en vez
+  // de dejar que los dos se pisen. Dice «espera» y no «error» porque no lo
+  // es — hay una respuesta en camino, y llega sola.
+  busy: 'Todavía estoy respondiendo en esta conversación. Espera a que termine.',
   network: 'No pudimos conectar con el orientador. Revisa tu conexión e intenta de nuevo.',
   agent: 'El orientador tuvo un problema procesando tu mensaje. Intenta de nuevo.',
 };
@@ -50,6 +54,7 @@ async function toStreamError(response: Response): Promise<AgentStreamError> {
 
   if (response.status === 401) return new AgentStreamError('unauthorized', body, 401);
   if (response.status === 403) return new AgentStreamError('forbidden', body, 403);
+  if (response.status === 409) return new AgentStreamError('busy', body, 409);
   if (response.status === 429) {
     // Dos limites distintos comparten el 429 y el estudiante necesita
     // distinguirlos: uno se pasa en segundos, el otro dura hasta mañana.
@@ -144,8 +149,14 @@ export async function* readSseEvents(body: ReadableStream<Uint8Array>): AsyncGen
       }
     }
   } finally {
-    // Corta el turno en el servidor cuando quien consume se va a mitad de
-    // stream, en vez de dejar al agente generando contra nadie.
+    // Cierra la conexión cuando quien consume se va a mitad de stream, en
+    // vez de dejar el socket abierto.
+    //
+    // Esto ya NO corta el turno. Antes sí: el agente conducía el turno desde
+    // la propia respuesta HTTP, así que soltar el lector lo mataba e irse de
+    // la pantalla te dejaba sin respuesta. Desde
+    // `spark-match-08-deep-agent#89` el turno vive en una tarea de fondo y
+    // termina igual — por eso hay un `running` que sondear al volver.
     reader.cancel().catch(() => undefined);
     reader.releaseLock();
   }

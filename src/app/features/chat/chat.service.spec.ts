@@ -551,19 +551,26 @@ describe('ChatService', () => {
     // Es lo que mantiene «nueva conversación» funcionando en local: al abrir
     // la app el id es un UUID recién creado y el chat tiene que salir limpio.
     it('leaves an unknown conversation empty, like the real endpoint', async () => {
-      expect(await firstValueFrom(service.loadHistory('un-id-cualquiera'))).toEqual([]);
+      expect(await firstValueFrom(service.loadHistory('un-id-cualquiera'))).toEqual({
+        messages: [],
+        running: false,
+      });
     });
 
     it('rehydrates a simulated conversation through the same mapping as the real one', async () => {
-      const [primero] = await firstValueFrom(service.listThreads());
+      const { messages } = await firstValueFrom(service.loadHistory('mock-hilo-industrial'));
 
-      const history = await firstValueFrom(service.loadHistory(primero.thread_id));
-
-      expect(history.length).toBeGreaterThan(1);
+      expect(messages.length).toBeGreaterThan(1);
       // `assistant` -> `ai` lo hace `toChatMessage`, o sea el camino de
       // produccion: el mock sustituye al servidor, no al servicio.
-      expect(history.map((m) => m.role)).toContain('ai');
-      expect(history.every((m) => m.id && m.timestamp)).toBe(true);
+      expect(messages.map((m) => m.role)).toContain('ai');
+      expect(messages.every((m) => m.id && m.timestamp)).toBe(true);
+    });
+
+    it('surfaces the simulated conversation that is still answering', async () => {
+      const { running } = await firstValueFrom(service.loadHistory('mock-hilo-en-curso'));
+
+      expect(running).toBe(true);
     });
   });
 
@@ -592,7 +599,7 @@ describe('ChatService', () => {
         ],
       });
 
-      expect((await history).map((m) => m.role)).toEqual(['user', 'ai']);
+      expect((await history).messages.map((m) => m.role)).toEqual(['user', 'ai']);
     });
 
     it('gives a message an id when the agent did not persist one', async () => {
@@ -602,7 +609,7 @@ describe('ChatService', () => {
         .expectOne(`${environment.agentUrl}/threads/t-1/messages`)
         .flush({ thread_id: 't-1', messages: [{ id: null, role: 'user', content: 'hola' }] });
 
-      expect((await history)[0].id).toBeTruthy();
+      expect((await history).messages[0].id).toBeTruthy();
     });
 
     it('survives a response with no messages field', async () => {
@@ -610,7 +617,30 @@ describe('ChatService', () => {
 
       http.expectOne(`${environment.agentUrl}/threads/t-1/messages`).flush({ thread_id: 't-1' });
 
-      expect(await history).toEqual([]);
+      expect(await history).toEqual({ messages: [], running: false });
+    });
+
+    it('reports a turn that is still being generated', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http
+        .expectOne(`${environment.agentUrl}/threads/t-1/messages`)
+        .flush({ thread_id: 't-1', messages: [], running: true });
+
+      expect((await history).running).toBe(true);
+    });
+
+    // Un agente anterior a #88 no manda el campo, y ausencia no es «hay un
+    // turno corriendo»: darlo por cierto dejaria la pantalla clavada en
+    // «respondiendo» esperando a alguien que nunca va a decir que termino.
+    it('treats a missing running flag as not running', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http
+        .expectOne(`${environment.agentUrl}/threads/t-1/messages`)
+        .flush({ thread_id: 't-1', messages: [] });
+
+      expect((await history).running).toBe(false);
     });
 
     // Lo que hace que al recargar la respuesta no se quede sin procedencia.
@@ -633,7 +663,7 @@ describe('ChatService', () => {
         ],
       });
 
-      const [pregunta, respuesta] = await history;
+      const [pregunta, respuesta] = (await history).messages;
       expect(pregunta.activities).toBeUndefined();
       expect(respuesta.activities?.map((a) => a.kind)).toEqual(['tool', 'subagent']);
       expect(respuesta.activities?.[0].detail).toBe('«ingeniería»');
@@ -646,7 +676,7 @@ describe('ChatService', () => {
         .expectOne(`${environment.agentUrl}/threads/t-1/messages`)
         .flush({ thread_id: 't-1', messages: [{ id: 'm1', role: 'assistant', content: 'hola' }] });
 
-      expect((await history)[0].activities).toBeUndefined();
+      expect((await history).messages[0].activities).toBeUndefined();
     });
 
     it('lists the threads', async () => {

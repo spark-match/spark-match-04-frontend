@@ -61,6 +61,22 @@
       </div>
     }
 
+    <!-- Un turno que sigue vivo en el agente y que esta pestaña no lanzó:
+         cerraste a media respuesta y volviste. No hay tokens que enseñar
+         -sus eventos salieron por una conexión que ya se cerró- así que lo
+         que se dice es lo único cierto: que viene en camino. -->
+    @if (turnoEnCurso()) {
+      <div class="chat__bubble-row">
+        <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
+        <div class="chat__bubble chat__bubble--step">
+          <span class="chat__bubble--typing"><span></span><span></span><span></span></span>
+          <span class="chat__time" aria-live="polite">
+            Sigo respondiendo a tu último mensaje. Aparecerá aquí en cuanto termine.
+          </span>
+        </div>
+      </div>
+    }
+
     @if (currentStep(); as step) {
       <div class="chat__bubble-row">
         <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
@@ -107,8 +123,9 @@
       [(ngModel)]="draft"
       (keyup.enter)="send()"
       class="chat__input"
+      [disabled]="turnoEnCurso()"
     />
-    <button type="button" class="chat__send" aria-label="Enviar pregunta" (click)="send()" [disabled]="!draft.trim() || sending()">
+    <button type="button" class="chat__send" aria-label="Enviar pregunta" (click)="send()" [disabled]="!draft.trim() || sending() || turnoEnCurso()">
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12l16-8-6 8 6 8-16-8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
     </button>
   </footer>
