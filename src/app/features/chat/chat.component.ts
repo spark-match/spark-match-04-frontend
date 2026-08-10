@@ -22,7 +22,8 @@ import { AuthService } from '../../core/auth/auth.service';
 import { MarkdownPipe } from '../../shared/markdown.pipe';
 import { ChatSessionsStore } from './chat-sessions.store';
 import { estaPegadoAlFondo } from './scroll-anchoring';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
+import { switchMap, take, takeWhile } from 'rxjs/operators';
 
 /**
  * Lo que el chat promete en su primera frase.
@@ -49,6 +50,25 @@ const WELCOME_TEXT =
   'del Ministerio de Educación: cuánto duran, cuánto cuestan y qué tan difícil es entrar. ' +
   '¿Por dónde empezamos?';
 
+/**
+ * Cada cuánto se pregunta si el turno en curso ya terminó.
+ *
+ * Tres segundos: un turno con subagente dura minutos, así que apurar más no
+ * adelanta la respuesta y sí multiplica las peticiones. Y esperar más haría
+ * que una respuesta ya escrita tardara en aparecer sin motivo.
+ */
+const SONDEO_MS = 3000;
+
+/**
+ * Cuántas veces como mucho. A 3 s son cinco minutos, que es lo que dura el
+ * arrendamiento de un turno en el agente: pasado eso, o el turno terminó o su
+ * proceso murió, y en los dos casos seguir preguntando no aporta nada.
+ */
+const SONDEOS_MAXIMOS = 100;
+
+const ESPERA_AGOTADA =
+  'La respuesta está tardando más de lo normal. Recarga la página para ver si ya llegó.';
+
 @Component({
   selector: 'app-chat',
   standalone: true,
@@ -67,6 +87,7 @@ export class ChatComponent implements OnInit, OnDestroy {
   private threadId = '';
   private abort: AbortController | null = null;
   private routeSub: Subscription | null = null;
+  private sondeo: Subscription | null = null;
 
   private readonly cajaDeMensajes = viewChild<ElementRef<HTMLElement>>('cajaDeMensajes');
 
@@ -94,6 +115,15 @@ export class ChatComponent implements OnInit, OnDestroy {
   readonly currentStep = signal<string | null>(null);
   /** Herramientas del turno en curso: búsquedas web, catálogo, subagentes. */
   readonly activities = signal<ChatActivity[]>([]);
+  /**
+   * Hay un turno generándose que esta pestaña no está mirando.
+   *
+   * Se enciende al abrir una conversación cuyo turno sigue vivo — cerraste la
+   * pestaña a media respuesta y volviste, o la dejaste abierta en otro sitio.
+   * Es distinto de `sending()`, que es un turno lanzado desde aquí y del que
+   * llegan tokens.
+   */
+  readonly turnoEnCurso = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly showRecommendationRating = signal(false);
   readonly rating = signal(0);
@@ -147,8 +177,11 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
-    // Sin esto, salir de la pantalla a mitad de respuesta deja al agente
-    // generando contra un lector que ya no existe.
+    this.detenerSondeo();
+    // Sin esto, salir de la pantalla a mitad de respuesta deja los tokens
+    // llegando a un lector que ya no existe. Ojo: desde
+    // `spark-match-08-deep-agent#89` esto ya NO corta el turno en el
+    // agente, que termina solo — por eso al volver hay algo que sondear.
     this.abort?.abort();
   }
 
@@ -157,6 +190,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     // anterior; si no, sus tokens seguirían llegando a la pantalla nueva.
     this.abort?.abort();
     this.abort = null;
+    this.detenerSondeo();
     this.sending.set(false);
     this.currentStep.set(null);
     this.errorMessage.set(null);
@@ -167,10 +201,15 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.messages.set([]);
 
     this.chatService.loadHistory(threadId).subscribe({
-      next: (history) => {
-        this.messages.set(history.length ? history : [welcomeMessage()]);
+      next: (historial) => {
+        this.messages.set(historial.messages.length ? historial.messages : [welcomeMessage()]);
         this.loadingSession.set(false);
         this.aterrizarAbajo = true;
+        // El turno sigue vivo en el agente: cerraste la pestaña a media
+        // respuesta, o la conversación está abierta en otro sitio. La
+        // respuesta va a llegar sola, así que se espera en vez de dejar la
+        // pregunta ahí sin nada debajo.
+        if (historial.running) this.vigilarTurnoEnCurso(threadId);
       },
       // Que falle el historial no debe dejar al estudiante sin chat: se
       // arranca la conversación igual, solo que sin lo anterior.
@@ -180,6 +219,53 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.aterrizarAbajo = true;
       },
     });
+  }
+
+  /**
+   * Espera a que termine un turno que no lanzó esta pestaña.
+   *
+   * Se sondea el historial en vez de reengancharse al stream porque el turno
+   * ya no tiene stream al que volver: sus eventos salieron por una conexión
+   * que se cerró. Lo que sí queda es el checkpoint, y ahí aparece la
+   * respuesta en cuanto el agente la escribe.
+   *
+   * El tope existe porque un arrendamiento puede quedar colgado si el
+   * proceso del agente muere a mitad, y sondear para siempre dejaría la
+   * pantalla bloqueada esperando algo que ya no viene.
+   */
+  private vigilarTurnoEnCurso(threadId: string): void {
+    this.detenerSondeo();
+    this.turnoEnCurso.set(true);
+    let seguiaCorriendo = true;
+
+    this.sondeo = timer(SONDEO_MS, SONDEO_MS)
+      .pipe(
+        take(SONDEOS_MAXIMOS),
+        switchMap(() => this.chatService.loadHistory(threadId)),
+        // El `true` es lo que hace que el sondeo que ya trae la respuesta
+        // se emita antes de completar. Sin él se descartaría justo el
+        // único que traía algo que enseñar.
+        takeWhile((historial) => historial.running, true),
+      )
+      .subscribe({
+        next: (historial) => {
+          seguiaCorriendo = historial.running;
+          if (historial.messages.length) this.messages.set(historial.messages);
+        },
+        // Un sondeo que falla no es motivo para dejar la pantalla clavada
+        // en «respondiendo»: se apaga el aviso y el estudiante sigue.
+        error: () => this.turnoEnCurso.set(false),
+        complete: () => {
+          this.turnoEnCurso.set(false);
+          if (seguiaCorriendo) this.errorMessage.set(ESPERA_AGOTADA);
+        },
+      });
+  }
+
+  private detenerSondeo(): void {
+    this.sondeo?.unsubscribe();
+    this.sondeo = null;
+    this.turnoEnCurso.set(false);
   }
 
   /**
@@ -214,7 +300,9 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   send(): void {
     const text = this.draft.trim();
-    if (!text || this.sending()) return;
+    // `turnoEnCurso` también: el agente rechazaría el segundo turno con un
+    // 409, y es mejor no dejar mandarlo que dejarlo y disculparse después.
+    if (!text || this.sending() || this.turnoEnCurso()) return;
 
     this.errorMessage.set(null);
     this.appendMessage({
@@ -319,6 +407,15 @@ export class ChatComponent implements OnInit, OnDestroy {
     // Una burbuja vacía a medio escribir es peor que ninguna.
     answerIds.forEach((id) => this.dropIfEmpty(id));
     this.errorMessage.set(agentErrorMessage(error));
+
+    // Un 409 no es un fallo: dice que hay una respuesta en camino en esta
+    // misma conversación. Se pasa a esperarla, que es justo lo que el
+    // estudiante querría — el aviso solo, sin nada detrás, sería pedirle
+    // que lo reintente a ciegas.
+    if (error instanceof AgentStreamError && error.kind === 'busy') {
+      this.vigilarTurnoEnCurso(this.threadId);
+      return;
+    }
 
     // El interceptor que cierra sesión en 401 solo cubre HttpClient, y esto
     // va por fetch: sin esto, un token vencido deja al estudiante escribiendo

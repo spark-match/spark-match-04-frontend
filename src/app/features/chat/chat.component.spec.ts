@@ -72,7 +72,7 @@ describe('ChatComponent', () => {
       currentThreadId: vi.fn().mockReturnValue('thread-1'),
       startNewThread: vi.fn().mockReturnValue('thread-2'),
       rememberThread: vi.fn(),
-      loadHistory: vi.fn().mockReturnValue(of([])),
+      loadHistory: vi.fn().mockReturnValue(of({ messages: [], running: false })),
       sendTurn: turnThatStreams(['Pensando…'], ['Hola', ' de nuevo']),
     };
     authStub = { logout: vi.fn() };
@@ -108,7 +108,7 @@ describe('ChatComponent', () => {
         { id: 'h1', role: 'user', text: 'hola', timestamp: '2026-08-05T12:00:00.000Z' },
         { id: 'h2', role: 'ai', text: 'qué tal', timestamp: '2026-08-05T12:00:01.000Z' },
       ];
-      chatStub.loadHistory = vi.fn().mockReturnValue(of(history));
+      chatStub.loadHistory = vi.fn().mockReturnValue(of({ messages: history, running: false }));
       TestBed.resetTestingModule();
       await build();
 
@@ -195,7 +195,12 @@ describe('ChatComponent', () => {
       // despues de leerla, no solo mientras se genera.
       const seenDuringTurn: string[][] = [];
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
+        handlers.onToolStart(
+          'tc-1',
+          'Buscando en internet…',
+          'porque eso cambia con el tiempo',
+          'search',
+        );
         seenDuringTurn.push(component.activities().map((a) => a.label));
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-1');
@@ -222,7 +227,12 @@ describe('ChatComponent', () => {
       const stepWhenToolStarted: (string | null)[] = [];
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
         handlers.onStep('Pensando…');
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
+        handlers.onToolStart(
+          'tc-1',
+          'Buscando en internet…',
+          'porque eso cambia con el tiempo',
+          'search',
+        );
         stepWhenToolStarted.push(component.currentStep());
       });
       component.draft = 'hola';
@@ -235,7 +245,12 @@ describe('ChatComponent', () => {
 
     it('renders the activity list in the bubble, not just in memory', async () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
+        handlers.onToolStart(
+          'tc-1',
+          'Buscando en internet…',
+          'porque eso cambia con el tiempo',
+          'search',
+        );
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-1');
         handlers.onDelta('m-1', 'listo');
@@ -283,7 +298,12 @@ describe('ChatComponent', () => {
       // modelo token a token. Si abriera un chip nuevo, cada busqueda se
       // veria dos veces.
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
+        handlers.onToolStart(
+          'tc-1',
+          'Buscando en internet…',
+          'porque eso cambia con el tiempo',
+          'search',
+        );
         handlers.onToolDetail('tc-1', '«becas Pronabec»');
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-1');
@@ -369,7 +389,12 @@ describe('ChatComponent', () => {
         handlers.onAnswerStart('m-1');
         handlers.onDelta('m-1', 'déjame consultarlo');
         handlers.onAnswerEnd('m-1');
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
+        handlers.onToolStart(
+          'tc-1',
+          'Buscando en internet…',
+          'porque eso cambia con el tiempo',
+          'search',
+        );
         handlers.onToolEnd('tc-1');
         handlers.onAnswerStart('m-2');
         handlers.onDelta('m-2', 'esto encontré');
@@ -413,18 +438,16 @@ describe('ChatComponent', () => {
       // pintaba seis <li> casi idénticos que empujaban la respuesta fuera
       // de la pantalla.
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        ['*', 'ingeniería', 'salud medicina', 'educación', 'derecho', 'artes'].forEach(
-          (q, i) => {
-            handlers.onToolStart(
-              `tc-${i}`,
-              'Consultando el catálogo de carreras…',
-              'para describirte la carrera con el catálogo delante',
-              'tool',
-            );
-            handlers.onToolDetail(`tc-${i}`, `«${q}»`);
-            handlers.onToolEnd(`tc-${i}`);
-          },
-        );
+        ['*', 'ingeniería', 'salud medicina', 'educación', 'derecho', 'artes'].forEach((q, i) => {
+          handlers.onToolStart(
+            `tc-${i}`,
+            'Consultando el catálogo de carreras…',
+            'para describirte la carrera con el catálogo delante',
+            'tool',
+          );
+          handlers.onToolDetail(`tc-${i}`, `«${q}»`);
+          handlers.onToolEnd(`tc-${i}`);
+        });
         handlers.onAnswerStart('m-1');
         handlers.onDelta('m-1', 'listo');
       });
@@ -478,7 +501,12 @@ describe('ChatComponent', () => {
 
     it('keeps the chips of what it did before being cut off', async () => {
       chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
-        handlers.onToolStart('tc-1', 'Buscando en internet…', 'porque eso cambia con el tiempo', 'search');
+        handlers.onToolStart(
+          'tc-1',
+          'Buscando en internet…',
+          'porque eso cambia con el tiempo',
+          'search',
+        );
         handlers.onToolEnd('tc-1');
         handlers.onSnapshot([{ id: 'x', role: 'assistant', content: 'No puedo ayudarte.' }]);
       });
@@ -570,6 +598,166 @@ describe('ChatComponent', () => {
     });
   });
 
+  /**
+   * Un turno que sigue vivo en el agente y que esta pestaña no lanzó.
+   *
+   * Desde `spark-match-08-deep-agent#89` cerrar la pestaña ya no mata el
+   * turno, así que volver a entrar puede pillarlo a medias. Sin esperarlo, la
+   * pantalla enseñaría la pregunta sin nada debajo y el estudiante la
+   * repetiría — llevándose un 409.
+   */
+  describe('waiting for a turn that is already running', () => {
+    /** `running: true` las primeras `hasta` veces, y luego la respuesta. */
+    function historialQueTardaEnResponder(hasta: number) {
+      let llamadas = 0;
+      const pregunta: ChatMessage = {
+        id: 'q1',
+        role: 'user',
+        text: '¿cuánto cuesta medicina?',
+        timestamp: '2026-08-10T12:00:00.000Z',
+      };
+      const respuesta: ChatMessage = {
+        id: 'a1',
+        role: 'ai',
+        text: 'Depende de la universidad.',
+        timestamp: '2026-08-10T12:00:30.000Z',
+      };
+
+      return vi.fn(() => {
+        llamadas += 1;
+        return llamadas < hasta
+          ? of({ messages: [pregunta], running: true })
+          : of({ messages: [pregunta, respuesta], running: false });
+      });
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('says the answer is on its way instead of showing nothing', async () => {
+      chatStub.loadHistory = historialQueTardaEnResponder(99);
+      TestBed.resetTestingModule();
+      await build();
+
+      expect(component.turnoEnCurso()).toBe(true);
+    });
+
+    it('does not let a second message go out while it waits', async () => {
+      chatStub.loadHistory = historialQueTardaEnResponder(99);
+      TestBed.resetTestingModule();
+      await build();
+
+      component.draft = 'otra pregunta';
+      component.send();
+
+      expect(chatStub.sendTurn).not.toHaveBeenCalled();
+    });
+
+    it('brings the answer in when the agent finishes', async () => {
+      chatStub.loadHistory = historialQueTardaEnResponder(3);
+      TestBed.resetTestingModule();
+      await build();
+
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      expect(component.turnoEnCurso()).toBe(false);
+      expect(component.messages().map((m) => m.text)).toEqual([
+        '¿cuánto cuesta medicina?',
+        'Depende de la universidad.',
+      ]);
+    });
+
+    it('keeps asking until it gets an answer, and then stops', async () => {
+      chatStub.loadHistory = historialQueTardaEnResponder(3);
+      TestBed.resetTestingModule();
+      await build();
+
+      await vi.advanceTimersByTimeAsync(10_000);
+      const alTerminar = chatStub.loadHistory.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      expect(chatStub.loadHistory.mock.calls.length).toBe(alTerminar);
+    });
+
+    it('gives up eventually instead of waiting for something that is not coming', async () => {
+      // Un arrendamiento puede quedar colgado si el proceso del agente muere
+      // a mitad. Sondear para siempre dejaria la pantalla bloqueada.
+      chatStub.loadHistory = historialQueTardaEnResponder(Number.MAX_SAFE_INTEGER);
+      TestBed.resetTestingModule();
+      await build();
+
+      await vi.advanceTimersByTimeAsync(6 * 60_000);
+
+      expect(component.turnoEnCurso()).toBe(false);
+      expect(component.errorMessage()).toContain('Recarga la página');
+    });
+
+    it('a failed poll does not leave the screen stuck on «answering»', async () => {
+      let primera = true;
+      chatStub.loadHistory = vi.fn(() => {
+        if (primera) {
+          primera = false;
+          return of({ messages: [], running: true });
+        }
+        return throwError(() => new Error('se cayo'));
+      });
+      TestBed.resetTestingModule();
+      await build();
+
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      expect(component.turnoEnCurso()).toBe(false);
+    });
+
+    it('stops when the student opens another conversation', async () => {
+      chatStub.loadHistory = historialQueTardaEnResponder(99);
+      TestBed.resetTestingModule();
+      await build();
+
+      params.next(new Map([['threadId', 'otro-hilo']]));
+      const alCambiar = chatStub.loadHistory.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      // La conversacion nueva tambien dice `running`, asi que sondea ella;
+      // lo que no puede pasar es que sigan sondeando las dos.
+      const sondeos = chatStub.loadHistory.mock.calls.length - alCambiar;
+      expect(sondeos).toBeLessThanOrEqual(Math.ceil(30_000 / 3000));
+    });
+
+    it('stops when the component goes away', async () => {
+      chatStub.loadHistory = historialQueTardaEnResponder(99);
+      TestBed.resetTestingModule();
+      await build();
+
+      fixture.destroy();
+      const alDestruir = chatStub.loadHistory.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(30_000);
+
+      expect(chatStub.loadHistory.mock.calls.length).toBe(alDestruir);
+    });
+
+    it('waits for the answer after a 409 instead of just apologising', async () => {
+      // El 409 dice que hay una respuesta en camino en esta conversacion.
+      // Dejar solo el aviso seria pedirle al estudiante que reintente a
+      // ciegas justo cuando lo unico util es esperar.
+      chatStub.sendTurn = vi.fn().mockRejectedValue(new AgentStreamError('busy', 'ocupado', 409));
+      TestBed.resetTestingModule();
+      await build();
+      chatStub.loadHistory = historialQueTardaEnResponder(99);
+
+      component.draft = 'hola';
+      component.send();
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(component.turnoEnCurso()).toBe(true);
+    });
+  });
+
   describe('switching conversations', () => {
     it('uses the id from the URL when there is one', async () => {
       params.next(new Map([['threadId', 'de-la-url']]));
@@ -588,14 +776,17 @@ describe('ChatComponent', () => {
       // cambiar de conversacion desde el sidebar NO vuelve a llamar ngOnInit.
       // Leyendo el snapshot una sola vez, el chat se quedaria en el hilo viejo.
       chatStub.loadHistory.mockReturnValue(
-        of([
-          {
-            id: 'x',
-            role: 'ai' as const,
-            text: 'otra conversación',
-            timestamp: '2026-08-05T12:00:00.000Z',
-          },
-        ]),
+        of({
+          messages: [
+            {
+              id: 'x',
+              role: 'ai' as const,
+              text: 'otra conversación',
+              timestamp: '2026-08-05T12:00:00.000Z',
+            },
+          ],
+          running: false,
+        }),
       );
 
       params.next(new Map([['threadId', 'otro-hilo']]));

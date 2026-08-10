@@ -25,7 +25,7 @@
  * «Hace 200 días» y deja de ejercitar las tres primeras ramas justo cuando
  * alguien las toca. Así que se calculan contra el momento de la llamada.
  */
-import { ChatThread, ThreadActivity, ThreadMessage } from './chat.model';
+import { ChatThread, ThreadActivity, ThreadMessage, ThreadMessagesResponse } from './chat.model';
 
 /** Un día en milisegundos. */
 const DIA = 86_400_000;
@@ -81,14 +81,46 @@ function delegacion(id: string, subagent: string, ok: boolean | null = true): Th
   return { id, tool: 'task', ok, subagent };
 }
 
+/** Lo que devuelve el endpoint del historial, sin el `thread_id`. */
+type ThreadHistoryResponse = Pick<ThreadMessagesResponse, 'messages' | 'running'>;
+
+/** La conversación que se abre a medio turno. Ver `elHiloEnCurso`. */
+const HILO_EN_CURSO = 'mock-hilo-en-curso';
+
+const EN_CURSO_PREGUNTA = usuario(
+  'mock-5-u1',
+  '¿Cuánto cuesta estudiar Medicina en una universidad privada de Lima?',
+);
+
+const EN_CURSO_RESPUESTA = asistente(
+  'mock-5-a1',
+  'Medicina es de las carreras más caras del país, y la horquilla es amplia.\n\n' +
+    'En privadas de Lima el costo anual va de **S/ 18.000** a **S/ 47.000**, y son ' +
+    '**siete años** en vez de cinco. En la **UNMSM** o la **UNFV**, públicas, la pensión ' +
+    'es S/ 0 — pero la admisión ronda el 6%.\n\n' +
+    '¿Quieres que mire cuánto sale el total de la carrera en cada caso?',
+  [
+    llamada('mock-5-t1', 'search_careers', 'medicina humana'),
+    llamada('mock-5-t2', 'search_programs', 'Medicina Humana'),
+    delegacion('mock-5-t3', 'matching'),
+  ],
+);
+
 /**
  * Las conversaciones, con lo que cada una existe para enseñar.
  *
- * No son cuatro charlas de relleno: entre las cuatro está cada caso que la
- * pantalla tiene que saber pintar y que de otro modo sólo se ve en
- * producción, y con suerte.
+ * No son charlas de relleno: entre todas está cada caso que la pantalla tiene
+ * que saber pintar y que de otro modo sólo se ve en producción, y con suerte.
  */
 const CONVERSACIONES: readonly { id: string; dias: number; mensajes: ThreadMessage[] }[] = [
+  {
+    // Esta se abre a medio turno: ver `elHiloEnCurso`. Va primera porque su
+    // turno está ocurriendo ahora mismo. En el sidebar sale como cualquier
+    // otra, y sólo al entrar se nota que el agente sigue escribiendo.
+    id: HILO_EN_CURSO,
+    dias: 0,
+    mensajes: [EN_CURSO_PREGUNTA, EN_CURSO_RESPUESTA],
+  },
   {
     // La gorda. Cubre: varias llamadas seguidas a la misma herramienta
     // (agrupación con contador), una búsqueda en internet, DOS especialistas
@@ -218,14 +250,57 @@ export function mockThreads(): ChatThread[] {
 }
 
 /**
+ * Cuántos sondeos tarda el hilo en curso en contestar.
+ *
+ * Tres es lo justo para ver el aviso puesto, el sondeo repitiéndose y la
+ * respuesta aterrizando. Con uno solo no daría tiempo a mirarlo.
+ */
+const SONDEOS_HASTA_RESPONDER = 3;
+
+let sondeosDelHiloEnCurso = 0;
+
+/**
+ * Devuelve el hilo en curso a su estado inicial.
+ *
+ * El contador es estado, y estado en un mock normalmente es mala señal. Este
+ * se lo gana: el turno que sigue vivo al volver a entrar es justo lo que no
+ * se podía mirar en local, y sin que la respuesta acabe llegando lo que se
+ * probaría es una pantalla clavada, que es el fallo y no el arreglo. Los
+ * tests lo reinician entre casos.
+ */
+export function reiniciarElHiloEnCurso(): void {
+  sondeosDelHiloEnCurso = 0;
+}
+
+function elHiloEnCurso(): ThreadHistoryResponse {
+  sondeosDelHiloEnCurso += 1;
+  if (sondeosDelHiloEnCurso < SONDEOS_HASTA_RESPONDER) {
+    // La pregunta ya está en el checkpoint; la respuesta todavía no. Es
+    // exactamente lo que se ve al volver a una conversación a medio turno.
+    return { messages: [EN_CURSO_PREGUNTA], running: true };
+  }
+  return { messages: [EN_CURSO_PREGUNTA, EN_CURSO_RESPUESTA], running: false };
+}
+
+/**
  * El historial de una conversación simulada. Vacío si no es una de ellas.
  *
  * Que un id desconocido dé una lista vacía no es un descuido: es lo que hace
  * el endpoint de verdad, y es lo que mantiene «nueva conversación» funcionando
  * en local. Al abrir la app por primera vez el id es un UUID recién creado,
- * así que se entra a un chat limpio; las cuatro de arriba se abren desde el
- * sidebar.
+ * así que se entra a un chat limpio; las de arriba se abren desde el sidebar.
  */
-export function mockHistory(threadId: string): ThreadMessage[] {
-  return CONVERSACIONES.find((conversacion) => conversacion.id === threadId)?.mensajes ?? [];
+export function mockHistory(threadId: string): ThreadHistoryResponse {
+  if (threadId === HILO_EN_CURSO) return elHiloEnCurso();
+
+  // Salir de la conversación la vuelve a armar, para que entrar otra vez
+  // enseñe el turno a medias en lugar de la respuesta ya puesta. Sin esto
+  // sólo se puede ver una vez por carga de página, y lo que se está
+  // desarrollando —una espera de seis segundos— hay que poder mirarlo más
+  // de una vez seguida. En el agente de verdad no pasa: allí un turno
+  // terminado se queda terminado.
+  reiniciarElHiloEnCurso();
+
+  const conversacion = CONVERSACIONES.find((c) => c.id === threadId);
+  return { messages: conversacion?.mensajes ?? [], running: false };
 }
