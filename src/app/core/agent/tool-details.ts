@@ -65,6 +65,18 @@ const COPY: Record<string, ToolCopy> = {
     reason: 'para ordenar las carreras por lo que encajan contigo',
     show: [{ key: 'riasec_code', render: (value) => `perfil ${value}` }],
   },
+  // Faltaba entera, y es la herramienta que más trabajo hace: el motor
+  // multicriterio. Se anunciaba con su etiqueta y sin una palabra de por qué,
+  // que es justo lo que separa «hizo algo» de «hizo esto y por esto».
+  //
+  // Sólo el código RIASEC, aunque en vivo llegan también los filtros: al
+  // rehidratar el agente manda un único asunto, y que el mismo turno enseñe
+  // más antes de recargar que después se lee como si la página hubiera
+  // perdido algo. Mejor lo mismo en los dos sitios.
+  recommend_programs: {
+    reason: 'para ordenar el catálogo entero por lo que encaja contigo, no sólo por el nombre',
+    show: [{ key: 'riasec_code', render: (value) => `perfil ${value}` }],
+  },
   evaluate_riasec_profile: {
     reason: 'para convertir lo que contaste en un perfil vocacional comparable',
   },
@@ -122,6 +134,31 @@ export function toolDetail(toolName: string | undefined, rawArgs: string): strin
   }
 
   return clamp(parts.join(' · '), MAX_DETAIL);
+}
+
+/**
+ * Lo mismo, pero para una llamada rehidratada.
+ *
+ * El historial no trae los argumentos: trae un **asunto** ya elegido por el
+ * agente, un solo valor por llamada (`threads/history.py`, lista blanca). Así
+ * que aquí no hay JSON que parsear, sólo que leer ese valor con la copia de la
+ * herramienta — porque «ingeniería» tiene que salir como «ingeniería» y no
+ * como ingeniería a secas, igual que en el turno en vivo.
+ *
+ * Se usa el PRIMER argumento mostrable de la herramienta, que es el que el
+ * agente manda como asunto en las cuatro que hoy lo tienen (lo fija un test).
+ * Si algún día dejaran de coincidir, lo peor que pasa es un prefijo
+ * equivocado: lo que se enseña sigue siendo el valor que mandó el agente, y
+ * quién decide si un argumento es publicable sigue siendo su lista blanca.
+ */
+export function subjectDetail(toolName: string | undefined, subject: string | undefined): string {
+  const spec = (toolName ? COPY[toolName]?.show : undefined)?.[0];
+  if (!spec) return '';
+
+  const value = readable(subject);
+  if (!value) return '';
+
+  return clamp(spec.render ? spec.render(value) : value, MAX_DETAIL);
 }
 
 /**
