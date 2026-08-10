@@ -30,10 +30,47 @@ export interface ChatSession {
   messages: ChatMessage[];
 }
 
+/**
+ * Una llamada a herramienta tal como la devuelve el historial del agente.
+ *
+ * No es `ChatActivity`: aquí no hay etiquetas ni motivos, sólo el nombre de
+ * la herramienta y —cuando la lista blanca del agente lo autoriza— con qué se
+ * llamó. La copia en castellano se pone en el frontend (`tool-labels.ts`,
+ * `subagent-labels.ts`), igual que con el turno en vivo, para que cambiarla no
+ * obligue a desplegar el agente.
+ */
+export interface ThreadActivity {
+  /** El `toolCallId`, el mismo que viaja por el stream. */
+  id: string;
+  tool: string;
+  /** `null` en un turno que se cortó antes de saber el resultado. */
+  ok: boolean | null;
+  /** Clave del especialista. Sólo en la herramienta de delegación. */
+  subagent?: string;
+  /** Con qué se llamó: la consulta, la carrera. Ausente si no es publicable. */
+  subject?: string;
+}
+
+/** Un mensaje del historial, tal como viaja por HTTP. */
+export interface ThreadMessage {
+  id?: string | null;
+  role: string;
+  content: string;
+  /**
+   * Las herramientas del turno, sólo en el mensaje que lo cierra.
+   *
+   * La manda el agente desde `spark-match-08-deep-agent#86`. Sin esto, al
+   * recargar la página la respuesta se quedaba sin procedencia: las mismas
+   * cifras, y ninguna pista de si salieron del catálogo del MINEDU, de una
+   * búsqueda en internet o de un especialista.
+   */
+  activity?: ThreadActivity[];
+}
+
 /** Forma de `GET /threads/{id}/messages` en el agente. */
 export interface ThreadMessagesResponse {
   thread_id: string;
-  messages: { id?: string | null; role: string; content: string }[];
+  messages: ThreadMessage[];
 }
 
 /**
