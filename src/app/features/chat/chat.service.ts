@@ -18,9 +18,11 @@ import {
   ChatMessage,
   ChatThread,
   ChatTurnHandlers,
+  ThreadMessage,
   ThreadMessagesResponse,
   ThreadsResponse,
 } from './chat.model';
+import { mockHistory, mockThreads } from './chat.mock-threads';
 
 const THREAD_STORAGE_KEY = 'spark-match:chat-thread';
 
@@ -73,7 +75,7 @@ export class ChatService {
 
   /** Conversaciones del usuario, más recientes primero (las ordena el agente). */
   listThreads(): Observable<ChatThread[]> {
-    if (environment.useMocks) return of([]);
+    if (environment.useMocks) return of(mockThreads());
 
     return this.http
       .get<ThreadsResponse>(`${environment.agentUrl}/threads`)
@@ -82,7 +84,10 @@ export class ChatService {
 
   /** Historial de la conversacion, para repoblar el chat al recargar. */
   loadHistory(threadId: string): Observable<ChatMessage[]> {
-    if (environment.useMocks) return of([]);
+    // El mock devuelve la forma de la RESPUESTA y se traduce igual que la de
+    // verdad, con el mismo `toChatMessage`. Devolver aquí `ChatMessage[]` ya
+    // hechos dejaría sin ejercitar en local justo el trozo que traduce.
+    if (environment.useMocks) return of(mockHistory(threadId).map(toChatMessage));
 
     return this.http
       .get<ThreadMessagesResponse>(`${environment.agentUrl}/threads/${threadId}/messages`)
@@ -270,11 +275,7 @@ function readSnapshotMessages(messages: unknown): AgUiSnapshotMessage[] {
     }));
 }
 
-function toChatMessage(message: {
-  id?: string | null;
-  role: string;
-  content: string;
-}): ChatMessage {
+function toChatMessage(message: ThreadMessage): ChatMessage {
   return {
     id: message.id ?? crypto.randomUUID(),
     role: message.role === 'user' ? 'user' : 'ai',
