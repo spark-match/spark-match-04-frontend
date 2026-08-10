@@ -613,6 +613,42 @@ describe('ChatService', () => {
       expect(await history).toEqual([]);
     });
 
+    // Lo que hace que al recargar la respuesta no se quede sin procedencia.
+    it('brings back the activity that produced each answer', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http.expectOne(`${environment.agentUrl}/threads/t-1/messages`).flush({
+        thread_id: 't-1',
+        messages: [
+          { id: 'm1', role: 'user', content: 'qué carreras' },
+          {
+            id: 'm2',
+            role: 'assistant',
+            content: 'estas',
+            activity: [
+              { id: 'tc1', tool: 'search_careers', ok: true, subject: 'ingeniería' },
+              { id: 'tc2', tool: 'task', ok: true, subagent: 'matching' },
+            ],
+          },
+        ],
+      });
+
+      const [pregunta, respuesta] = await history;
+      expect(pregunta.activities).toBeUndefined();
+      expect(respuesta.activities?.map((a) => a.kind)).toEqual(['tool', 'subagent']);
+      expect(respuesta.activities?.[0].detail).toBe('«ingeniería»');
+    });
+
+    it('leaves a plain answer without an empty activity list', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http
+        .expectOne(`${environment.agentUrl}/threads/t-1/messages`)
+        .flush({ thread_id: 't-1', messages: [{ id: 'm1', role: 'assistant', content: 'hola' }] });
+
+      expect((await history)[0].activities).toBeUndefined();
+    });
+
     it('lists the threads', async () => {
       const threads = firstValueFrom(service.listThreads());
 

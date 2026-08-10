@@ -23,6 +23,7 @@ import {
   ThreadsResponse,
 } from './chat.model';
 import { mockHistory, mockThreads } from './chat.mock-threads';
+import { actividadRehidratada } from './activity-rehydration';
 
 const THREAD_STORAGE_KEY = 'spark-match:chat-thread';
 
@@ -276,6 +277,8 @@ function readSnapshotMessages(messages: unknown): AgUiSnapshotMessage[] {
 }
 
 function toChatMessage(message: ThreadMessage): ChatMessage {
+  const activities = actividadRehidratada(message.activity);
+
   return {
     id: message.id ?? crypto.randomUUID(),
     role: message.role === 'user' ? 'user' : 'ai',
@@ -283,5 +286,9 @@ function toChatMessage(message: ThreadMessage): ChatMessage {
     // El agente no persiste timestamps por mensaje. Se usa el momento de la
     // carga para no inventar una hora que parezca real y no lo sea.
     timestamp: new Date().toISOString(),
+    // Sin la clave cuando no hay nada, y no con una lista vacia: la plantilla
+    // pregunta por `activities?.length`, y un `[]` seria un campo presente que
+    // no significa nada.
+    ...(activities.length ? { activities } : {}),
   };
 }
