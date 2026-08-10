@@ -238,8 +238,8 @@ const CONVERSACIONES: readonly { id: string; dias: number; mensajes: ThreadMessa
  *
  * Sin esto, renombrar en local se veía un instante y se perdía al refrescar
  * la lista — o sea que lo único que se podía comprobar era el optimismo de la
- * interfaz, no que el nombre se queda. Se pierde al recargar la página, como
- * todo lo demás del mock.
+ * interfaz, no que el nombre se queda. Al recargar la página se pierde, igual
+ * que el resto del mock.
  */
 const RENOMBRADAS = new Map<string, string>();
 
