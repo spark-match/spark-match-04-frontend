@@ -486,6 +486,36 @@ describe('ChatComponent', () => {
       expect(chip.durationMs).toBe(1200);
     });
 
+    it('deja el enlace al informe en la burbuja del turno', async () => {
+      // El informe no viaja por el chat --son decenas de miles de
+      // caracteres-- asi que sin esto lo unico que quedaba en pantalla era el
+      // agente diciendo que estaba listo, y habia que buscarlo por el menu.
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'tu informe esta listo');
+        handlers.onReportReady('rep-42');
+      });
+      component.draft = 'genérame mi reporte';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(component.messages().at(-1)?.reportId).toBe('rep-42');
+    });
+
+    it('un turno sin informe no deja enlace', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'te cuento');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      expect(component.messages().at(-1)?.reportId).toBeUndefined();
+    });
+
     it('keeps the chips when the turn produces several bubbles', async () => {
       // Antes se pegaban a la ULTIMA burbuja. Ahora van a la primera: las
       // herramientas corren antes del texto que producen, y la ultima

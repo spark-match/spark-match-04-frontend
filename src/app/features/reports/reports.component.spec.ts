@@ -65,17 +65,17 @@ describe('ReportsComponent', () => {
   });
 
   /*
-   * La tasa llega en 0-1 y se enseña en 0-100. Pintarla directa mostraría
-   * «0.13%» donde corresponde 13%, y eso no se lee como un fallo de programa
-   * sino como un dato malo: un estudiante creería que entra el 0,13% de los
-   * postulantes.
+   * La tasa llega ya en 0-100 —es la columna del catálogo— y aquí sólo se
+   * redondea. Este test decía «convierte de 0-1» y multiplicaba, que es lo
+   * que enseñaba «1300%» donde corresponde 13%. Y eso no se lee como un fallo
+   * de programa sino como un dato malo.
    */
-  it('convierte la tasa de admisión de 0-1 a porcentaje', () => {
+  it('enseña la tasa de admisión tal como viene, sin multiplicarla', () => {
     expect(component.admisionEnPorcentaje(component.careers()[0])).toBe(13);
 
     const html = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(html).toContain('13%');
-    expect(html).not.toContain('0.13%');
+    expect(html).not.toContain('1300%');
   });
 
   describe('la procedencia sale del dato, no de la plantilla', () => {
@@ -334,6 +334,69 @@ describe('ReportsComponent', () => {
       expect(component.tieneEstimados(component.careers()[0])).toBe(false);
       const html = (fixture.nativeElement as HTMLElement).textContent ?? '';
       expect(html).not.toContain('Estimado a partir de');
+    });
+  });
+
+  describe('la tasa de admisión y el retrato del perfil', () => {
+    /*
+     * El dato llega en 0–100 y esta pantalla lo multiplicaba por cien, así que
+     * el 13% de Ingeniería de Sistemas se pintaba como «1300%». En producción
+     * fue peor de ver: «1700%», «4600%», «800%», al lado de un texto del
+     * agente que decía 17%, 46% y 8%.
+     */
+    it('pinta la tasa tal como viene, sin multiplicarla', () => {
+      const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
+
+      expect(texto).toContain('13%');
+      expect(texto).not.toContain('1300%');
+    });
+
+    it('el retrato del perfil no vive en la cabecera fija', () => {
+      /*
+       * Estaba dentro de `.report__header`, que es `sticky`. Son dos o tres
+       * párrafos, así que la franja fija crecía hasta media pantalla y se
+       * quedaba por encima de las fichas al bajar.
+       */
+      const header = (fixture.nativeElement as HTMLElement).querySelector('.report__header');
+
+      expect(header?.querySelector('.report__profile-text')).toBeNull();
+      expect(header?.textContent).toContain('Reporte de Orientación');
+    });
+
+    it('el retrato sale en su propia tarjeta', () => {
+      const tarjeta = (fixture.nativeElement as HTMLElement).querySelector(
+        '.report__profile-card',
+      );
+
+      expect(tarjeta).not.toBeNull();
+      expect(tarjeta?.textContent).toContain('Tu perfil vocacional');
+    });
+
+    it('parte el retrato en párrafos por las líneas en blanco', async () => {
+      TestBed.resetTestingModule();
+      const contenido = contenidoDeEjemplo();
+      contenido.profile_summary = ['Primer párrafo.', 'Segundo párrafo.', 'Tercero.'].join('\n\n');
+      const otro = servicioFalso({ content: vi.fn().mockReturnValue(of(contenido)) });
+      const f = await montar(otro);
+
+      const parrafos = (f.nativeElement as HTMLElement).querySelectorAll('.report__profile-text');
+
+      expect(parrafos.length).toBe(3);
+      expect(parrafos[0].textContent?.trim()).toBe('Primer párrafo.');
+      expect(parrafos[2].textContent?.trim()).toBe('Tercero.');
+    });
+
+    it('un retrato de un solo bloque sigue saliendo entero', async () => {
+      TestBed.resetTestingModule();
+      const contenido = contenidoDeEjemplo();
+      contenido.profile_summary = 'Un bloque seguido, sin saltos.';
+      const otro = servicioFalso({ content: vi.fn().mockReturnValue(of(contenido)) });
+      const f = await montar(otro);
+
+      const parrafos = (f.nativeElement as HTMLElement).querySelectorAll('.report__profile-text');
+
+      expect(parrafos.length).toBe(1);
+      expect(parrafos[0].textContent?.trim()).toBe('Un bloque seguido, sin saltos.');
     });
   });
 

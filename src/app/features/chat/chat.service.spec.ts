@@ -32,6 +32,7 @@ function recordingHandlers() {
   const subagentsStarted: { id: string; label: string; reason: string }[] = [];
   const subagentsEnded: { id: string; ok: boolean; durationMs: number }[] = [];
   const snapshots: AgUiSnapshotMessage[][] = [];
+  const informesListos: string[] = [];
   const handlers: ChatTurnHandlers = {
     onStep: (label) => steps.push(label),
     onAnswerStart: (messageId) => startedIds.push(messageId),
@@ -45,6 +46,7 @@ function recordingHandlers() {
     onToolEnd: (id) => toolsEnded.push(id),
     onSubagentStart: (id, label, reason) => subagentsStarted.push({ id, label, reason }),
     onSubagentEnd: (id, ok, durationMs) => subagentsEnded.push({ id, ok, durationMs }),
+    onReportReady: (reportId) => informesListos.push(reportId),
     onSnapshot: (messages) => snapshots.push(messages),
   };
   return {
@@ -60,6 +62,7 @@ function recordingHandlers() {
     subagentsStarted,
     subagentsEnded,
     snapshots,
+    informesListos,
     startedCount: () => startedIds.length,
   };
 }
@@ -870,6 +873,43 @@ describe('ChatService', () => {
       http.expectOne(`${environment.agentUrl}/threads`).flush({});
 
       expect(await threads).toEqual([]);
+    });
+  });
+
+  describe('el aviso de informe listo llega a la pantalla', () => {
+    it('pasa el id del informe emitido', async () => {
+      agent.events = [
+        {
+          type: 'CUSTOM',
+          name: 'spark.report.ready',
+          value: { reportId: 'rep-42', careers: ['Ingeniería Geofísica'] },
+        },
+      ];
+      const { handlers, informesListos } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'genérame mi reporte', handlers);
+
+      expect(informesListos).toEqual(['rep-42']);
+    });
+
+    it('sin id no avisa: un botón que no lleva a ninguna parte es peor que ninguno', async () => {
+      agent.events = [{ type: 'CUSTOM', name: 'spark.report.ready', value: { careers: [] } }];
+      const { handlers, informesListos } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'genérame mi reporte', handlers);
+
+      expect(informesListos).toEqual([]);
+    });
+
+    it('el evento no abre ninguna burbuja de texto', async () => {
+      agent.events = [
+        { type: 'CUSTOM', name: 'spark.report.ready', value: { reportId: 'rep-42' } },
+      ];
+      const { handlers, startedCount } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'genérame mi reporte', handlers);
+
+      expect(startedCount()).toBe(0);
     });
   });
 
