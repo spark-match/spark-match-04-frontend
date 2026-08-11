@@ -1,4 +1,4 @@
-import { UNKNOWN_TOOL_LABEL, toolKind, toolLabel } from './tool-labels';
+import { UNKNOWN_TOOL_LABEL, showsInActivity, toolKind, toolLabel } from './tool-labels';
 
 describe('toolLabel', () => {
   it('says what a web search is in plain words', () => {
@@ -123,5 +123,59 @@ describe('toolKind', () => {
   it('una herramienta desconocida no se presume de internet', () => {
     expect(toolKind('herramienta_nueva')).toBe('tool');
     expect(toolKind(undefined)).toBe('tool');
+  });
+});
+
+describe('showsInActivity', () => {
+  const TRABAJO = [
+    'search_careers',
+    'search_programs',
+    'recommend_programs',
+    'calculate_affinity',
+    'evaluate_riasec_profile',
+    'publish_orientation_report',
+    'web_search',
+    'search_memory',
+    'manage_memory',
+  ];
+
+  it.each(TRABAJO)('%s se pinta', (herramienta) => {
+    expect(showsInActivity(herramienta)).toBe(true);
+  });
+
+  it('la lista de tareas del agente no se pinta', () => {
+    // Medido en dev el 2026-08-11: de las ocho llamadas de un turno que emitió
+    // un informe, CINCO fueron `write_todos`. Y la última caía después de
+    // «Redactando tu informe…», o sea que se leía como si el especialista
+    // hubiera terminado y hubiera vuelto a planificar.
+    expect(showsInActivity('write_todos')).toBe(false);
+  });
+
+  it.each(['write_file', 'edit_file', 'read_file', 'ls', 'glob', 'grep'])(
+    'su cuaderno de notas tampoco: %s',
+    (herramienta) => {
+      expect(showsInActivity(herramienta)).toBe(false);
+    },
+  );
+
+  it('delegar sí se pinta: es lo contrario de un trámite', () => {
+    expect(showsInActivity('task')).toBe(true);
+  });
+
+  it('una herramienta que no conoce se pinta, no se esconde', () => {
+    // El defecto va en el lado de enseñar de más a propósito. Esconder por
+    // defecto dejaría a una herramienta nueva del agente sin rastro en
+    // pantalla y sin que fallara nada; anunciarla con el genérico es feo y se
+    // nota, que es justo lo que hace que alguien la venga a etiquetar.
+    expect(showsInActivity('herramienta_nueva')).toBe(true);
+    expect(showsInActivity(undefined)).toBe(true);
+    expect(showsInActivity('')).toBe(true);
+  });
+
+  it('las de trámite conservan su etiqueta', () => {
+    // No se borran de `LABELS`: esta lista decide si se pintan, no cómo se
+    // llaman. Si mañana se quiere enseñar alguna, su copia sigue escrita.
+    expect(toolLabel('write_todos')).not.toBe(UNKNOWN_TOOL_LABEL);
+    expect(toolLabel('read_file')).not.toBe(UNKNOWN_TOOL_LABEL);
   });
 });
