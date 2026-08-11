@@ -149,16 +149,31 @@
 .sidebar__recent-row {
   position: relative;
 
-  &:hover .sidebar__recent-rename,
-  .sidebar__recent-rename:focus-visible {
+  // `focus-within` y no `focus-visible` en cada botón: son dos, y lo que hay
+  // que enseñar es el grupo entero en cuanto el foco entra en cualquiera de
+  // ellos. Si no, al tabular del lápiz a la papelera el grupo parpadearía.
+  &:hover .sidebar__recent-actions,
+  .sidebar__recent-actions:focus-within {
     opacity: 1;
   }
 }
 
-.sidebar__recent-rename {
+// Los dos botones van superpuestos sobre la fila y no al lado: en columna le
+// quitarían ancho al título, que es lo que hay que poder leer.
+.sidebar__recent-actions {
   position: absolute;
   top: 0.35rem;
   right: 0.35rem;
+  display: flex;
+  gap: 0.1rem;
+  // Ocultos hasta que hagan falta, pero nunca `display: none`: tienen que
+  // seguir en el orden de tabulación para quien no usa ratón.
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.sidebar__recent-rename,
+.sidebar__recent-delete {
   display: grid;
   place-items: center;
   padding: 0.25rem;
@@ -167,15 +182,17 @@
   background: none;
   color: var(--sidebar-muted);
   cursor: pointer;
-  // Oculto hasta que haga falta, pero nunca `display: none`: tiene que
-  // seguir en el orden de tabulación para quien no usa ratón.
-  opacity: 0;
-  transition: opacity 120ms ease;
 
   &:hover {
     color: var(--sidebar-fg);
     background: oklch(1 0 0 / 0.1);
   }
+}
+
+// La papelera es la única de las dos que no se puede deshacer, y se dice con
+// el color antes de pulsarla. El mismo `--danger` que ya usan los avisos.
+.sidebar__recent-delete:hover {
+  color: var(--danger, oklch(0.72 0.17 25));
 }
 
 // Tapa la hora mientras se escribe. Es a propósito: la hora no se puede
@@ -189,6 +206,49 @@
   color: var(--sidebar-fg);
   font: inherit;
   font-size: 0.85rem;
+}
+
+// Ocupa el sitio de la fila que va a borrar. Ese es el truco: la pregunta se
+// lee donde estaba el nombre, así que no hace falta repetirlo dentro.
+.sidebar__recent-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius);
+  background: oklch(1 0 0 / 0.08);
+}
+
+.sidebar__recent-confirm-text {
+  font-size: 0.78rem;
+  color: var(--sidebar-fg);
+}
+
+.sidebar__recent-confirm-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.sidebar__recent-confirm-yes,
+.sidebar__recent-confirm-no {
+  padding: 0.2rem 0.5rem;
+  border: 0;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.sidebar__recent-confirm-yes {
+  background: var(--danger, oklch(0.72 0.17 25));
+  color: oklch(1 0 0);
+}
+
+// Cancelar queda en segundo plano a propósito, pero sigue siendo un botón de
+// verdad y no un enlace: es la salida, y tiene que poder pulsarse sin puntería.
+.sidebar__recent-confirm-no {
+  background: oklch(1 0 0 / 0.12);
+  color: var(--sidebar-fg);
 }
 
 .sidebar__recent-error {

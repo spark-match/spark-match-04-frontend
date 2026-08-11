@@ -23,7 +23,7 @@ import {
   ThreadMessagesResponse,
   ThreadsResponse,
 } from './chat.model';
-import { mockHistory, mockRename, mockThreads } from './chat.mock-threads';
+import { mockDelete, mockHistory, mockRename, mockThreads } from './chat.mock-threads';
 import { actividadRehidratada } from './activity-rehydration';
 
 const THREAD_STORAGE_KEY = 'spark-match:chat-thread';
@@ -95,6 +95,25 @@ export class ChatService {
     if (environment.useMocks) return of(mockRename(threadId, title));
 
     return this.http.patch<ChatThread>(`${environment.agentUrl}/threads/${threadId}`, { title });
+  }
+
+  /**
+   * Borra una conversación: sus mensajes, su entrada en el índice y el
+   * registro de quién es su dueño.
+   *
+   * No hay papelera ni deshacer, ni aquí ni en el agente: lo que se borra se
+   * va. Por eso quien llame tiene que preguntar antes — este método no
+   * pregunta nada.
+   *
+   * Lo que NO se lleva por delante es el perfil del estudiante (RIASEC, edad,
+   * intereses). Vive en otro sitio, particionado por `user_id` y no por
+   * conversación, así que borrar el chat donde se hizo el cuestionario no
+   * obliga a repetirlo. Los informes ya emitidos tampoco: D13 del ADR-019.
+   */
+  deleteThread(threadId: string): Observable<void> {
+    if (environment.useMocks) return of(mockDelete(threadId));
+
+    return this.http.delete<void>(`${environment.agentUrl}/threads/${threadId}`);
   }
 
   /**

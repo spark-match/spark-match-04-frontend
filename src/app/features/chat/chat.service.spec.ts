@@ -695,6 +695,20 @@ describe('ChatService', () => {
       expect((await renombrada).title).toBe('Becas y costos');
     });
 
+    it('deletes a conversation', async () => {
+      const borrada = firstValueFrom(service.deleteThread('t-1'));
+
+      const peticion = http.expectOne(`${environment.agentUrl}/threads/t-1`);
+      expect(peticion.request.method).toBe('DELETE');
+      // Sin cuerpo: el id va en la ruta y el agente saca de la credencial de
+      // quien pide, no del JSON, a quien pertenece la conversacion.
+      expect(peticion.request.body).toBeNull();
+
+      // El endpoint contesta 204, o sea nada.
+      peticion.flush(null, { status: 204, statusText: 'No Content' });
+      await expect(borrada).resolves.toBeNull();
+    });
+
     it('lists the threads', async () => {
       const threads = firstValueFrom(service.listThreads());
 

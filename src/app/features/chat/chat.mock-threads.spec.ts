@@ -14,6 +14,8 @@ import {
   mockHistory,
   mockRename,
   mockThreads,
+  mockDelete,
+  olvidarLosBorrados,
   olvidarLosRenombrados,
   reiniciarElHiloEnCurso,
 } from './chat.mock-threads';
@@ -46,6 +48,9 @@ function todaLaActividad(): ThreadActivity[] {
 beforeEach(() => {
   reiniciarElHiloEnCurso();
   olvidarLosRenombrados();
+  // Sin esto, la conversación que borre un test desaparecería del listado
+  // que miran todos los de después: el estado del mock es del módulo.
+  olvidarLosBorrados();
 });
 
 describe('mockThreads', () => {
@@ -198,6 +203,52 @@ describe('mockRename', () => {
 
   it('una conversación que no existe revienta en vez de fingir', () => {
     expect(() => mockRename('no-existe', 'algo')).toThrow();
+  });
+});
+
+describe('mockDelete', () => {
+  beforeEach(olvidarLosBorrados);
+
+  it('la conversación desaparece del listado', () => {
+    // Que la fila se vaya un instante ya lo hace el store solo. Lo que hay
+    // que poder mirar en local es que no vuelve al refrescar la lista.
+    mockDelete('mock-hilo-antiguo');
+
+    const ids = mockThreads().map((t) => t.thread_id);
+    expect(ids).not.toContain('mock-hilo-antiguo');
+  });
+
+  it('no toca las demás', () => {
+    const antes = mockThreads().length;
+
+    mockDelete('mock-hilo-antiguo');
+
+    expect(mockThreads()).toHaveLength(antes - 1);
+  });
+
+  it('borrar dos veces lo mismo no es un error', () => {
+    // Al reves que `mockRename`, y a proposito: el final feliz de borrar es
+    // que la conversacion no este. En el agente tampoco se queja --
+    // `store.adelete` sobre una clave que no esta no protesta.
+    mockDelete('mock-hilo-antiguo');
+
+    expect(() => mockDelete('mock-hilo-antiguo')).not.toThrow();
+  });
+
+  it('una conversación que no existe tampoco revienta', () => {
+    expect(() => mockDelete('no-existe')).not.toThrow();
+  });
+
+  it('se lleva por delante el nombre que se le hubiera puesto', () => {
+    // Si no, borrarla y que el mock la resucitara --al recargar la pagina--
+    // la devolveria con un nombre que ya no puso nadie.
+    mockRename('mock-hilo-antiguo', 'Mi primer saludo');
+
+    mockDelete('mock-hilo-antiguo');
+    olvidarLosBorrados();
+
+    const thread = mockThreads().find((t) => t.thread_id === 'mock-hilo-antiguo');
+    expect(thread?.title).not.toBe('Mi primer saludo');
   });
 });
 

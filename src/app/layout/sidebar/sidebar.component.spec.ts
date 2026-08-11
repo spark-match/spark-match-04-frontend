@@ -24,20 +24,30 @@ describe('SidebarComponent', () => {
     threads: ReturnType<typeof signal>;
     loading: ReturnType<typeof signal>;
     renameError: ReturnType<typeof signal>;
+    deleteError: ReturnType<typeof signal>;
     refresh: ReturnType<typeof vi.fn>;
     rename: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
   };
-  let chatStub: { startNewThread: ReturnType<typeof vi.fn> };
+  let chatStub: {
+    startNewThread: ReturnType<typeof vi.fn>;
+    currentThreadId: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     sessionsStub = {
       threads: signal(THREADS),
       loading: signal(false),
       renameError: signal(null),
+      deleteError: signal(null),
       refresh: vi.fn(),
       rename: vi.fn(),
+      delete: vi.fn(),
     };
-    chatStub = { startNewThread: vi.fn().mockReturnValue('nuevo-id') };
+    chatStub = {
+      startNewThread: vi.fn().mockReturnValue('nuevo-id'),
+      currentThreadId: vi.fn().mockReturnValue('abc-1'),
+    };
 
     await TestBed.configureTestingModule({
       imports: [SidebarComponent],
@@ -243,6 +253,142 @@ describe('SidebarComponent', () => {
       component.empezarARenombrar('abc-1');
 
       expect(sessionsStub.renameError()).toBeNull();
+    });
+  });
+
+  /*
+   * Borrar no se deshace, ni aqui ni en el agente: se lleva los mensajes, la
+   * entrada del indice y el registro de dueño. De ahi que se pregunte antes,
+   * y que la pregunta se lea en el sitio de la fila que va a desaparecer.
+   */
+  describe('deleting a conversation', () => {
+    function laFilaDeConfirmacion(): HTMLElement | null {
+      return fixture.nativeElement.querySelector('.sidebar__recent-confirm');
+    }
+
+    function pedirBorrado(): void {
+      component.pedirConfirmacionDeBorrado('abc-1');
+      fixture.detectChanges();
+    }
+
+    it('has a visible, tabbable way in', () => {
+      const boton = fixture.nativeElement.querySelector('.sidebar__recent-delete');
+
+      expect(boton).not.toBeNull();
+      expect(boton.getAttribute('aria-label')).toContain('Ingeniería vs Medicina');
+    });
+
+    it('asks before deleting anything', () => {
+      pedirBorrado();
+
+      expect(laFilaDeConfirmacion()).not.toBeNull();
+      expect(sessionsStub.delete).not.toHaveBeenCalled();
+    });
+
+    it('names the conversation for whoever cannot see the row', () => {
+      pedirBorrado();
+
+      expect(laFilaDeConfirmacion()?.getAttribute('aria-label')).toContain(
+        'Ingeniería vs Medicina',
+      );
+    });
+
+    it('deletes once confirmed', () => {
+      pedirBorrado();
+
+      component.confirmarBorrado('abc-1');
+
+      expect(sessionsStub.delete).toHaveBeenCalledWith('abc-1');
+    });
+
+    it('cancelling leaves the conversation alone', () => {
+      pedirBorrado();
+
+      component.cancelarBorrado();
+      fixture.detectChanges();
+
+      expect(laFilaDeConfirmacion()).toBeNull();
+      expect(sessionsStub.delete).not.toHaveBeenCalled();
+    });
+
+    it('closes an open rename instead of stacking both on one row', () => {
+      // El `blur` del boton de confirmar guardaria un renombrado que nadie
+      // pidio si el input siguiera abierto detras de la pregunta.
+      component.empezarARenombrar('abc-1');
+
+      pedirBorrado();
+
+      expect(component.renombrando()).toBeNull();
+    });
+
+    /**
+     * Coloca al estudiante en una pantalla.
+     *
+     * Se finge la URL en vez de navegar de verdad: el `provideRouter([])` de
+     * arriba no tiene rutas, asi que un `navigate` real solo probaria que el
+     * router rechaza direcciones que no existen. Lo que decide aqui es la URL,
+     * que es exactamente lo que lee el componente.
+     */
+    function estandoEn(url: string): ReturnType<typeof vi.spyOn> {
+      const router = TestBed.inject(Router);
+      vi.spyOn(router, 'url', 'get').mockReturnValue(url);
+      return vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    }
+
+    it('opens a new chat when the deleted one was on screen', () => {
+      // Quedarse en `/assessment/<id>` de algo que ya no existe deja mensajes
+      // que no se pueden continuar: el siguiente turno iria a un hilo que el
+      // agente ya no reconoce.
+      const navigate = estandoEn('/assessment/abc-1');
+
+      component.confirmarBorrado('abc-1');
+
+      expect(navigate).toHaveBeenCalledWith(['/assessment', 'nuevo-id']);
+    });
+
+    it('stays put when the deleted one was not the open one', () => {
+      const navigate = estandoEn('/assessment/otra-conversacion');
+
+      component.confirmarBorrado('abc-1');
+
+      expect(sessionsStub.delete).toHaveBeenCalledWith('abc-1');
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('does not drag the student to the chat from another screen', () => {
+      // Borrar una conversacion vieja desde el perfil no deberia moverte.
+      const navigate = estandoEn('/profile');
+
+      component.confirmarBorrado('abc-1');
+
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('follows the stored conversation when the URL carries no id', () => {
+      // En `/assessment` a secas el chat abre el que tenga guardado, asi que
+      // ese es el que esta en pantalla.
+      const navigate = estandoEn('/assessment');
+
+      component.confirmarBorrado('abc-1');
+
+      expect(chatStub.currentThreadId).toHaveBeenCalled();
+      expect(navigate).toHaveBeenCalledWith(['/assessment', 'nuevo-id']);
+    });
+
+    it('shows a failure instead of letting the conversation come back on its own', () => {
+      sessionsStub.deleteError.set('No se pudo borrar la conversación. Inténtalo de nuevo.');
+      fixture.detectChanges();
+
+      const aviso = fixture.nativeElement.querySelector('.sidebar__recent-error[role="alert"]');
+      expect(aviso.textContent).toContain('No se pudo borrar');
+    });
+
+    it('clears an earlier failure when asking again', () => {
+      sessionsStub.deleteError.set('No se pudo borrar la conversación. Inténtalo de nuevo.');
+
+      pedirBorrado();
+
+      expect(sessionsStub.deleteError()).toBeNull();
     });
   });
 

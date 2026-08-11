@@ -83,6 +83,31 @@
             (keydown.escape)="cancelarRenombrado()"
             (blur)="confirmarRenombrado(chat.thread_id, entradaDeTitulo.value)"
           />
+        } @else if (confirmandoBorrado() === chat.thread_id) {
+          <!-- La pregunta va en el sitio de la fila, no en un dialogo: se lee
+               justo donde estaba el nombre, asi que no hace falta repetirlo
+               dentro del mensaje para que se sepa cual se borra. -->
+          <div class="sidebar__recent-confirm" role="group" [attr.aria-label]="'Borrar «' + chat.title + '»'">
+            <span class="sidebar__recent-confirm-text">¿Borrar esta conversación?</span>
+            <div class="sidebar__recent-confirm-actions">
+              <button
+                type="button"
+                class="sidebar__recent-confirm-yes"
+                [attr.aria-label]="'Confirmar que se borra «' + chat.title + '»'"
+                (click)="confirmarBorrado(chat.thread_id)"
+              >
+                Borrar
+              </button>
+              <button
+                type="button"
+                class="sidebar__recent-confirm-no"
+                (click)="cancelarBorrado()"
+                (keydown.escape)="cancelarBorrado()"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         } @else {
           <div class="sidebar__recent-row">
             <button
@@ -95,8 +120,9 @@
               <span class="sidebar__recent-when">{{ whenLabel(chat.updated_at) }}</span>
             </button>
             <!-- El doble clic no se descubre solo, y quien navega con teclado
-                 no lo tiene. Este boton es la misma accion con una puerta que
-                 se ve y se tabula. -->
+                 no lo tiene. Estos botones son las mismas acciones con una
+                 puerta que se ve y se tabula. -->
+            <div class="sidebar__recent-actions">
             <button
               type="button"
               class="sidebar__recent-rename"
@@ -107,6 +133,17 @@
                 <path d="M4 20h4l10-10a2.8 2.8 0 10-4-4L4 16v4z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
               </svg>
             </button>
+            <button
+              type="button"
+              class="sidebar__recent-delete"
+              [attr.aria-label]="'Borrar «' + chat.title + '»'"
+              (click)="pedirConfirmacionDeBorrado(chat.thread_id)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 7h16M10 4h4M9 7v12M15 7v12M6 7l1 13h10l1-13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            </div>
           </div>
         }
       } @empty {
@@ -114,6 +151,10 @@
       }
 
       @if (renameError(); as error) {
+        <p class="sidebar__recent-error" role="alert">{{ error }}</p>
+      }
+
+      @if (deleteError(); as error) {
         <p class="sidebar__recent-error" role="alert">{{ error }}</p>
       }
     </div>
