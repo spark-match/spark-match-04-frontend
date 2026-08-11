@@ -159,6 +159,12 @@ describe('ReportsComponent', () => {
     it('no intenta traer el contenido de un informe que no existe', () => {
       expect(vacio.componentInstance.contenido()).toBeNull();
     });
+
+    it('no cita ninguna procedencia cuando no hay fila de la que sacarla', () => {
+      // La etiqueta se compone de dos campos de la fila. Sin fila no hay nada
+      // que componer, y lo que no puede pasar es que salga « · datos del //».
+      expect(vacio.componentInstance.dataSource()).toBe('');
+    });
   });
 
   describe('cuando hay un informe en curso', () => {
@@ -307,6 +313,86 @@ describe('ReportsComponent', () => {
       f.detectChanges();
 
       expect(f.componentInstance.estado()).toBe('fallido');
+    });
+
+    /*
+     * La pestaña y el informe abierto tienen que contar lo mismo. Sin
+     * refrescar la fila, un informe que se abre en `pending` y termina en
+     * `ready` seguiría poniendo «Generándose…» en la lista de al lado mientras
+     * el documento ya está en pantalla: dos verdades a dos centímetros.
+     */
+    it('al terminar un informe en curso se actualiza su pestaña y sólo la suya', async () => {
+      TestBed.resetTestingModule();
+      const emisiones = new Subject<Report>();
+      const f = await montar(
+        servicioFalso({
+          list: vi
+            .fn()
+            .mockReturnValue(
+              of([
+                informeDeEjemplo({ id: 'en-curso', status: 'pending', topCareers: null }),
+                informeDeEjemplo({ id: 'otro', topCareers: ['Arquitectura'] }),
+              ]),
+            ),
+          poll: vi.fn().mockReturnValue(emisiones.asObservable()),
+        }),
+      );
+      expect(f.componentInstance.resumenDe(f.componentInstance.informes()[0])).toBe('Generándose…');
+
+      // Una lectura intermedia que sigue en `pending`: el sondeo emite cada
+      // una, no sólo la última, y ésta no debe cerrar nada.
+      emisiones.next(informeDeEjemplo({ id: 'en-curso', status: 'pending', topCareers: null }));
+      f.detectChanges();
+      expect(f.componentInstance.estado()).toBe('generando');
+
+      emisiones.next(
+        informeDeEjemplo({ id: 'en-curso', status: 'ready', topCareers: ['Ingeniería Civil'] }),
+      );
+      f.detectChanges();
+
+      expect(f.componentInstance.resumenDe(f.componentInstance.informes()[0])).toBe(
+        'Ingeniería Civil',
+      );
+      // El otro no se toca.
+      expect(f.componentInstance.resumenDe(f.componentInstance.informes()[1])).toBe('Arquitectura');
+    });
+
+    it('un informe que se está generando y acaba fallando sale por la rama de fallo', async () => {
+      TestBed.resetTestingModule();
+      const emisiones = new Subject<Report>();
+      const f = await montar(
+        servicioFalso({
+          list: vi.fn().mockReturnValue(of([informeDeEjemplo({ status: 'pending' })])),
+          poll: vi.fn().mockReturnValue(emisiones.asObservable()),
+        }),
+      );
+
+      emisiones.next(informeDeEjemplo({ status: 'failed', failureReason: 'se cayó a mitad' }));
+      f.detectChanges();
+
+      expect(f.componentInstance.estado()).toBe('fallido');
+      expect((f.nativeElement as HTMLElement).textContent).toContain('se cayó a mitad');
+    });
+
+    it('la fecha de cada pestaña sale de su fila', async () => {
+      TestBed.resetTestingModule();
+      const f = await montar(
+        servicioFalso({
+          list: vi.fn().mockReturnValue(
+            of([
+              informeDeEjemplo({
+                id: 'a',
+                createdAt: new Date(2026, 7, 11, 14, 32).toISOString(),
+              }),
+              informeDeEjemplo({ id: 'b' }),
+            ]),
+          ),
+        }),
+      );
+
+      expect(f.componentInstance.fechaDe(f.componentInstance.informes()[0])).toBe(
+        '11 de agosto de 2026, 14:32',
+      );
     });
 
     it('marca cuál está abierto', async () => {
