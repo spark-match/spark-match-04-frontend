@@ -15,10 +15,25 @@
  * de sacar por pantalla el nombre interno de un subagente nuevo.
  */
 
+/**
+ * Las cuatro etiquetas dicen literalmente «subagente especialista».
+ *
+ * Antes decían sólo lo que se estaba haciendo — «Evaluando tu perfil
+ * vocacional…» —, y eso se confundía con una herramienta cualquiera: el
+ * estudiante no tenía forma de saber que detrás había otro agente razonando,
+ * no una consulta a una tabla. La distinción importa porque cambia cuánto
+ * tarda y de dónde sale lo que va a leer.
+ *
+ * `report` faltaba, y no era inocuo: el subagente que emite el informe --lo
+ * más caro que hace el sistema, 10-20 s de modelo más el PDF-- se anunciaba
+ * con el genérico de clave desconocida. Justo el que más necesita explicar
+ * por qué la espera es larga.
+ */
 const LABELS: Record<string, string> = {
-  assessment: 'Evaluando tu perfil vocacional…',
-  matching: 'Buscando carreras que encajen contigo…',
-  planning: 'Armando tu plan de acción…',
+  assessment: 'Subagente especialista evaluando tu perfil vocacional…',
+  matching: 'Subagente especialista buscando carreras que encajen contigo…',
+  planning: 'Subagente especialista armando tu plan de acción…',
+  report: 'Subagente especialista redactando tu informe de orientación…',
 };
 
 /**
@@ -34,10 +49,13 @@ const REASONS: Record<string, string> = {
   assessment: 'un especialista convierte lo que cuentas en un perfil vocacional',
   matching: 'un especialista cruza ese perfil con el catálogo real del MINEDU',
   planning: 'un especialista arma los pasos concretos para llegar a esa carrera',
+  // Se avisa de la espera a propósito: es la operación más lenta del producto
+  // y la única cuyo resultado no aparece en el chat, sino en otra pantalla.
+  report: 'un especialista redacta el documento que podrás guardar y releer; tarda un poco más',
 };
 
 /** Lo que se muestra para un subagente que este mapa no conoce. */
-export const UNKNOWN_SUBAGENT_LABEL = 'Consultando a un especialista…';
+export const UNKNOWN_SUBAGENT_LABEL = 'Subagente especialista trabajando…';
 
 export function subagentLabel(subagent: string | undefined): string {
   if (!subagent) return UNKNOWN_SUBAGENT_LABEL;

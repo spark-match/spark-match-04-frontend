@@ -315,6 +315,9 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.sending.set(true);
     this.currentStep.set(INITIAL_STEP_LABEL);
     this.activities.set([]);
+    // Turno nuevo: los chips que lleguen buscan portador desde cero, o se
+    // pegarian a la primera burbuja del turno ANTERIOR.
+    this.turnoActual.set(null);
 
     void this.runTurn(text);
   }
@@ -440,6 +443,11 @@ export class ChatComponent implements OnInit, OnDestroy {
       timestamp: new Date().toISOString(),
       streaming: true,
     });
+    // La primera burbuja del turno pasa a llevar los chips. Las siguientes no
+    // la relevan: los chips pertenecen al turno entero y quedarse en la
+    // primera es lo que hace que la respuesta se lea de arriba abajo.
+    if (this.turnoActual() === null) this.turnoActual.set(id);
+    this.sincronizarChipsEnVivo();
   }
 
   private appendDelta(id: string, delta: string): void {
@@ -454,10 +462,12 @@ export class ChatComponent implements OnInit, OnDestroy {
         ? list.map((a) => (a.id === activity.id ? { ...a, ...activity } : a))
         : [...list, activity],
     );
+    this.sincronizarChipsEnVivo();
   }
 
   private patchActivity(id: string, patch: Partial<ChatActivity>): void {
     this.activities.update((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    this.sincronizarChipsEnVivo();
   }
 
   /**
@@ -488,20 +498,48 @@ export class ChatComponent implements OnInit, OnDestroy {
   /**
    * Pega al mensaje las herramientas que se usaron para producirlo.
    *
-   * Se hace al cerrar el turno y no mientras corre, porque durante el turno
-   * la lista se pinta aparte (encima del texto que se está escribiendo) y
-   * duplicarla en los dos sitios se vería dos veces.
-   *
    * Va a la PRIMERA burbuja del turno, no a la última: las herramientas
    * corren antes del texto que producen, y cuando hay varias respuestas la
    * última suele ser un cierre corto al que esos chips no pertenecen.
+   *
+   * `running: false` sólo al cerrar el turno: mientras corre, el estado de
+   * cada chip es justo lo que hace llevadera la espera.
    */
-  private attachActivities(id: string): void {
-    const used = this.activities().map((a) => ({ ...a, running: false }));
+  private attachActivities(id: string, terminado = true): void {
+    const used = terminado
+      ? this.activities().map((a) => ({ ...a, running: false }))
+      : this.activities();
     if (!used.length) return;
     this.messages.update((msgs) =>
       msgs.map((msg) => (msg.id === id ? { ...msg, activities: used } : msg)),
     );
+  }
+
+  /**
+   * Mueve los chips en vivo a la primera burbuja del turno, en cuanto exista.
+   *
+   * Antes esto sólo pasaba al TERMINAR el turno, así que durante toda la
+   * generación —que es justo cuando el estudiante los está mirando— los chips
+   * se pintaban en una burbuja suelta AL FINAL, por debajo del texto que ya
+   * había llegado. El efecto era que la respuesta se leía partida: un trozo,
+   * una caja de chips, otro trozo.
+   *
+   * Con esto, en cuanto hay una burbuja los chips viven dentro de ella y
+   * encima de su texto, que es donde el estudiante los espera: primero qué
+   * hice, luego qué te digo. La burbuja suelta se queda sólo para el hueco en
+   * el que aún no hay texto —el agente usa herramientas antes de escribir—, y
+   * ahí «abajo» y «encima de la respuesta» son el mismo sitio.
+   */
+  readonly turnoActual = signal<string | null>(null);
+
+  /** Los chips de esta burbuja se siguen moviendo: ni se pliegan ni se apagan. */
+  enVivo(messageId: string): boolean {
+    return this.sending() && this.turnoActual() === messageId;
+  }
+
+  private sincronizarChipsEnVivo(): void {
+    const portador = this.turnoActual();
+    if (portador) this.attachActivities(portador, false);
   }
 
   private finishStreaming(id: string): void {

@@ -329,6 +329,111 @@ describe('ChatComponent', () => {
       expect(component.messages().at(-1)?.activities).toBeUndefined();
     });
 
+    /*
+     * LA QUEJA: los chips se pintaban ABAJO, por debajo del texto ya escrito,
+     * y la respuesta se leia partida en dos.
+     *
+     * Pasaba porque `attachActivities` solo corria al TERMINAR el turno.
+     * Durante toda la generacion --que es justo cuando el estudiante los mira--
+     * los chips vivian en una burbuja suelta al final de la lista.
+     *
+     * Ahora se pegan a la primera burbuja del turno en cuanto existe. La
+     * plantilla ya los pintaba encima del texto dentro de la burbuja, asi que
+     * con esto el orden queda: primero que hice, luego que te digo.
+     */
+    it('pega los chips a la respuesta MIENTRAS el turno corre, no al final', async () => {
+      let continuar!: () => void;
+      const enEspera = new Promise<void>((r) => (continuar = r));
+
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'primera parte');
+        handlers.onToolStart('tc-1', 'Organizando el plan…', '', 'tool');
+        await enEspera;
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Sin esperar a que el turno acabe: el chip ya esta DENTRO de la burbuja.
+      const burbuja = component.messages().find((m) => m.id === 'm-1');
+      expect(burbuja?.activities?.length).toBe(1);
+      expect(burbuja?.activities?.[0].label).toBe('Organizando el plan…');
+      // Y sigue marcado como en curso, que es lo que hace llevadera la espera.
+      expect(burbuja?.activities?.[0].running).toBe(true);
+
+      continuar();
+      await fixture.whenStable();
+    });
+
+    it('no deja la burbuja suelta de chips cuando ya hay respuesta', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'texto');
+        handlers.onToolStart('tc-1', 'Organizando el plan…', '', 'tool');
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await fixture.whenStable();
+
+      // `turnoActual` es lo que la plantilla mira para decidir si pinta la
+      // burbuja suelta. Con portador, no la pinta.
+      expect(component.turnoActual()).toBe('m-1');
+    });
+
+    it('los chips que llegan antes del texto siguen teniendo donde vivir', async () => {
+      // El agente usa herramientas antes de escribir nada. Ahi no hay burbuja
+      // a la que pegarlos, y la suelta es la que los ensena -- sin texto
+      // debajo, «al final» y «encima de la respuesta» son el mismo sitio.
+      let continuar!: () => void;
+      const enEspera = new Promise<void>((r) => (continuar = r));
+
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onToolStart('tc-1', 'Buscando en internet…', '', 'search');
+        await enEspera;
+      });
+      component.draft = 'hola';
+
+      component.send();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // El turno sigue abierto a proposito: al cerrarlo, el `finally` vacia la
+      // lista en vivo y esta comprobacion dejaria de significar nada.
+      expect(component.turnoActual()).toBeNull();
+      expect(component.activities().length).toBe(1);
+
+      continuar();
+      await fixture.whenStable();
+    });
+
+    it('un turno nuevo no cuelga sus chips de la respuesta del anterior', async () => {
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onAnswerStart('m-1');
+        handlers.onDelta('m-1', 'primera');
+      });
+      component.draft = 'hola';
+      component.send();
+      await fixture.whenStable();
+
+      chatStub.sendTurn = vi.fn(async (_t: string, _x: string, handlers: ChatTurnHandlers) => {
+        handlers.onToolStart('tc-2', 'Buscando en internet…', '', 'search');
+        handlers.onAnswerStart('m-2');
+        handlers.onDelta('m-2', 'segunda');
+      });
+      component.draft = 'otra';
+      component.send();
+      await fixture.whenStable();
+
+      const primera = component.messages().find((m) => m.id === 'm-1');
+      const segunda = component.messages().find((m) => m.id === 'm-2');
+      expect(primera?.activities ?? []).toEqual([]);
+      expect(segunda?.activities?.length).toBe(1);
+    });
+
     it('upgrades the generic task chip to the specialist it delegated to', async () => {
       // El evento de subagente llega con el MISMO toolCallId que la tool
       // `task` que lo envuelve. Si se tratara como un chip nuevo, el
