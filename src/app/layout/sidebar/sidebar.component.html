@@ -84,11 +84,15 @@
             (blur)="confirmarRenombrado(chat.thread_id, entradaDeTitulo.value)"
           />
         } @else if (confirmandoBorrado() === chat.thread_id) {
-          <!-- La pregunta va en el sitio de la fila, no en un dialogo: se lee
-               justo donde estaba el nombre, asi que no hace falta repetirlo
-               dentro del mensaje para que se sepa cual se borra. -->
-          <div class="sidebar__recent-confirm" role="group" [attr.aria-label]="'Borrar «' + chat.title + '»'">
-            <span class="sidebar__recent-confirm-text">¿Borrar esta conversación?</span>
+          <!-- La pregunta va en el sitio de la fila, no en un dialogo: no saca
+               al estudiante de donde estaba. Y nombra la conversacion porque
+               ocupa su sitio, o sea que el titulo ya no se ve.
+
+               `fieldset` y no un `div` con `role="group"`: es lo mismo pero de
+               serie, y su `legend` da el nombre accesible del grupo sin
+               repetir el titulo en un `aria-label` que nadie ve. -->
+          <fieldset class="sidebar__recent-confirm">
+            <legend class="sidebar__recent-confirm-text">¿Borrar «{{ chat.title }}»?</legend>
             <div class="sidebar__recent-confirm-actions">
               <button
                 type="button"
@@ -107,7 +111,7 @@
                 Cancelar
               </button>
             </div>
-          </div>
+          </fieldset>
         } @else {
           <div class="sidebar__recent-row">
             <button

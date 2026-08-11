@@ -208,18 +208,27 @@
   font-size: 0.85rem;
 }
 
-// Ocupa el sitio de la fila que va a borrar. Ese es el truco: la pregunta se
-// lee donde estaba el nombre, así que no hace falta repetirlo dentro.
+// Ocupa el sitio de la fila que va a borrar, así que la pregunta lleva dentro
+// el nombre: ahí ya no se ve.
+//
+// Es un `fieldset`, que trae de fábrica borde, margen y un hueco en el borde
+// para el `legend`. Se quita todo: lo que se aprovecha es su semántica de
+// grupo, no su aspecto.
 .sidebar__recent-confirm {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  margin: 0;
   padding: 0.4rem 0.7rem;
+  border: 0;
   border-radius: var(--radius);
   background: oklch(1 0 0 / 0.08);
 }
 
+// `display: block` explícito: el `legend` tiene una colocación propia dentro
+// del `fieldset` y, dejado como viene, arrastra a los botones a su lado con
+// ancho cero. Esto lo devuelve a comportarse como un hijo normal.
 .sidebar__recent-confirm-text {
+  display: block;
+  width: 100%;
+  padding: 0;
   font-size: 0.78rem;
   color: var(--sidebar-fg);
 }
@@ -227,6 +236,7 @@
 .sidebar__recent-confirm-actions {
   display: flex;
   gap: 0.35rem;
+  padding-top: 0.35rem;
 }
 
 .sidebar__recent-confirm-yes,

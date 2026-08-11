@@ -285,12 +285,21 @@ describe('SidebarComponent', () => {
       expect(sessionsStub.delete).not.toHaveBeenCalled();
     });
 
-    it('names the conversation for whoever cannot see the row', () => {
+    it('names the conversation, because it took its place on screen', () => {
+      // La pregunta sustituye a la fila, asi que el titulo deja de verse: si
+      // no lo dijera ella, no lo diria nadie.
       pedirBorrado();
 
-      expect(laFilaDeConfirmacion()?.getAttribute('aria-label')).toContain(
-        'Ingeniería vs Medicina',
-      );
+      expect(laFilaDeConfirmacion()?.textContent).toContain('Ingeniería vs Medicina');
+    });
+
+    it('groups the question with its buttons using a real element', () => {
+      // `fieldset` y no un `div` con `role="group"`: mismo significado, sin
+      // tener que anunciarlo con un atributo (Web:S6819).
+      pedirBorrado();
+
+      expect(laFilaDeConfirmacion()?.tagName).toBe('FIELDSET');
+      expect(laFilaDeConfirmacion()?.querySelector('legend')).not.toBeNull();
     });
 
     it('deletes once confirmed', () => {
