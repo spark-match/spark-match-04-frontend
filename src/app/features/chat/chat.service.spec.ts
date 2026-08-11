@@ -343,6 +343,151 @@ describe('ChatService', () => {
       expect(subagentsEnded).toEqual([{ id: 'tc-9', ok: true, durationMs: 4200 }]);
     });
 
+    /*
+     * Lo que escribe un subagente es texto de trabajo, no una respuesta.
+     * Habla del estudiante en tercera persona («el estudiante mencionó»,
+     * «voy a emitir el informe para este estudiante») porque va dirigido al
+     * coordinador. Se pintaba en el chat como si lo dijera el orientador.
+     */
+    describe('lo que dice un subagente no se pinta', () => {
+      function conDelegacion(dentro: AgUiEvent[]): AgUiEvent[] {
+        return [
+          { type: 'TOOL_CALL_START', toolCallId: 'tc-9', toolCallName: 'task' },
+          {
+            type: 'CUSTOM',
+            name: 'spark.subagent.start',
+            value: { toolCallId: 'tc-9', subagent: 'report' },
+          },
+          ...dentro,
+          {
+            type: 'CUSTOM',
+            name: 'spark.subagent.end',
+            value: { toolCallId: 'tc-9', subagent: 'report', ok: true, durationMs: 900 },
+          },
+        ];
+      }
+
+      it('se descarta entero, sin dejar burbuja', async () => {
+        agent.events = conDelegacion([
+          { type: 'TEXT_MESSAGE_START', messageId: 'm-sub' },
+          { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm-sub', delta: 'El estudiante mencionó…' },
+          { type: 'TEXT_MESSAGE_END', messageId: 'm-sub' },
+        ]);
+        const { handlers, startedIds, deltas, endedIds } = recordingHandlers();
+
+        await service.sendTurn('t-1', 'hola', handlers);
+
+        expect(startedIds).toEqual([]);
+        expect(deltas).toEqual([]);
+        expect(endedIds).toEqual([]);
+      });
+
+      it('el chip de la delegación sí se pinta', async () => {
+        // Se descarta el texto, no la señal de que hay alguien trabajando.
+        agent.events = conDelegacion([
+          { type: 'TEXT_MESSAGE_START', messageId: 'm-sub' },
+          { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm-sub', delta: 'ruido interno' },
+          { type: 'TEXT_MESSAGE_END', messageId: 'm-sub' },
+        ]);
+        const { handlers, subagentsStarted, subagentsEnded } = recordingHandlers();
+
+        await service.sendTurn('t-1', 'hola', handlers);
+
+        expect(subagentsStarted).toHaveLength(1);
+        expect(subagentsEnded).toHaveLength(1);
+      });
+
+      it('lo que dice el coordinador después sí se pinta', async () => {
+        agent.events = [
+          ...conDelegacion([
+            { type: 'TEXT_MESSAGE_START', messageId: 'm-sub' },
+            { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm-sub', delta: 'ruido interno' },
+            { type: 'TEXT_MESSAGE_END', messageId: 'm-sub' },
+          ]),
+          { type: 'TEXT_MESSAGE_START', messageId: 'm-final' },
+          { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm-final', delta: 'Aquí tienes tu informe.' },
+          { type: 'TEXT_MESSAGE_END', messageId: 'm-final' },
+        ];
+        const { handlers, startedIds, deltas } = recordingHandlers();
+
+        await service.sendTurn('t-1', 'hola', handlers);
+
+        expect(startedIds).toEqual(['m-final']);
+        expect(deltas).toEqual(['Aquí tienes tu informe.']);
+      });
+
+      it('lo que dice el coordinador antes de delegar también', async () => {
+        agent.events = [
+          { type: 'TEXT_MESSAGE_START', messageId: 'm-antes' },
+          { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm-antes', delta: 'Voy a pedirlo al especialista.' },
+          { type: 'TEXT_MESSAGE_END', messageId: 'm-antes' },
+          ...conDelegacion([]),
+        ];
+        const { handlers, deltas } = recordingHandlers();
+
+        await service.sendTurn('t-1', 'hola', handlers);
+
+        expect(deltas).toEqual(['Voy a pedirlo al especialista.']);
+      });
+
+      it('un cierre que llega tarde no abre una burbuja vacía', async () => {
+        // El `end` de la delegación y el del mensaje no llevan orden
+        // garantizado. Sin recordar qué mensajes se silenciaron, este
+        // `TEXT_MESSAGE_END` pasaría el filtro y crearía una burbuja.
+        agent.events = [
+          { type: 'TOOL_CALL_START', toolCallId: 'tc-9', toolCallName: 'task' },
+          {
+            type: 'CUSTOM',
+            name: 'spark.subagent.start',
+            value: { toolCallId: 'tc-9', subagent: 'report' },
+          },
+          { type: 'TEXT_MESSAGE_START', messageId: 'm-sub' },
+          {
+            type: 'CUSTOM',
+            name: 'spark.subagent.end',
+            value: { toolCallId: 'tc-9', subagent: 'report', ok: true, durationMs: 900 },
+          },
+          { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm-sub', delta: 'cola del subagente' },
+          { type: 'TEXT_MESSAGE_END', messageId: 'm-sub' },
+        ];
+        const { handlers, startedIds, deltas, endedIds } = recordingHandlers();
+
+        await service.sendTurn('t-1', 'hola', handlers);
+
+        expect(startedIds).toEqual([]);
+        expect(deltas).toEqual([]);
+        expect(endedIds).toEqual([]);
+      });
+
+      it('dos delegaciones anidadas no destapan el filtro a la primera', async () => {
+        agent.events = [
+          {
+            type: 'CUSTOM',
+            name: 'spark.subagent.start',
+            value: { toolCallId: 'tc-a', subagent: 'report' },
+          },
+          {
+            type: 'CUSTOM',
+            name: 'spark.subagent.start',
+            value: { toolCallId: 'tc-b', subagent: 'assessment' },
+          },
+          {
+            type: 'CUSTOM',
+            name: 'spark.subagent.end',
+            value: { toolCallId: 'tc-b', subagent: 'assessment', ok: true, durationMs: 10 },
+          },
+          { type: 'TEXT_MESSAGE_START', messageId: 'm-sub' },
+          { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm-sub', delta: 'sigo dentro del primero' },
+          { type: 'TEXT_MESSAGE_END', messageId: 'm-sub' },
+        ];
+        const { handlers, deltas } = recordingHandlers();
+
+        await service.sendTurn('t-1', 'hola', handlers);
+
+        expect(deltas).toEqual([]);
+      });
+    });
+
     it('never leaks the internal key of a specialist it does not know', async () => {
       agent.events = [
         {
