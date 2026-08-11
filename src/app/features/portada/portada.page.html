@@ -1,0 +1,301 @@
+<header class="portada__barra">
+  <a class="portada__marca" routerLink="/" aria-label="Spark Match, inicio">
+    <span class="portada__logo" aria-hidden="true"
+      ><svg viewBox="0 0 24 24" fill="none">
+        <path
+          d="M3 9l9-5 9 5-9 5-9-5zm4 2.2V16l5 3 5-3v-4.8"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        /></svg
+    ></span>
+    <span class="portada__marca-nombre font-display">Spark Match</span>
+  </a>
+
+  <nav class="portada__nav" aria-label="Secciones de esta página">
+    <a href="#como-funciona">Cómo funciona</a>
+    <a href="#datos">Los datos</a>
+    @if (canales.length) {
+      <a href="#contacto">Contacto</a>
+    }
+  </nav>
+
+  <div class="portada__acciones">
+    @if (conSesion()) {
+      <a class="portada__btn portada__btn--solido" routerLink="/home">Ir a mi panel</a>
+    } @else {
+      <a class="portada__btn portada__btn--texto" routerLink="/auth/login">Iniciar sesión</a>
+      <a class="portada__btn portada__btn--solido" routerLink="/auth/register">Crear cuenta</a>
+    }
+  </div>
+</header>
+
+<main class="portada">
+  <section class="hero">
+    <span class="hero__eyebrow">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z"
+          fill="currentColor"
+        />
+      </svg>
+      Datos oficiales de Ponte en Carrera · MINEDU Perú
+    </span>
+
+    <h1 class="hero__titulo font-display">Elegir carrera no debería ser una apuesta.</h1>
+
+    <p class="hero__lead">
+      Spark Match cruza tus intereses con las cifras reales de la educación superior peruana —cuánto
+      dura, cuánto cuesta, cuánto se gana al egresar y qué porcentaje entra— y te devuelve un
+      informe que puedes releer, imprimir y discutir en casa.
+    </p>
+
+    <div class="hero__acciones">
+      @if (conSesion()) {
+        <a class="portada__btn portada__btn--solido portada__btn--grande" routerLink="/home">
+          Ir a mi panel
+        </a>
+      } @else {
+        <a
+          class="portada__btn portada__btn--solido portada__btn--grande"
+          routerLink="/auth/register"
+        >
+          Crear cuenta gratis
+        </a>
+        <a class="portada__btn portada__btn--borde portada__btn--grande" routerLink="/auth/login">
+          Ya tengo cuenta
+        </a>
+      }
+    </div>
+
+    <p class="hero__nota">Gratis. Sin tarjeta. Tu informe se genera en minutos.</p>
+  </section>
+
+  <section class="cifras" aria-label="El catálogo que se compara">
+    @for (cifra of cifras; track cifra.etiqueta) {
+      <div class="cifras__bloque">
+        <span class="cifras__valor font-display">{{ cifra.valor }}</span>
+        <span class="cifras__etiqueta">{{ cifra.etiqueta }}</span>
+      </div>
+    }
+  </section>
+
+  <section class="pasos" id="como-funciona">
+    <h2 class="portada__titulo-seccion font-display">Cómo funciona</h2>
+    <p class="portada__bajada">Cuatro pasos. El más largo es el primero y son unos minutos.</p>
+
+    <ol class="pasos__lista">
+      @for (paso of pasos; track paso.numero) {
+        <li class="pasos__paso">
+          <span class="pasos__numero font-display">{{ paso.numero }}</span>
+          <h3>{{ paso.titulo }}</h3>
+          <p>{{ paso.texto }}</p>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <section class="promesas" id="datos">
+    <h2 class="portada__titulo-seccion font-display">Qué te llevas</h2>
+
+    <div class="promesas__lista">
+      @for (promesa of promesas; track promesa.titulo) {
+        <article class="promesas__tarjeta">
+          <span class="promesas__icono" aria-hidden="true">
+            @switch (promesa.icono) {
+              @case ('sello') {
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 3l7 3v5.5c0 4.2-2.9 7.7-7 9.5-4.1-1.8-7-5.3-7-9.5V6l7-3z"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M9 12l2 2 4-4"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+              @case ('documento') {
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M6 3h7l5 5v13H6V3z"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M13 3v5h5M9 13h6M9 17h4"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+              @case ('catalogo') {
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13zM20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+            }
+          </span>
+          <h3>{{ promesa.titulo }}</h3>
+          <p>{{ promesa.texto }}</p>
+        </article>
+      }
+    </div>
+  </section>
+
+  <!--
+    La misma advertencia que lleva la página de dentro, y por el mismo motivo:
+    el pipeline rellena lo que el portal no publicó con la mediana de la familia
+    de carrera, y eso alcanza al 73% de los sueldos y al 65% de las tasas de
+    admisión. Decirlo aquí, antes de que nadie cree una cuenta, es parte de lo
+    que se está vendiendo.
+  -->
+  <aside class="aviso">
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 3 2.8 20h18.4L12 3z"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linejoin="round"
+      />
+      <path d="M12 9v4m0 3h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+    </svg>
+    <p>
+      Las cifras de sueldo, costo anual y tasa de admisión provienen de
+      <strong>Ponte en Carrera</strong>, del Ministerio de Educación del Perú, con datos del 13 de
+      junio de 2026. Cuando el portal no publica una de esas cifras se estima con la mediana de
+      carreras similares, y en ese caso te lo indicamos junto al dato. La afinidad con tu perfil la
+      calcula Spark Match: orienta, no es una cifra oficial.
+    </p>
+  </aside>
+
+  @if (canales.length) {
+    <section class="contacto" id="contacto">
+      <h2 class="portada__titulo-seccion font-display">Hablemos</h2>
+      <p class="portada__bajada">
+        Escríbenos directamente. Somos un equipo pequeño y contestamos nosotros.
+      </p>
+
+      <ul class="contacto__lista">
+        @for (canal of canales; track canal.etiqueta) {
+          <li>
+            <a class="contacto__canal" [href]="canal.destino">
+              <span class="contacto__icono" aria-hidden="true">
+                @switch (canal.icono) {
+                  @case ('correo') {
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <rect
+                        x="3"
+                        y="5"
+                        width="18"
+                        height="14"
+                        rx="2"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                      />
+                      <path
+                        d="M3.5 6.5L12 13l8.5-6.5"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  }
+                  @case ('whatsapp') {
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M20 11.5a8 8 0 01-11.9 7L4 20l1.6-4A8 8 0 1120 11.5z"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M9 9.5c0 3 2.5 5.5 5.5 5.5"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  }
+                  @case ('instagram') {
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <rect
+                        x="3.5"
+                        y="3.5"
+                        width="17"
+                        height="17"
+                        rx="5"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                      />
+                      <circle cx="12" cy="12" r="3.8" stroke="currentColor" stroke-width="1.7" />
+                      <circle cx="17" cy="7" r="1.1" fill="currentColor" />
+                    </svg>
+                  }
+                  @case ('linkedin') {
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <rect
+                        x="3.5"
+                        y="3.5"
+                        width="17"
+                        height="17"
+                        rx="3"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                      />
+                      <path
+                        d="M8 10.5V17M8 7.6v.01M12 17v-3.6a2 2 0 014 0V17"
+                        stroke="currentColor"
+                        stroke-width="1.7"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  }
+                }
+              </span>
+              <span class="contacto__texto">
+                <span class="contacto__etiqueta">{{ canal.etiqueta }}</span>
+                <span class="contacto__detalle">{{ canal.detalle }}</span>
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <section class="cierre">
+    <h2 class="cierre__titulo font-display">Empieza por saber quién eres.</h2>
+    @if (conSesion()) {
+      <a class="portada__btn portada__btn--claro portada__btn--grande" routerLink="/home">
+        Ir a mi panel
+      </a>
+    } @else {
+      <a class="portada__btn portada__btn--claro portada__btn--grande" routerLink="/auth/register">
+        Crear cuenta gratis
+      </a>
+    }
+  </section>
+</main>
+
+<footer class="portada__pie">
+  <p>Spark Match · Orientación vocacional con IA para estudiantes del Perú</p>
+  <p class="portada__pie-nota">
+    Spark Match no es un organismo oficial ni sustituye a un orientador. Las recomendaciones
+    orientan una decisión que sigue siendo tuya.
+  </p>
+</footer>
