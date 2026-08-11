@@ -5,6 +5,7 @@ import {
   Report,
   ReportContent,
   ReportContentCareer,
+  cifrasEstimadas,
   esTerminal,
   etiquetaDeProcedencia,
   fechaDelInforme,
@@ -313,5 +314,10 @@ export class ReportsComponent implements OnInit, OnDestroy {
   /** Si alguna cifra de esta ficha es la mediana de su familia y no un dato medido. */
   tieneEstimados(career: ReportContentCareer): boolean {
     return career.estimated.length > 0;
+  }
+
+  /** Cuáles, dichas en castellano. La ficha las nombraba con el campo en crudo. */
+  nombresDeLasEstimadas(career: ReportContentCareer): string {
+    return cifrasEstimadas(career.estimated);
   }
 }

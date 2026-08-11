@@ -33,7 +33,12 @@
     // deja las esquinas comiéndose el texto.
     border-radius: 0.7rem;
     background: var(--input);
-    color: oklch(0.5 0.02 240);
+    // Medido, no elegido a ojo: con el color anterior (L 0.5) y las opacidades
+    // que había, la razón del chip quedaba en 2,20:1 sobre el fondo — la mitad
+    // del 4,5:1 que pide WCAG AA para texto pequeño, y esto son 0.74rem. Con
+    // este color las cuatro piezas del chip pasan AA. Ver el comentario de
+    // `--done` para la otra mitad del problema.
+    color: oklch(0.42 0.02 240);
     font-size: 0.74rem;
     line-height: 1.45;
 
@@ -85,7 +90,7 @@
 // ello, no un título.
 .chat__activity-args {
   font-weight: 400;
-  opacity: 0.85;
+  opacity: 0.95;
 }
 
 // Segundo renglón: por qué. Va apagado a propósito — es contexto para quien
@@ -95,14 +100,22 @@
   font-size: 0.7rem;
   font-weight: 400;
   line-height: 1.35;
-  opacity: 0.7;
+  opacity: 0.88;
 }
 
-// Ya terminado y pegado a la respuesta: más apagado, para que no compita con
-// el texto que el estudiante viene a leer.
+// Ya terminado y pegado a la respuesta: retrocede, pero se sigue leyendo.
+//
+// Antes esto era `opacity: 0.75` sobre el <li>, y ahí estaba la mitad del
+// problema: la opacidad de un contenedor **multiplica** con la de sus hijos,
+// así que la razón del chip acababa pintada al 0,75 × 0,7 = 0,52 y con ella
+// el borde y el punto. Medido, 2,20:1 de contraste: ilegible, y además nadie
+// lo había elegido — salía de multiplicar dos decisiones tomadas por separado.
+//
+// Ahora el retroceso se hace con la superficie, que es lo que se quería decir:
+// fondo casi del color de la burbuja y borde más suave. El texto no se toca.
 .chat__activities--done li {
-  background: transparent;
-  opacity: 0.75;
+  background: oklch(0.975 0.006 85);
+  border-color: oklch(0.91 0.012 85);
 }
 
 // Los tres estados van calificados con `.chat__activities li`, no sueltos como
@@ -138,8 +151,8 @@
 // Poder distinguirlo de un vistazo es una cuestión de cuánto fiarse del dato.
 .chat__activities li.chat__activity--search {
   border-color: oklch(0.75 0.12 75 / 0.5);
-  background: oklch(0.75 0.12 75 / 0.1);
-  color: oklch(0.48 0.09 70);
+  background: oklch(0.75 0.12 75 / 0.14);
+  color: oklch(0.44 0.09 70);
 }
 
 // Gana también a `.chat__activities--done li`: que un chip haya terminado no
@@ -153,7 +166,7 @@
 // Cuánto tardó, o que no pudo. Se llamaba `-detail`, y ahora `detail` es otra
 // cosa: con qué se llamó a la herramienta.
 .chat__activity-timing {
-  opacity: 0.7;
+  opacity: 0.85;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
@@ -162,7 +175,7 @@
 // el chip agrupa varias. Mismo tratamiento visual que `-timing` — es un
 // dato de acompañamiento, no el foco del chip.
 .chat__activity-count {
-  opacity: 0.7;
+  opacity: 0.85;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
@@ -176,7 +189,7 @@
 
   summary {
     cursor: pointer;
-    opacity: 0.7;
+    opacity: 0.88;
 
     &:hover {
       opacity: 1;
@@ -196,7 +209,7 @@
     padding: 0.1rem 0;
     border: none;
     background: none;
-    opacity: 0.85;
+    opacity: 0.95;
 
     &::before {
       content: none;
@@ -216,7 +229,7 @@
   border: 1px solid var(--border);
   border-radius: 0.7rem;
   background: var(--input);
-  color: oklch(0.5 0.02 240);
+  color: oklch(0.42 0.02 240);
   font-size: 0.74rem;
   line-height: 1.45;
   cursor: pointer;
@@ -247,6 +260,6 @@
 // estudiante vino a leer es la respuesta, no de dónde salió.
 .chat__activity-summary-more {
   margin-left: 0.2rem;
-  opacity: 0.7;
+  opacity: 0.88;
   text-decoration: underline;
 }

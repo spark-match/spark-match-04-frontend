@@ -181,11 +181,18 @@
 // aparte: es la respuesta a lo que el estudiante acaba de pedir, y ahí sigue
 // mañana cuando vuelva a la conversación.
 .chat__report {
-  display: inline-flex;
+  // `flex` y no `inline-flex`: en línea, la hora que va justo detrás en el
+  // DOM se le pegaba al costado y las dos cosas se leían como una sola. Un
+  // contenedor flex es de bloque, así que la hora cae debajo sola. El
+  // `width: fit-content` evita que el botón se estire hasta el borde de la
+  // burbuja al dejar de ser en línea.
+  display: flex;
+  width: fit-content;
   align-items: center;
   gap: 0.45rem;
   align-self: flex-start;
   margin-top: 0.85rem;
+  margin-bottom: 0.5rem;
   padding: 0.55rem 1rem;
   border-radius: var(--radius);
   background: var(--primary);

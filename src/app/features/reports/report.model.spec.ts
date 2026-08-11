@@ -1,4 +1,10 @@
-import { Report, etiquetaDeProcedencia, fechaDelInforme, resumenDelInforme } from './report.model';
+import {
+  Report,
+  cifrasEstimadas,
+  etiquetaDeProcedencia,
+  fechaDelInforme,
+  resumenDelInforme,
+} from './report.model';
 import { informeDeEjemplo } from './reports.mock';
 
 /*
@@ -88,5 +94,35 @@ describe('etiquetaDeProcedencia', () => {
 
   it('sin fuente no dice nada, en vez de citar una fecha huérfana', () => {
     expect(etiquetaDeProcedencia(null, '2026-06-13')).toBe('');
+  });
+});
+
+describe('cifrasEstimadas', () => {
+  /*
+   * Esta frase es lo único que separa un dato publicado por el MINEDU de una
+   * mediana que calculamos nosotros. Si nombra la cifra con el campo en crudo
+   * —que es lo que hacía— el aviso está pero no se entiende.
+   */
+  it('nombra la cifra en castellano, no con el campo', () => {
+    expect(cifrasEstimadas(['monthly_income'])).toBe('el ingreso mensual al egresar');
+  });
+
+  it('enumera varias con coma y una «y» al final', () => {
+    expect(cifrasEstimadas(['monthly_income', 'annual_cost'])).toBe(
+      'el ingreso mensual al egresar y el costo anual',
+    );
+    expect(cifrasEstimadas(['duration_years', 'monthly_income', 'admission_rate'])).toBe(
+      'la duración, el ingreso mensual al egresar y la tasa de admisión',
+    );
+  });
+
+  it('una lista vacía no deja la frase colgando', () => {
+    expect(cifrasEstimadas([])).toBe('');
+  });
+
+  it('un campo que no conocemos sale tal cual antes que callárselo', () => {
+    // Enseñar un nombre feo es peor que enseñar uno bonito, y mucho mejor que
+    // ocultar que la cifra está estimada.
+    expect(cifrasEstimadas(['algo_nuevo'])).toBe('algo_nuevo');
   });
 });

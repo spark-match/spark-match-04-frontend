@@ -9,7 +9,11 @@
   height: 100%;
   min-height: 0;
   margin-inline: auto;
-  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 4vw, 3rem) 4rem;
+  // Sin espacio arriba a propósito: se lo queda `.report__header`. Estando
+  // aquí, quedaba una franja por encima de la cabecera fija que la cabecera
+  // no podía pintar, y el informe se veía pasar por ella al bajar — el título
+  // parecía flotar sobre un trozo de párrafo recortado.
+  padding: 0 clamp(1rem, 4vw, 3rem) 4rem;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
@@ -24,8 +28,15 @@
   align-items: center;
   gap: 1rem;
   margin-bottom: 1.5rem;
-  padding-block: 0.25rem 1rem;
+  // El espacio superior que antes ponía `.report` va aquí, para que forme
+  // parte de la caja que se queda fija y su fondo lo tape. Es lo que hace que
+  // el informe pase POR DEBAJO en vez de asomar por encima.
+  padding-block: clamp(1.5rem, 4vw, 2.5rem) 1rem;
   background: var(--background);
+  // Una línea donde termina lo fijo. Sin ella, el texto que se desliza por
+  // debajo aparece y desaparece sin borde que lo explique, y se lee como un
+  // recorte.
+  border-bottom: 1px solid var(--border);
 
   h1 {
     font-size: 2rem;
@@ -41,51 +52,86 @@
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  padding-bottom: 0.35rem;
+  // Sitio para que la tarjeta se levante en `:hover` sin que el `overflow`
+  // del carrusel le recorte la sombra.
+  padding: 0.2rem 0.2rem 0.5rem;
+  margin-inline: -0.2rem;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: thin;
+  // Que al arrastrar quede una pestaña encuadrada y no a medias. `proximity`
+  // y no `mandatory`: con pocas pestañas, forzar el encaje pelea con quien
+  // sólo quiere asomarse al final de la fila.
+  scroll-snap-type: x proximity;
 }
 
 .report__history-item {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.15rem;
+  gap: 0.2rem;
   flex: 0 0 auto;
+  scroll-snap-align: start;
   // Un ancho fijo y no `auto`: con `auto`, las pestañas cambian de tamaño
   // según lo largos que sean los nombres de las carreras, y una fila de
   // rectángulos desiguales se lee como un fallo de maquetación.
   width: 15rem;
   max-width: 70vw;
-  padding: 0.7rem 0.9rem;
+  // El borde izquierdo es el que se tiñe al seleccionar, así que se reserva
+  // su grosor desde el principio: si apareciera al activarse, el texto de la
+  // pestaña se desplazaría 2px cada vez que cambias de informe.
+  padding: 0.7rem 0.9rem 0.7rem calc(0.9rem - 2px);
   border: 1px solid var(--border);
+  border-left: 3px solid transparent;
   border-radius: var(--radius);
   background: var(--card, var(--background));
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 
   &:hover {
     border-color: var(--teal-glow);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-1px);
+  }
+
+  // El teclado se mueve por esta fila igual que el ratón, y sin esto el foco
+  // sólo se veía por el anillo del navegador sobre un fondo del mismo color.
+  &:focus-visible {
+    outline: 2px solid var(--teal-deep);
+    outline-offset: 2px;
   }
 }
 
 .report__history-item--activo {
+  // Tres marcas y no una: el borde suelto se confunde con el `:hover`, y cuál
+  // informe está abierto no puede depender de dónde esté el ratón. La barra
+  // izquierda es la que se ve de un vistazo en una fila con scroll.
   border-color: var(--teal-deep);
-  // Doble marca, borde y fondo, a propósito: el borde solo se distingue mal
-  // del `:hover`, y cuál está abierto no puede depender de dónde esté el ratón.
+  border-left-color: var(--teal-deep);
   background: oklch(0.62 0.13 175 / 0.1);
+
+  &:hover {
+    transform: none;
+  }
 }
 
 .report__history-date {
   font-size: 0.8rem;
   font-weight: 600;
+  // Las fechas van una debajo de otra en una fila: con cifras de ancho
+  // variable, los minutos bailan de pestaña a pestaña.
+  font-variant-numeric: tabular-nums;
 }
 
 .report__history-careers {
-  font-size: 0.78rem;
-  color: var(--muted-foreground, oklch(0.5 0.02 240));
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: oklch(0.48 0.02 240);
   // Una sola línea: la altura de la fila no puede depender de cuántas carreras
   // recomendó cada informe.
   white-space: nowrap;
