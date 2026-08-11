@@ -182,7 +182,46 @@ export class ChatService {
       if (detail) handlers.onToolDetail(toolCallId, detail);
     };
 
+    // Cuántas delegaciones hay abiertas ahora mismo, y qué mensajes empezaron
+    // dentro de una.
+    //
+    // El agente emite `spark.subagent.start`/`end` alrededor de cada `task`, y
+    // entre esos dos eventos todo el texto que llega lo escribe el subagente,
+    // no el coordinador. Es texto de trabajo —habla del estudiante en tercera
+    // persona, «el estudiante mencionó», «voy a emitir el informe para este
+    // estudiante»— y no está escrito para que nadie lo lea. Hasta ahora se
+    // pintaba como si fueran respuestas del orientador.
+    //
+    // Se apunta el id de cada mensaje silenciado en vez de mirar sólo el
+    // contador: el cierre del subagente y el del mensaje no llevan orden
+    // garantizado, y un `TEXT_MESSAGE_END` que llegara después del `end` de la
+    // delegación abriría una burbuja vacía.
+    let delegacionesAbiertas = 0;
+    const silenciados = new Set<string>();
+
+    const esDeUnSubagente = (event: AgUiEvent): boolean => {
+      const messageId = String(event.messageId ?? '');
+      if (event.type === 'TEXT_MESSAGE_START' && delegacionesAbiertas > 0) {
+        silenciados.add(messageId);
+        return true;
+      }
+      if (event.type === 'TEXT_MESSAGE_CONTENT') return silenciados.has(messageId);
+      if (event.type === 'TEXT_MESSAGE_END' && silenciados.has(messageId)) {
+        silenciados.delete(messageId);
+        return true;
+      }
+      return false;
+    };
+
     for await (const event of this.agent.streamRun(input, signal)) {
+      if (event.type === 'CUSTOM') {
+        if (event.name === SUBAGENT_START_EVENT) delegacionesAbiertas++;
+        if (event.name === SUBAGENT_END_EVENT)
+          delegacionesAbiertas = Math.max(0, delegacionesAbiertas - 1);
+      }
+
+      if (esDeUnSubagente(event)) continue;
+
       switch (event.type) {
         case 'STEP_STARTED': {
           // Un paso sin etiqueta conocida no cambia nada en pantalla: es
