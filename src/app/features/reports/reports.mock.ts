@@ -76,6 +76,48 @@ export function informeDeEjemplo(overrides: Partial<Report> = {}): Report {
   };
 }
 
+/**
+ * El histórico de local: tres informes, no uno.
+ *
+ * Con una sola fila, la lista del histórico no se pinta —sólo aparece a partir
+ * de dos— y la pantalla se veía en `ng serve` exactamente igual que antes de
+ * que existiera. O sea que la única forma de comprobar la función era
+ * desplegarla.
+ *
+ * Los tres días de separación son para que las fechas se distingan de un
+ * vistazo. El tercero va `failed` a propósito: es el estado que la lista tiene
+ * que saber enseñar sin romperse, y el que nadie recuerda probar.
+ *
+ * **El contenido que devuelve `content()` es el mismo para los tres.** No es un
+ * descuido: el mock no simula tres documentos distintos, y fingirlo daría una
+ * confianza que no corresponde. Aquí se comprueba la navegación entre informes,
+ * no que cada uno traiga lo suyo.
+ */
+export function historicoDeEjemplo(): Report[] {
+  const dias = (cuantos: number) =>
+    new Date(Date.now() - cuantos * 24 * 60 * 60 * 1000).toISOString();
+
+  return [
+    informeDeEjemplo(),
+    informeDeEjemplo({
+      id: 'mock-report-2',
+      createdAt: dias(3),
+      updatedAt: dias(3),
+      riasecCode: 'RIC',
+      topCareers: ['Ingeniería Civil', 'Arquitectura'],
+    }),
+    informeDeEjemplo({
+      id: 'mock-report-3',
+      status: 'failed',
+      createdAt: dias(9),
+      updatedAt: dias(9),
+      objects: null,
+      topCareers: null,
+      failureReason: 'Tu perfil aún no tenía las seis puntuaciones del cuestionario.',
+    }),
+  ];
+}
+
 export function contenidoDeEjemplo(): ReportContent {
   return {
     schema_version: '1',

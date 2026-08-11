@@ -117,9 +117,11 @@ describe('ReportsComponent', () => {
     it('no rompe cuando la fila no trae procedencia', async () => {
       TestBed.resetTestingModule();
       const otro = servicioFalso({
-        list: vi.fn().mockReturnValue(
-          of([informeDeEjemplo({ datasetSource: null, datasetSnapshotDate: null })]),
-        ),
+        list: vi
+          .fn()
+          .mockReturnValue(
+            of([informeDeEjemplo({ datasetSource: null, datasetSnapshotDate: null })]),
+          ),
       });
       const f = await montar(otro);
 
@@ -204,6 +206,122 @@ describe('ReportsComponent', () => {
   });
 
   /*
+   * `list()` siempre devolvió el histórico entero; esta pantalla se quedaba con
+   * `[0]` y tiraba el resto. Un estudiante que pide un segundo informe tras
+   * rehacer el cuestionario perdía el primero de vista sin que nada se lo
+   * dijera, y la comparación entre los dos —que es justo para lo que sirve
+   * pedir otro— no existía.
+   */
+  describe('el histórico', () => {
+    const tres = () => [
+      informeDeEjemplo({ id: 'nuevo', createdAt: '2026-08-11T09:00:00Z' }),
+      informeDeEjemplo({
+        id: 'medio',
+        createdAt: '2026-08-04T09:00:00Z',
+        topCareers: ['Ingeniería Civil', 'Arquitectura'],
+      }),
+      informeDeEjemplo({ id: 'viejo', status: 'failed', createdAt: '2026-07-28T09:00:00Z' }),
+    ];
+
+    it('con un solo informe no ofrece elegir', () => {
+      // Una lista de un elemento no es una elección, es ruido encima del
+      // informe que ya se está enseñando.
+      expect(component.hayHistorico()).toBe(false);
+      expect((fixture.nativeElement as HTMLElement).querySelector('.report__history')).toBeNull();
+    });
+
+    it('con varios los enseña y abre el más reciente', async () => {
+      TestBed.resetTestingModule();
+      const f = await montar(servicioFalso({ list: vi.fn().mockReturnValue(of(tres())) }));
+
+      const botones = (f.nativeElement as HTMLElement).querySelectorAll('.report__history-item');
+      expect(botones.length).toBe(3);
+      expect(f.componentInstance.informe()?.id).toBe('nuevo');
+    });
+
+    it('al elegir otro trae SU contenido', async () => {
+      TestBed.resetTestingModule();
+      // El espía se declara aquí y se inyecta, en vez de sacarlo del objeto
+      // falso: el tipo de `servicioFalso` ensancha los overrides a `unknown` y
+      // desde ahí no se puede llamar a `mockClear`.
+      const content = vi.fn().mockReturnValue(of(contenidoDeEjemplo()));
+      const f = await montar(servicioFalso({ list: vi.fn().mockReturnValue(of(tres())), content }));
+      content.mockClear();
+
+      f.componentInstance.seleccionar(f.componentInstance.informes()[1]);
+      f.detectChanges();
+
+      expect(f.componentInstance.informe()?.id).toBe('medio');
+      expect(content).toHaveBeenCalledWith('medio');
+    });
+
+    it('volver a pulsar el que ya está abierto no lo recarga', async () => {
+      TestBed.resetTestingModule();
+      const content = vi.fn().mockReturnValue(of(contenidoDeEjemplo()));
+      const f = await montar(servicioFalso({ list: vi.fn().mockReturnValue(of(tres())), content }));
+      content.mockClear();
+
+      f.componentInstance.seleccionar(f.componentInstance.informes()[0]);
+
+      expect(content).not.toHaveBeenCalled();
+    });
+
+    /*
+     * El fallo que tenía todas las papeletas de colarse: sin cortar la
+     * suscripción anterior, el sondeo del informe que estabas viendo sigue vivo
+     * al cambiar de informe y escribe en las mismas señales. Eliges el de julio
+     * y a los dos segundos vuelve el de agosto, sin que nada lo explique.
+     */
+    it('cambiar de informe corta el sondeo del anterior', async () => {
+      TestBed.resetTestingModule();
+      const emisiones = new Subject<Report>();
+      const enCurso = [
+        informeDeEjemplo({ id: 'en-curso', status: 'pending' }),
+        informeDeEjemplo({ id: 'terminado' }),
+      ];
+      const f = await montar(
+        servicioFalso({
+          list: vi.fn().mockReturnValue(of(enCurso)),
+          poll: vi.fn().mockReturnValue(emisiones.asObservable()),
+        }),
+      );
+      expect(f.componentInstance.estado()).toBe('generando');
+
+      f.componentInstance.seleccionar(f.componentInstance.informes()[1]);
+      f.detectChanges();
+      expect(f.componentInstance.informe()?.id).toBe('terminado');
+
+      // El sondeo del primero emite DESPUÉS del cambio. Si siguiera conectado,
+      // esto devolvería la pantalla al informe anterior.
+      emisiones.next(informeDeEjemplo({ id: 'en-curso', status: 'ready' }));
+      f.detectChanges();
+
+      expect(f.componentInstance.informe()?.id).toBe('terminado');
+    });
+
+    it('un informe fallido se puede abrir y cuenta por qué falló', async () => {
+      TestBed.resetTestingModule();
+      const f = await montar(servicioFalso({ list: vi.fn().mockReturnValue(of(tres())) }));
+
+      f.componentInstance.seleccionar(f.componentInstance.informes()[2]);
+      f.detectChanges();
+
+      expect(f.componentInstance.estado()).toBe('fallido');
+    });
+
+    it('marca cuál está abierto', async () => {
+      TestBed.resetTestingModule();
+      const f = await montar(servicioFalso({ list: vi.fn().mockReturnValue(of(tres())) }));
+
+      const activos = (f.nativeElement as HTMLElement).querySelectorAll(
+        '.report__history-item--activo',
+      );
+      expect(activos.length).toBe(1);
+      expect(activos[0].textContent).toContain('Ingeniería de Sistemas');
+    });
+  });
+
+  /*
    * Hasta el 2026-08-09 la suscripción solo tenía rama de éxito, así que un
    * fallo no bajaba nunca `loading` y la pantalla se quedaba en «Generando tu
    * reporte...» indefinidamente, sin mensaje y sin salida.
@@ -220,7 +338,9 @@ describe('ReportsComponent', () => {
       );
 
       expect(f.componentInstance.estado()).toBe('fallido');
-      expect((f.nativeElement as HTMLElement).textContent).toContain('No pudimos generar tu reporte');
+      expect((f.nativeElement as HTMLElement).textContent).toContain(
+        'No pudimos generar tu reporte',
+      );
     });
 
     it('una fila lista cuyo contenido no se puede traer también es un fallo', async () => {
@@ -253,6 +373,34 @@ describe('ReportsComponent', () => {
       );
 
       expect((f.nativeElement as HTMLElement).textContent).toContain('código RIASEC');
+    });
+
+    /*
+     * Dos fallos distintos detrás de la misma pantalla, y sólo uno se arregla
+     * volviendo a pedir. Que la petición se caiga es temporal. Que la FILA esté
+     * en `failed` no: ese informe falló al generarse y volver a pedirlo
+     * devolverá lo mismo para siempre. Se nota desde que se puede abrir un
+     * informe viejo del histórico.
+     */
+    it('un informe que falló al generarse no ofrece reintentar', async () => {
+      TestBed.resetTestingModule();
+      const f = await montar(
+        servicioFalso({
+          list: vi.fn().mockReturnValue(of([informeDeEjemplo({ status: 'failed' })])),
+        }),
+      );
+
+      expect((f.nativeElement as HTMLElement).querySelector('.report__retry')).toBeNull();
+      expect((f.nativeElement as HTMLElement).textContent).toContain('Pídele uno nuevo');
+    });
+
+    it('un fallo de red sí ofrece reintentar', async () => {
+      TestBed.resetTestingModule();
+      const f = await montar(
+        servicioFalso({ list: vi.fn().mockReturnValue(throwError(() => new Error('boom'))) }),
+      );
+
+      expect((f.nativeElement as HTMLElement).querySelector('.report__retry')).toBeTruthy();
     });
   });
 
@@ -321,9 +469,7 @@ describe('ReportsComponent', () => {
       const contenido = contenidoDeEjemplo();
       contenido.careers[0].estimated = ['monthly_income', 'annual_cost'];
 
-      const f = await montar(
-        servicioFalso({ content: vi.fn().mockReturnValue(of(contenido)) }),
-      );
+      const f = await montar(servicioFalso({ content: vi.fn().mockReturnValue(of(contenido)) }));
 
       const primera = (f.nativeElement as HTMLElement).querySelector('.report__card');
       expect(primera?.textContent).toContain('Estimado a partir de carreras similares');
@@ -364,9 +510,7 @@ describe('ReportsComponent', () => {
     });
 
     it('el retrato sale en su propia tarjeta', () => {
-      const tarjeta = (fixture.nativeElement as HTMLElement).querySelector(
-        '.report__profile-card',
-      );
+      const tarjeta = (fixture.nativeElement as HTMLElement).querySelector('.report__profile-card');
 
       expect(tarjeta).not.toBeNull();
       expect(tarjeta?.textContent).toContain('Tu perfil vocacional');

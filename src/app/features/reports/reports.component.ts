@@ -7,6 +7,8 @@ import {
   ReportContentCareer,
   esTerminal,
   etiquetaDeProcedencia,
+  fechaDelInforme,
+  resumenDelInforme,
 } from './report.model';
 
 /**
@@ -37,7 +39,32 @@ export class ReportsComponent implements OnInit, OnDestroy {
   readonly contenido = signal<ReportContent | null>(null);
   readonly descargando = signal(false);
 
+  /**
+   * El histórico entero, tal como lo ordena el backend (el más reciente primero).
+   *
+   * `list()` siempre lo devolvió; esta pantalla se quedaba con `[0]` y tiraba
+   * el resto. Un estudiante que pide un segundo informe tras rehacer el
+   * cuestionario perdía el primero de vista sin que nada se lo dijera, y la
+   * comparación entre los dos —que es justo para lo que sirve pedir otro— no
+   * existía.
+   */
+  readonly informes = signal<Report[]>([]);
+
+  /** Sólo se ofrece elegir cuando hay entre qué elegir. */
+  readonly hayHistorico = computed(() => this.informes().length > 1);
+
   private readonly suscripciones = new Subscription();
+
+  /**
+   * Lo que está en vuelo por el informe seleccionado: su sondeo y su contenido.
+   *
+   * Va aparte de `suscripciones` porque hay que poder cancelarlo **sin** matar
+   * la carga del listado. Sin esto, al cambiar de informe el sondeo del
+   * anterior seguiría vivo y escribiendo en las mismas señales: elegirías el
+   * informe de mayo y a los dos segundos volvería a la pantalla el de agosto,
+   * sin que nada lo explique.
+   */
+  private enCurso = new Subscription();
 
   readonly careers = computed<ReportContentCareer[]>(() => this.contenido()?.careers ?? []);
   readonly careersFound = computed(() => this.careers().length);
@@ -81,6 +108,18 @@ export class ReportsComponent implements OnInit, OnDestroy {
    */
   readonly motivoDelFallo = computed(() => this.informe()?.failureReason ?? '');
 
+  /**
+   * Si el botón de reintentar tiene algo que reintentar.
+   *
+   * Hay dos fallos distintos detrás de la misma pantalla y sólo uno se arregla
+   * volviendo a pedir: que la petición se caiga —red, 404, un contenido que no
+   * baja— es temporal y se reintenta. Que la FILA esté en `failed` no: ese
+   * informe falló al generarse hace días y volver a pedirlo devolverá lo mismo
+   * para siempre. Se nota desde que se puede abrir un informe viejo del
+   * histórico, y un botón que no puede funcionar es peor que no tener botón.
+   */
+  readonly sePuedeReintentar = computed(() => this.informe()?.status !== 'failed');
+
   ngOnInit(): void {
     this.load();
   }
@@ -89,9 +128,10 @@ export class ReportsComponent implements OnInit, OnDestroy {
     // Sin esto, el sondeo sigue vivo despues de salir de la pantalla: cada
     // dos segundos, una peticion mas, para siempre.
     this.suscripciones.unsubscribe();
+    this.enCurso.unsubscribe();
   }
 
-  /** Carga —o recarga— el informe más reciente. Público: lo llama el botón de reintentar. */
+  /** Carga —o recarga— el histórico y abre el más reciente. Público: lo llama el botón de reintentar. */
   load(): void {
     this.estado.set('cargando');
     this.contenido.set(null);
@@ -99,9 +139,10 @@ export class ReportsComponent implements OnInit, OnDestroy {
     this.suscripciones.add(
       this.reportsService.list().subscribe({
         next: (informes) => {
+          this.informes.set(informes);
           const ultimo = informes[0] ?? null;
-          this.informe.set(ultimo);
           if (ultimo === null) {
+            this.informe.set(null);
             this.estado.set('sin-informe');
             return;
           }
@@ -112,9 +153,44 @@ export class ReportsComponent implements OnInit, OnDestroy {
     );
   }
 
+  /**
+   * Abre otro informe del histórico.
+   *
+   * No vuelve a pedir el listado: las filas ya están en memoria y una de ellas
+   * es la que se quiere. Lo que sí se recarga es el contenido, que es lo que no
+   * viaja en el listado.
+   */
+  seleccionar(informe: Report): void {
+    if (this.informe()?.id === informe.id && this.estado() !== 'fallido') {
+      return;
+    }
+    this.atender(informe);
+  }
+
+  estaSeleccionado(informe: Report): boolean {
+    return this.informe()?.id === informe.id;
+  }
+
+  fechaDe(informe: Report): string {
+    return fechaDelInforme(informe.createdAt);
+  }
+
+  resumenDe(informe: Report): string {
+    return resumenDelInforme(informe);
+  }
+
   /** Enruta según el estado de la fila: terminal se resuelve, `pending` se sigue. */
   private atender(informe: Report): void {
+    // Se corta lo del informe anterior ANTES de tocar nada: si estaba
+    // sondeando, su siguiente emisión escribiría encima de este.
+    this.enCurso.unsubscribe();
+    this.enCurso = new Subscription();
+
+    this.informe.set(informe);
+    this.contenido.set(null);
+
     if (informe.status === 'ready') {
+      this.estado.set('cargando');
       this.cargarContenido(informe);
       return;
     }
@@ -136,10 +212,11 @@ export class ReportsComponent implements OnInit, OnDestroy {
    * mentira que el spinner eterno que esto vino a arreglar.
    */
   private seguir(reportId: string): void {
-    this.suscripciones.add(
+    this.enCurso.add(
       this.reportsService.poll(reportId).subscribe({
         next: (informe) => {
           this.informe.set(informe);
+          this.refrescarEnElHistorico(informe);
           if (!esTerminal(informe.status)) {
             return;
           }
@@ -160,8 +237,19 @@ export class ReportsComponent implements OnInit, OnDestroy {
     );
   }
 
+  /**
+   * Deja la fila del histórico igual que la que se está enseñando.
+   *
+   * Sin esto, un informe que se abre en `pending` y termina en `ready` seguiría
+   * poniendo «Generándose…» en la lista de al lado mientras el documento ya
+   * está en pantalla: dos verdades distintas a la vez y a dos centímetros.
+   */
+  private refrescarEnElHistorico(informe: Report): void {
+    this.informes.update((filas) => filas.map((f) => (f.id === informe.id ? informe : f)));
+  }
+
   private cargarContenido(informe: Report): void {
-    this.suscripciones.add(
+    this.enCurso.add(
       this.reportsService.content(informe.id).subscribe({
         next: (contenido) => {
           this.contenido.set(contenido);

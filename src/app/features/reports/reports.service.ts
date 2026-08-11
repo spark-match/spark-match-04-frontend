@@ -3,13 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, timer } from 'rxjs';
 import { delay, map, switchMap, takeWhile } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import {
-  Report,
-  ReportContent,
-  ReportList,
-  esTerminal,
-} from './report.model';
-import { informeDeEjemplo, contenidoDeEjemplo } from './reports.mock';
+import { Report, ReportContent, ReportList, esTerminal } from './report.model';
+import { informeDeEjemplo, contenidoDeEjemplo, historicoDeEjemplo } from './reports.mock';
 
 /**
  * El informe de orientación contra el backend real (ADR-019, fase 6).
@@ -66,7 +61,7 @@ export class ReportsService {
    */
   list(): Observable<Report[]> {
     if (environment.useMocks) {
-      return of([informeDeEjemplo()]).pipe(delay(300));
+      return of(historicoDeEjemplo()).pipe(delay(300));
     }
     return this.http.get<ReportList>(this.base).pipe(map((res) => res.reports ?? []));
   }
@@ -121,9 +116,7 @@ export class ReportsService {
   poll(reportId: string): Observable<Report> {
     return timer(0, INTERVALO_DE_SONDEO_MS).pipe(
       switchMap((intento) =>
-        this.get(reportId).pipe(
-          map((informe) => ({ informe, agotado: intento >= MAX_INTENTOS })),
-        ),
+        this.get(reportId).pipe(map((informe) => ({ informe, agotado: intento >= MAX_INTENTOS }))),
       ),
       takeWhile(({ informe, agotado }) => !esTerminal(informe.status) && !agotado, true),
       map(({ informe }) => informe),
