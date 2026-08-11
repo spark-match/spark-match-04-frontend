@@ -3,10 +3,16 @@ import {
   provideZonelessChangeDetection,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
-import { provideRouter, withComponentInputBinding, withViewTransitions } from '@angular/router';
+import {
+  TitleStrategy,
+  provideRouter,
+  withComponentInputBinding,
+  withViewTransitions,
+} from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
 import { routes } from './app.routes';
+import { SparkMatchTitleStrategy } from './core/title.strategy';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { apiEnvelopeInterceptor } from './core/http/api-envelope.interceptor';
 import { errorInterceptor } from './core/http/error.interceptor';
@@ -19,6 +25,11 @@ export const appConfig: ApplicationConfig = {
 
     // Rutas con transiciones suaves
     provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
+
+    // La estrategia propia pone título en cada una de las navegaciones; la de
+    // Angular sólo lo hace cuando la ruta declara uno, y deja el anterior
+    // puesto cuando no. Ver `core/title.strategy.ts`.
+    { provide: TitleStrategy, useClass: SparkMatchTitleStrategy },
 
     // Cliente HTTP con los interceptores necesarios.
     // apiEnvelopeInterceptor va ultimo a proposito: es el mas cercano a la red,

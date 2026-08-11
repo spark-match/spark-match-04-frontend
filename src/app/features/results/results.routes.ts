@@ -5,6 +5,6 @@ export const resultsRoutes: Routes = [
     path: '',
     // Apuntamos a la carpeta de reportes
     loadComponent: () => import('../reports/reports.component').then((m) => m.ReportsComponent),
-    title: 'Mis resultados · Spark Match',
+    title: 'Reportes',
   },
 ];

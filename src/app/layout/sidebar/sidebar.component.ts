@@ -98,7 +98,7 @@ export class SidebarComponent implements OnInit {
     { label: 'Inicio', icon: 'sparkles', path: '/home' },
     { label: 'Filtros', icon: 'sliders', path: '/filters' },
     { label: 'Chat', icon: 'chat', path: '/assessment' },
-    { label: 'Reporte', icon: 'file', path: '/results' },
+    { label: 'Reportes', icon: 'file', path: '/results' },
     { label: 'Mi perfil', icon: 'user', path: '/profile' },
   ];
 

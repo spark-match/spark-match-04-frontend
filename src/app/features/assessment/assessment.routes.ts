@@ -8,7 +8,7 @@ export const assessmentRoutes: Routes = [
     // localStorage) o abre una nueva si no hay ninguna.
     path: '',
     loadComponent: chatComponent,
-    title: 'Chat Vocacional · Spark Match',
+    title: 'Chat vocacional',
   },
   {
     // Con id: abre esa conversación concreta. Es la URL que usan el sidebar y
@@ -16,6 +16,6 @@ export const assessmentRoutes: Routes = [
     // vez de saltar a otro hilo.
     path: ':threadId',
     loadComponent: chatComponent,
-    title: 'Chat Vocacional · Spark Match',
+    title: 'Chat vocacional',
   },
 ];
