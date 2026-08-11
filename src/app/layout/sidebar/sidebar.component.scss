@@ -160,16 +160,46 @@
 
 // Los dos botones van superpuestos sobre la fila y no al lado: en columna le
 // quitarían ancho al título, que es lo que hay que poder leer.
+//
+// Pero superpuestos SIN fondo se posaban encima de las letras — la papelera
+// caía a mitad de «¿Qué carreras de ingeniería…» y se leían las dos cosas
+// mezcladas. Los títulos de conversación ocupan el ancho entero casi siempre,
+// así que ese choque no era el caso raro: era el normal.
+//
+// La solución es darles suelo. El degradado de la izquierda hace que el
+// título se desvanezca por debajo en vez de cortarse de golpe, que es lo que
+// deja claro que hay texto detrás y no un título más corto.
 .sidebar__recent-actions {
   position: absolute;
-  top: 0.35rem;
-  right: 0.35rem;
+  top: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
+  align-items: center;
   gap: 0.1rem;
+  padding: 0 0.35rem 0 1.5rem;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: linear-gradient(
+    to right,
+    oklch(0 0 0 / 0) 0,
+    var(--sidebar-bg) 1.4rem,
+    var(--sidebar-bg) 100%
+  );
   // Ocultos hasta que hagan falta, pero nunca `display: none`: tienen que
   // seguir en el orden de tabulación para quien no usa ratón.
   opacity: 0;
   transition: opacity 120ms ease;
+}
+
+// Con la fila resaltada por el hover, el degradado tiene que resaltar igual o
+// se recorta un rectángulo más oscuro alrededor de los botones.
+.sidebar__recent-row:hover .sidebar__recent-actions {
+  background: linear-gradient(
+    to right,
+    oklch(0 0 0 / 0) 0,
+    color-mix(in oklch, var(--sidebar-bg), oklch(1 0 0 / 0.06)) 1.4rem,
+    color-mix(in oklch, var(--sidebar-bg), oklch(1 0 0 / 0.06)) 100%
+  );
 }
 
 .sidebar__recent-rename,

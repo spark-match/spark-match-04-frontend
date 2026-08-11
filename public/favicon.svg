@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
+  <!-- El birrete del logo del sidebar, mismo trazado. No es un icono nuevo:
+       que la pestaña y la cabecera enseñen la misma figura es la mitad de lo
+       que hace que se reconozca.
+
+       Los colores van en hex y no en `oklch()` como el resto de la paleta: un
+       favicon lo pinta el navegador fuera del documento, así que no tiene las
+       variables de `styles.scss` a mano. #005b5c es `--teal-deep` recortado a
+       gama sRGB, el mismo valor que usa la hoja del PDF. -->
+  <rect width="24" height="24" rx="5" fill="#005b5c" />
+  <path
+    d="M3.6 9.4 12 4.8l8.4 4.6-8.4 4.6z"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="1.7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M7.2 11.5V16l4.8 2.7 4.8-2.7v-4.5"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="1.7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
