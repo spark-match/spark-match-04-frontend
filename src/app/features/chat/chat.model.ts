@@ -73,6 +73,16 @@ export interface ThreadMessage {
    * búsqueda en internet o de un especialista.
    */
   activity?: ThreadActivity[];
+  /**
+   * El informe que se emitió en ese turno, si se emitió alguno.
+   *
+   * `snake_case` porque así viaja, igual que `thread_id`; se traduce a
+   * `reportId` al entrar. La manda el agente desde
+   * `spark-match-08-deep-agent#104`: hasta entonces el id sólo llegaba por el
+   * evento en vivo `spark.report.ready`, así que al recargar la página el
+   * botón de ver el informe desaparecía aunque el informe siguiera ahí.
+   */
+  report_id?: string;
 }
 
 /** Forma de `GET /threads/{id}/messages` en el agente. */
