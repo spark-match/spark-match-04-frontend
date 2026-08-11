@@ -248,6 +248,33 @@ export function olvidarLosRenombrados(): void {
 }
 
 /**
+ * Las conversaciones que el estudiante borró durante esta sesión.
+ *
+ * Mismo motivo que `RENOMBRADAS`: si `mockThreads()` siguiera devolviéndolas,
+ * en local sólo se podría comprobar que la fila desaparece un instante, que es
+ * justo la mitad que ya funciona sola. Lo que hay que poder mirar es que no
+ * vuelve al refrescar la lista.
+ */
+const BORRADAS = new Set<string>();
+
+export function olvidarLosBorrados(): void {
+  BORRADAS.clear();
+}
+
+/**
+ * Borra una conversación simulada.
+ *
+ * Se calla si el id no existe, al revés que `mockRename`. Borrar dos veces lo
+ * mismo es el final feliz de borrar una vez —la conversación no está—, y en
+ * el agente tampoco es un error: `store.adelete` sobre una clave que no está
+ * no se queja.
+ */
+export function mockDelete(threadId: string): void {
+  BORRADAS.add(threadId);
+  RENOMBRADAS.delete(threadId);
+}
+
+/**
  * Las conversaciones del sidebar, más recientes primero.
  *
  * `ChatThread` ya es la forma de la respuesta —`thread_id`, `created_at`: eso
@@ -255,7 +282,9 @@ export function olvidarLosRenombrados(): void {
  * con los mensajes.
  */
 export function mockThreads(): ChatThread[] {
-  return CONVERSACIONES.map((conversacion) => unaConversacion(conversacion));
+  return CONVERSACIONES.filter((conversacion) => !BORRADAS.has(conversacion.id)).map(
+    (conversacion) => unaConversacion(conversacion),
+  );
 }
 
 function unaConversacion(conversacion: { id: string; dias: number; mensajes: ThreadMessage[] }) {

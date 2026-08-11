@@ -63,6 +63,17 @@ export class SidebarComponent implements OnInit {
   readonly renombrando = signal<string | null>(null);
   readonly renameError = this.sessions.renameError;
 
+  /**
+   * Id de la conversación que está preguntando si de verdad se borra.
+   *
+   * La confirmación se pide en la propia fila y no con un diálogo, por lo
+   * mismo que el renombrado se edita en el sitio: la pregunta se lee justo
+   * encima del nombre al que se refiere, y así no hay que nombrarlo dentro
+   * del mensaje ni sacar al estudiante de donde estaba.
+   */
+  readonly confirmandoBorrado = signal<string | null>(null);
+  readonly deleteError = this.sessions.deleteError;
+
   /** El mismo tope que el agente, para que el input no deje escribir de más. */
   readonly MAX_TITULO = MAX_TITULO;
 
@@ -139,6 +150,52 @@ export class SidebarComponent implements OnInit {
 
   private tituloActual(threadId: string): string | undefined {
     return this.recentChats().find((chat) => chat.thread_id === threadId)?.title;
+  }
+
+  pedirConfirmacionDeBorrado(threadId: string): void {
+    this.sessions.deleteError.set(null);
+    // Renombrar y borrar a la vez sobre la misma fila no significa nada, y
+    // dejar el input abierto detrás de la pregunta haría que el `blur` del
+    // botón de confirmar guardara un renombrado que nadie pidió.
+    this.renombrando.set(null);
+    this.confirmandoBorrado.set(threadId);
+  }
+
+  cancelarBorrado(): void {
+    this.confirmandoBorrado.set(null);
+  }
+
+  /**
+   * Borra de verdad, y saca al estudiante de la conversación si era la suya.
+   *
+   * Quedarse en `/assessment/<id>` de algo que ya no existe deja una pantalla
+   * con mensajes que no se pueden continuar: el siguiente turno iría a un
+   * hilo que el agente ya no reconoce. Se abre uno nuevo, que es donde
+   * cualquiera querría acabar después de borrar el que estaba leyendo.
+   */
+  confirmarBorrado(threadId: string): void {
+    this.confirmandoBorrado.set(null);
+    const eraElAbierto = this.elHiloAbierto() === threadId;
+
+    this.sessions.delete(threadId);
+
+    if (eraElAbierto) this.newChat();
+  }
+
+  /**
+   * La conversación que se está viendo ahora mismo, o `null`.
+   *
+   * `null` también cuando el estudiante está en otra pantalla: borrar un chat
+   * viejo desde el perfil no debería mandarle al chat.
+   */
+  private elHiloAbierto(): string | null {
+    const [ruta] = this.router.url.split('?');
+    const partes = ruta.split('/').filter(Boolean);
+    if (partes[0] !== 'assessment') return null;
+
+    // Sin id en la ruta, el chat abre el que tenga guardado. Preguntarselo al
+    // servicio no crea ninguno de mas: para estar aqui, el chat ya lo hizo.
+    return partes[1] ?? this.chatService.currentThreadId();
   }
 
   openChat(threadId: string): void {

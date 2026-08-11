@@ -13,10 +13,11 @@ describe('ChatSessionsStore', () => {
   function build(
     listThreads: ReturnType<typeof vi.fn>,
     renameThread: ReturnType<typeof vi.fn> = vi.fn(),
+    deleteThread: ReturnType<typeof vi.fn> = vi.fn(),
   ): ChatSessionsStore {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [{ provide: ChatService, useValue: { listThreads, renameThread } }],
+      providers: [{ provide: ChatService, useValue: { listThreads, renameThread, deleteThread } }],
     });
     return TestBed.inject(ChatSessionsStore);
   }
@@ -134,6 +135,113 @@ describe('ChatSessionsStore', () => {
 
       expect(store.renameError()).toBeNull();
       expect(store.threads()[0].title).toBe('a la segunda');
+    });
+  });
+
+  describe('deleting', () => {
+    it('takes the row out before the agent answers', () => {
+      // Esperar al 204 para ver desaparecer lo que acabas de borrar se siente
+      // roto, igual que en el renombrado.
+      let responder: () => void = () => undefined;
+      const borrar = vi.fn(
+        () =>
+          new Observable<void>((subscriber) => {
+            responder = () => {
+              subscriber.next();
+              subscriber.complete();
+            };
+          }),
+      );
+      const store = build(vi.fn().mockReturnValue(of([thread('a'), thread('b')])), vi.fn(), borrar);
+      store.refresh();
+
+      store.delete('a');
+
+      expect(store.threads().map((t) => t.thread_id)).toEqual(['b']);
+      responder();
+    });
+
+    it('asks the agent again once it is done', () => {
+      // El indice lo ordena el agente; volver a pedirlo es lo que garantiza
+      // que se ve lo que quedo guardado y no lo que esta pantalla dedujo.
+      const listThreads = vi
+        .fn()
+        .mockReturnValueOnce(of([thread('a'), thread('b')]))
+        .mockReturnValueOnce(of([thread('b')]));
+      const store = build(listThreads, vi.fn(), vi.fn().mockReturnValue(of(undefined)));
+      store.refresh();
+
+      store.delete('a');
+
+      expect(listThreads).toHaveBeenCalledTimes(2);
+      expect(store.threads().map((t) => t.thread_id)).toEqual(['b']);
+    });
+
+    it('only removes the conversation it was asked to', () => {
+      // El borrado se deja sin contestar a proposito: lo que se mira aqui es
+      // el paso optimista. Si contestara, el `refresh()` de despues repondria
+      // la lista del agente y estariamos comprobando el mock, no el store.
+      const store = build(
+        vi.fn().mockReturnValue(of([thread('a'), thread('b'), thread('c')])),
+        vi.fn(),
+        vi.fn().mockReturnValue(new Observable<void>(() => undefined)),
+      );
+      store.refresh();
+
+      store.delete('b');
+
+      expect(store.threads().map((t) => t.thread_id)).toEqual(['a', 'c']);
+    });
+
+    it('puts the conversation back when it fails', () => {
+      const borrar = vi.fn().mockReturnValue(throwError(() => new Error('down')));
+      const store = build(vi.fn().mockReturnValue(of([thread('a'), thread('b')])), vi.fn(), borrar);
+      store.refresh();
+
+      store.delete('a');
+
+      expect(store.threads().map((t) => t.thread_id)).toEqual(['a', 'b']);
+    });
+
+    it('says so, instead of letting the conversation come back on its own', () => {
+      const borrar = vi.fn().mockReturnValue(throwError(() => new Error('down')));
+      const store = build(vi.fn().mockReturnValue(of([thread('a')])), vi.fn(), borrar);
+      store.refresh();
+
+      store.delete('a');
+
+      expect(store.deleteError()).toContain('No se pudo borrar');
+    });
+
+    it('clears an earlier failure when trying again', () => {
+      const borrar = vi
+        .fn()
+        .mockReturnValueOnce(throwError(() => new Error('down')))
+        .mockReturnValueOnce(of(undefined));
+      const store = build(vi.fn().mockReturnValue(of([thread('a')])), vi.fn(), borrar);
+      store.refresh();
+      store.delete('a');
+
+      store.delete('a');
+
+      expect(store.deleteError()).toBeNull();
+    });
+
+    it('keeps the two failures apart', () => {
+      // Borrar y renombrar pueden fallar seguidos, y un aviso no debe tapar
+      // al otro.
+      const store = build(
+        vi.fn().mockReturnValue(of([thread('a')])),
+        vi.fn().mockReturnValue(throwError(() => new Error('down'))),
+        vi.fn().mockReturnValue(throwError(() => new Error('down'))),
+      );
+      store.refresh();
+
+      store.rename('a', 'no va a cuajar');
+      store.delete('a');
+
+      expect(store.renameError()).toContain('No se pudo cambiar el nombre');
+      expect(store.deleteError()).toContain('No se pudo borrar');
     });
   });
 });
