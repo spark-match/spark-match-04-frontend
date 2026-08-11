@@ -1,32 +1,53 @@
+// Una sola columna estrecha y centrada, no una rejilla de dos.
+//
+// La versión anterior era `grid` de dos columnas con `:first-of-type` y
+// `:last-of-type` ocupando las dos: región ancha, las dos elecciones a media
+// página cada una, presupuesto ancho otra vez. Cuatro campos con tres ritmos
+// distintos y nada que los agrupara. Un formulario de cuatro preferencias no
+// necesita 1120px; los necesita ordenados.
 .filters {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: clamp(1rem, 3vw, 2rem);
-  row-gap: 1.75rem;
-  width: min(100%, 1120px);
+  width: min(100%, 780px);
   min-height: 100%;
   margin-inline: auto;
   padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem) 4rem;
 }
 
-.filters__title {
-  grid-column: 1 / -1;
-  font-size: 2.2rem;
-  margin-bottom: 0.5rem;
+.filters__intro {
+  margin-bottom: 1.75rem;
 }
 
+.filters__title {
+  font-size: 2.2rem;
+  margin: 0 0 0.5rem;
+}
+
+// Sin el `margin: -1.1rem 0 0` de antes: era un tirón hacia arriba para
+// compensar el margen del título, y cualquier cambio en uno descuadraba el
+// otro.
 .filters__lead {
-  grid-column: 1 / -1;
   color: oklch(0.5 0.02 240);
   line-height: 1.55;
-  margin: -1.1rem 0 0;
+  margin: 0;
 }
 
+.filters__panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+// La línea entre campos es lo que hace que se lean como una lista de
+// preferencias y no como cuatro cosas apiladas por casualidad.
 .filters__field {
   margin: 0;
 
-  &:first-of-type,
-  &:last-of-type { grid-column: 1 / -1; }
+  & + & {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
 }
 
 .filters__label {
@@ -35,7 +56,7 @@
   gap: 0.4rem;
   font-weight: 600;
   font-size: 0.95rem;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.75rem;
 
   svg {
     width: 18px;
@@ -44,20 +65,44 @@
   }
 }
 
+.filters__select-wrap {
+  position: relative;
+}
+
 .filters__select {
   width: 100%;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem 2.75rem 0.85rem 1rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--input);
   font-size: 0.95rem;
   color: var(--foreground);
   appearance: none;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--teal-glow);
+  }
 }
 
+// Sin puntero: el clic tiene que llegar al `select` de debajo.
+.filters__select-arrow {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  translate: 0 -50%;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  color: oklch(0.5 0.02 240);
+}
+
+// Tres columnas a lo ancho del panel entero. Antes también eran tres, pero
+// dentro de media página: cada botón caía en unos 160px con un título y un
+// subtítulo dentro, y de ahí venía la sensación de amontonado.
 .filters__choices {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
@@ -69,7 +114,7 @@
   padding: 0.9rem 1rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--card);
+  background: var(--background);
   cursor: pointer;
   text-align: left;
 
@@ -84,6 +129,11 @@
 
   &:hover {
     border-color: var(--teal-glow);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 
   &.selected {
@@ -118,12 +168,17 @@
   margin-top: 0.4rem;
 }
 
+.filters__error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--danger, oklch(0.55 0.2 25));
+}
+
 .filters__footer {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 1.75rem;
 }
 
 .filters__submit {
@@ -152,14 +207,22 @@
 }
 
 @media (max-width: 640px) {
-  .filters { display: block; }
-  .filters__field { margin-bottom: 1.75rem; }
-  .filters__lead { margin: 0 0 2.25rem; }
+  // Los tres botones en fila no caben: 100px cada uno con dos líneas de texto
+  // dentro parte las palabras.
   .filters__choices {
     grid-template-columns: 1fr;
   }
 
-  .filters__footer { align-items: stretch; flex-direction: column; }
-  .filters__submit { width: 100%; }
-  .filters__budget-range { gap: 1rem; }
+  .filters__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filters__submit {
+    width: 100%;
+  }
+
+  .filters__budget-range {
+    gap: 1rem;
+  }
 }
