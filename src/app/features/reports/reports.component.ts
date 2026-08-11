@@ -44,6 +44,21 @@ export class ReportsComponent implements OnInit, OnDestroy {
   readonly profile = computed(() => this.contenido()?.profile_summary ?? '');
 
   /**
+   * El retrato del perfil, partido en párrafos.
+   *
+   * Llega como un solo texto con saltos de línea dentro —el prompt del
+   * redactor le pide dos o tres párrafos— y pintarlo en un único `<p>` daba
+   * un muro de veinte líneas. Se parte por líneas en blanco; si no hay
+   * ninguna, sale un solo párrafo, que es exactamente lo que había antes.
+   */
+  readonly parrafosDelPerfil = computed(() =>
+    this.profile()
+      .split(/\n\s*\n/)
+      .map((parrafo) => parrafo.trim())
+      .filter((parrafo) => parrafo.length > 0),
+  );
+
+  /**
    * La procedencia se compone de los dos campos de la FILA, no del contenido.
    *
    * Antes salía de `careers[0].source`, un campo por ficha que el contrato real
@@ -196,9 +211,15 @@ export class ReportsComponent implements OnInit, OnDestroy {
     );
   }
 
-  /** Porcentaje de admisión para pantalla: el contrato trae 0–1, aquí se ve 0–100. */
+  /**
+   * Porcentaje de admisión para pantalla.
+   *
+   * El dato ya viene en 0–100, así que aquí solo se redondea. Multiplicarlo
+   * por cien —que es lo que se hacía, siguiendo un contrato que decía 0–1—
+   * enseñaba el 17% de Ingeniería Geofísica como «1700%».
+   */
   admisionEnPorcentaje(career: ReportContentCareer): number {
-    return Math.round(career.admission_rate * 100);
+    return Math.round(career.admission_rate);
   }
 
   /** Si alguna cifra de esta ficha es la mediana de su familia y no un dato medido. */

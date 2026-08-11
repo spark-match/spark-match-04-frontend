@@ -8,6 +8,7 @@ import { stepLabel } from '../../core/agent/step-labels';
 import { toolKind, toolLabel } from '../../core/agent/tool-labels';
 import { toolDetail, toolReason } from '../../core/agent/tool-details';
 import {
+  REPORT_READY_EVENT,
   SUBAGENT_END_EVENT,
   SUBAGENT_START_EVENT,
   subagentLabel,
@@ -322,6 +323,13 @@ function handleCustomEvent(event: AgUiEvent, handlers: ChatTurnHandlers): void {
     // `ok !== false` y no `=== true`: si un agente viejo no manda el campo,
     // lo razonable es asumir que fue bien, no pintar un fallo inventado.
     handlers.onSubagentEnd(toolCallId, value['ok'] !== false, asNumber(value['durationMs']));
+    return;
+  }
+  if (event.name === REPORT_READY_EVENT) {
+    // El id se exige: sin él no hay nada que enlazar, y un botón que lleva a
+    // ninguna parte es peor que no tener botón.
+    const reportId = asText(value['reportId']);
+    if (reportId) handlers.onReportReady(reportId);
   }
 }
 

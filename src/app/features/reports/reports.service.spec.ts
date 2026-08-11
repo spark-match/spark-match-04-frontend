@@ -206,13 +206,22 @@ describe('ReportsService', () => {
    * problema que estas pruebas existen para impedir.
    */
   describe('las fichas de ejemplo se corresponden con filas reales del dataset', () => {
-    /** Filas de `data/features.csv`, las tres con los cuatro flags de imputación en False. */
+    /**
+     * Filas de `data/programs/programs.csv` —el catálogo que el agente carga de
+     * verdad—, las tres con los cuatro flags de imputación en False.
+     *
+     * Y no de `data/features.csv`, que es el dataset de origen: la misma fila
+     * tiene ahí `admission_rate: 0.13` y aquí `13`, porque la construcción del
+     * catálogo la pasa a porcentaje. Cruzar contra el fichero equivocado es lo
+     * que dejó a esta pantalla multiplicando por cien un número que ya venía
+     * multiplicado, y enseñando «1700%» donde correspondía 17%.
+     */
     const FILAS_VERIFICADAS = [
       {
         career: 'Ingeniería de Sistemas',
         institution: 'Universidad Nacional de Ingeniería',
         duration_years: 5,
-        admission_rate: 0.13,
+        admission_rate: 13,
         monthly_income: 4900,
         annual_cost: 110,
       },
@@ -220,7 +229,7 @@ describe('ReportsService', () => {
         career: 'Ingeniería Mecatrónica',
         institution: 'Universidad Nacional de Ingeniería',
         duration_years: 5,
-        admission_rate: 0.07,
+        admission_rate: 7,
         monthly_income: 4195,
         annual_cost: 110,
       },
@@ -228,7 +237,7 @@ describe('ReportsService', () => {
         career: 'Ingeniería Informática',
         institution: 'Universidad Nacional Federico Villarreal',
         duration_years: 5,
-        admission_rate: 0.28,
+        admission_rate: 28,
         monthly_income: 3678,
         annual_cost: 156,
       },
@@ -250,17 +259,18 @@ describe('ReportsService', () => {
     });
 
     /*
-     * La tasa va en 0–1 porque así la emite el agente. El contrato viejo la
-     * tenía en 0–100 (`admissionRatePct`) y la plantilla la pintaba directa;
-     * mezclar los dos convenios muestra «0.13%» donde corresponde 13%, que no
-     * se parece a un error de programa sino a un dato malo.
+     * La tasa va en 0–100 porque así la emite el agente: es la columna del
+     * catálogo, que ya viene en porcentaje. Este test decía 0–1 y con eso
+     * fijaba el error: el mock cumplía el contrato escrito, la pantalla
+     * multiplicaba por cien, y en producción —donde los datos son los de
+     * verdad— un 17% se enseñaba como 1700%.
      */
-    it('la tasa de admisión va en 0-1, como la emite el agente', async () => {
+    it('la tasa de admisión va en 0-100, como la emite el agente', async () => {
       const contenido = await firstValueFrom(service.content('cualquiera'));
 
       for (const career of contenido.careers) {
-        expect(career.admission_rate).toBeGreaterThan(0);
-        expect(career.admission_rate).toBeLessThanOrEqual(1);
+        expect(career.admission_rate).toBeGreaterThan(1);
+        expect(career.admission_rate).toBeLessThanOrEqual(100);
       }
     });
 
