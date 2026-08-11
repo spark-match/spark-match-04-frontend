@@ -19,6 +19,9 @@ export class ChatSessionsStore {
   readonly loading = signal(false);
   /** Lo que se le dice al estudiante cuando un renombrado no llegó. */
   readonly renameError = signal<string | null>(null);
+  /** Lo mismo para un borrado. Separado del de arriba porque los dos gestos
+   *  pueden fallar seguidos y un mensaje no debe tapar al otro. */
+  readonly deleteError = signal<string | null>(null);
 
   /**
    * Cambia el nombre de una conversación.
@@ -49,6 +52,33 @@ export class ChatSessionsStore {
       error: () => {
         this.threads.set(anterior);
         this.renameError.set('No se pudo cambiar el nombre. Inténtalo de nuevo.');
+      },
+    });
+  }
+
+  /**
+   * Borra una conversación. No pregunta: eso es de quien llama.
+   *
+   * La fila desaparece antes de que el agente conteste, igual que en
+   * `rename`, y por la misma razón: si esperáramos al 204, borrar se sentiría
+   * roto durante medio segundo. Y como allí, si el borrado no llega se
+   * restaura la lista entera y se avisa — una conversación que reaparece
+   * sola, sin explicación, parece un fallo de la aplicación.
+   *
+   * `refresh()` al terminar, aunque el 204 ya diga que salió bien: el índice
+   * lo ordena el agente, y volver a pedirlo es lo que garantiza que lo que se
+   * ve es lo que quedó guardado y no lo que esta pantalla dedujo.
+   */
+  delete(threadId: string): void {
+    const anterior = this.threads();
+    this.deleteError.set(null);
+    this.threads.update((lista) => lista.filter((thread) => thread.thread_id !== threadId));
+
+    this.chatService.deleteThread(threadId).subscribe({
+      next: () => this.refresh(),
+      error: () => {
+        this.threads.set(anterior);
+        this.deleteError.set('No se pudo borrar la conversación. Inténtalo de nuevo.');
       },
     });
   }
