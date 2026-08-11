@@ -84,6 +84,47 @@ export function toolKind(toolName: string | undefined): 'search' | 'tool' {
   return toolName && HERRAMIENTAS_DE_INTERNET.has(toolName) ? 'search' : 'tool';
 }
 
+/**
+ * Las herramientas con las que el agente se organiza, no con las que trabaja.
+ *
+ * `write_todos` es la lista de tareas interna de deepagents, y el resto es su
+ * cuaderno de notas: ficheros que escribe y relee dentro de la conversación
+ * para no repetir trabajo. Ninguna de las dos cosas le dice nada al estudiante
+ * sobre su orientación.
+ *
+ * Medido en dev el 2026-08-11, en un turno que emitió un informe: de las ocho
+ * llamadas, CINCO fueron `write_todos`. Tres chips de «Organizando el plan…»
+ * rodeando a los dos que contaban algo, y el último caía DESPUÉS de «Redactando
+ * tu informe…» —era el subagente tachando la tarea—, que se lee como si hubiera
+ * terminado y hubiera vuelto a empezar.
+ *
+ * Se filtra aquí y no en el agente a propósito. El agente sigue publicando sus
+ * pasos: guardar de más es reversible y si algún día se decide enseñarlos el
+ * dato estará; haberlos tirado en el origen no se arregla para las
+ * conversaciones ya guardadas. Qué de eso llega a pantalla es una decisión de
+ * la interfaz, igual que el resto de la copia de este fichero.
+ */
+const HERRAMIENTAS_DE_TRAMITE = new Set([
+  'write_todos',
+  'write_file',
+  'edit_file',
+  'read_file',
+  'ls',
+  'glob',
+  'grep',
+]);
+
+/**
+ * Si esta herramienta merece un chip.
+ *
+ * Las de trámite conservan su etiqueta en `LABELS` a propósito: esto decide si
+ * se pinta, no cómo se llama. Si mañana se quiere enseñar alguna, basta con
+ * sacarla de la lista de arriba y su copia sigue escrita.
+ */
+export function showsInActivity(toolName: string | undefined): boolean {
+  return !HERRAMIENTAS_DE_TRAMITE.has(toolName ?? '');
+}
+
 /** Nombres con etiqueta propia. Para el test de cobertura contra el agente. */
 export function labelledToolNames(): string[] {
   return Object.keys(LABELS);

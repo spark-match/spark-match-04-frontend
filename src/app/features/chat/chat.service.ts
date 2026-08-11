@@ -5,7 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AgUiClient } from '../../core/agent/ag-ui.client';
 import { stepLabel } from '../../core/agent/step-labels';
-import { toolKind, toolLabel } from '../../core/agent/tool-labels';
+import { showsInActivity, toolKind, toolLabel } from '../../core/agent/tool-labels';
 import { toolDetail, toolReason } from '../../core/agent/tool-details';
 import {
   REPORT_READY_EVENT,
@@ -184,9 +184,11 @@ export class ChatService {
     };
 
     const esDeUnSubagente = filtroDeSubagentes();
+    const esDeUnTramite = filtroDeTramites();
 
     for await (const event of this.agent.streamRun(input, signal)) {
       if (esDeUnSubagente(event)) continue;
+      if (esDeUnTramite(event)) continue;
 
       switch (event.type) {
         case 'STEP_STARTED': {
@@ -307,6 +309,44 @@ function filtroDeSubagentes(): (event: AgUiEvent) => boolean {
       return true;
     }
     return false;
+  };
+}
+
+/**
+ * Reconoce los eventos de una herramienta que no se va a anunciar.
+ *
+ * Las herramientas con las que el agente se organiza —su lista de tareas, su
+ * cuaderno de notas— no merecen un chip; quién decide eso es `showsInActivity`.
+ * Lo que resuelve esta función es que sólo el `TOOL_CALL_START` dice DE QUÉ
+ * herramienta se trata: los tres eventos que vienen después traen el id y nada
+ * más. Así que se apunta el id y se descarta el resto de su vida.
+ *
+ * No basta con saltarse el START. Sus argumentos se seguirían acumulando en
+ * `pendingArgs` sin que nadie los consuma, y su `RESULT` anunciaría el final de
+ * un chip que nunca empezó — el componente acabaría parcheando algo que no
+ * existe.
+ *
+ * Filtrar el evento antes del `switch`, como ya hace `filtroDeSubagentes`, y no
+ * con cuatro guardas repartidas por dentro: son cuatro ramas más en un bucle
+ * dentro de un `switch`, que es justo la forma que dispara la complejidad
+ * cognitiva. Aquí, además, se lee de un tirón.
+ *
+ * La guarda del id vacío no es decorativa: un `TOOL_CALL_START` sin id apuntaría
+ * la cadena vacía, y sin ella todos los eventos que no llevan `toolCallId`
+ * —empezando por el texto de la respuesta— coincidirían con ella y
+ * desaparecerían del chat.
+ */
+function filtroDeTramites(): (event: AgUiEvent) => boolean {
+  const sinChip = new Set<string>();
+
+  return (event) => {
+    if (event.type === 'TOOL_CALL_START') {
+      if (showsInActivity(event.toolCallName)) return false;
+      sinChip.add(event.toolCallId ?? '');
+      return true;
+    }
+    if (!event.toolCallId) return false;
+    return sinChip.has(event.toolCallId);
   };
 }
 

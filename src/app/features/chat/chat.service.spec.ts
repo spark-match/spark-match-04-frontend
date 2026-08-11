@@ -177,6 +177,31 @@ describe('ChatService', () => {
       expect(toolDetails).toEqual([]);
     });
 
+    it('no anuncia las herramientas con las que el agente se organiza', async () => {
+      // `write_todos` es su lista de tareas interna. Medido en dev el
+      // 2026-08-11: cinco de las ocho llamadas de un turno con informe. No
+      // basta con saltarse el START — el END y el RESULT llegan igual, y
+      // anunciar el final de un chip que nunca empezó deja al componente
+      // parcheando algo que no existe.
+      agent.events = [
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-1', toolCallName: 'write_todos' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'tc-1', delta: '{"todos": [{"content": "buscar"}]}' },
+        { type: 'TOOL_CALL_END', toolCallId: 'tc-1' },
+        { type: 'TOOL_CALL_RESULT', toolCallId: 'tc-1', content: 'ok' },
+        { type: 'TOOL_CALL_START', toolCallId: 'tc-2', toolCallName: 'search_careers' },
+        { type: 'TOOL_CALL_ARGS', toolCallId: 'tc-2', delta: '{"query": "medicina"}' },
+        { type: 'TOOL_CALL_END', toolCallId: 'tc-2' },
+        { type: 'TOOL_CALL_RESULT', toolCallId: 'tc-2', content: '[]' },
+      ];
+      const { handlers, toolsStarted, toolsEnded, toolDetails } = recordingHandlers();
+
+      await service.sendTurn('t-1', 'hola', handlers);
+
+      expect(toolsStarted.map((t) => t.id)).toEqual(['tc-2']);
+      expect(toolsEnded).toEqual(['tc-2']);
+      expect(toolDetails).toEqual([{ id: 'tc-2', detail: '«medicina»' }]);
+    });
+
     it('reassembles the arguments the model dictated in pieces', async () => {
       agent.events = [
         { type: 'TOOL_CALL_START', toolCallId: 'tc-1', toolCallName: 'search_programs' },
@@ -422,7 +447,11 @@ describe('ChatService', () => {
       it('lo que dice el coordinador antes de delegar también', async () => {
         agent.events = [
           { type: 'TEXT_MESSAGE_START', messageId: 'm-antes' },
-          { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm-antes', delta: 'Voy a pedirlo al especialista.' },
+          {
+            type: 'TEXT_MESSAGE_CONTENT',
+            messageId: 'm-antes',
+            delta: 'Voy a pedirlo al especialista.',
+          },
           { type: 'TEXT_MESSAGE_END', messageId: 'm-antes' },
           ...conDelegacion([]),
         ];
