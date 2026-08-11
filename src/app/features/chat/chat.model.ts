@@ -22,6 +22,14 @@ export interface ChatMessage {
   streaming?: boolean;
   /** Herramientas que el agente usó para producir esta respuesta. */
   activities?: ChatActivity[];
+  /**
+   * En este turno se emitió un informe, y aquí va su id.
+   *
+   * Se guarda en el mensaje y no sólo en pantalla mientras corre, por lo
+   * mismo que las actividades: el estudiante puede volver a la conversación
+   * mañana y el enlace a su informe tiene que seguir donde lo dejó.
+   */
+  reportId?: string;
 }
 
 export interface ChatSession {
@@ -127,6 +135,8 @@ export interface ChatTurnHandlers {
   onSubagentStart(toolCallId: string, label: string, reason: string): void;
   /** El especialista terminó. `ok` es false si la delegación falló. */
   onSubagentEnd(toolCallId: string, ok: boolean, durationMs: number): void;
+  /** Se emitió un informe y ya se puede abrir. */
+  onReportReady(reportId: string): void;
   /** El hilo completo tal como lo tiene el checkpoint del agente. */
   onSnapshot(messages: AgUiSnapshotMessage[]): void;
 }

@@ -177,6 +177,33 @@
   color: oklch(0.6 0.02 240);
 }
 
+// El enlace al informe recién emitido. Dentro de la burbuja y no en una barra
+// aparte: es la respuesta a lo que el estudiante acaba de pedir, y ahí sigue
+// mañana cuando vuelva a la conversación.
+.chat__report {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  align-self: flex-start;
+  margin-top: 0.85rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--teal-glow);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
 .chat__bubble--typing {
   display: flex;
   gap: 0.25rem;

@@ -1,9 +1,10 @@
 <div class="report">
+  <!-- La cabecera se queda fija arriba, así que solo puede llevar cosas de
+       altura acotada. El retrato del perfil vivía aquí dentro y son dos o
+       tres párrafos: la franja fija crecía hasta media pantalla y tapaba las
+       fichas al bajar. Ahora va en su propia tarjeta, más abajo. -->
   <header class="report__header">
-    <div>
-      <h1 class="font-display">Reporte de Orientación</h1>
-      <p class="report__profile">Perfil: {{ profile() }}</p>
-    </div>
+    <h1 class="font-display">Reporte de Orientación</h1>
     <button
       type="button"
       class="report__export"
@@ -69,6 +70,18 @@
       </div>
     }
     @case ('listo') {
+      @if (parrafosDelPerfil().length) {
+        <section class="report__profile-card">
+          <h2 class="report__profile-title">Tu perfil vocacional</h2>
+          <!-- Partido en párrafos: el retrato llega como un solo texto con
+               saltos, y pintarlo en un único bloque daba un muro de veinte
+               líneas que nadie lee. -->
+          @for (parrafo of parrafosDelPerfil(); track $index) {
+            <p class="report__profile-text">{{ parrafo }}</p>
+          }
+        </section>
+      }
+
       <div class="report__banner">
         <span class="report__banner-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-5 9 5-9 5-9-5zm4 2.2V16l5 3 5-3v-4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <p>

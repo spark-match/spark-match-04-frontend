@@ -21,21 +21,48 @@
   z-index: 1;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  padding-block: 0.25rem 1rem;
   background: var(--background);
 
   h1 {
     font-size: 2rem;
-    margin-bottom: 0.25rem;
+    margin: 0;
   }
 }
 
-.report__profile {
-  color: oklch(0.55 0.02 240);
-  font-size: 0.85rem;
-  margin: 0;
+// El retrato del perfil. Vivía dentro de `.report__header`, que es `sticky`,
+// y son dos o tres párrafos: la franja fija crecía hasta media pantalla y se
+// quedaba encima de las fichas al bajar. Aquí ya es una tarjeta normal, que
+// scrollea con el resto.
+.report__profile-card {
+  margin-bottom: 1.5rem;
+  padding: 1.4rem 1.6rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card, var(--background));
+}
+
+.report__profile-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.report__profile-text {
+  // Medida de lectura: un párrafo de veinte líneas ocupando los 1120px enteros
+  // se lee mal aunque el contenido sea bueno.
+  max-width: 68ch;
+  margin: 0 0 0.85rem;
+  color: var(--muted-foreground, oklch(0.45 0.02 240));
+  font-size: 0.95rem;
+  line-height: 1.65;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .report__export {

@@ -71,3 +71,13 @@ export function subagentReason(subagent: string | undefined): string {
 /** Nombres de los eventos propios del agente (`docs/ag-ui-events.md`). */
 export const SUBAGENT_START_EVENT = 'spark.subagent.start';
 export const SUBAGENT_END_EVENT = 'spark.subagent.end';
+
+/**
+ * Ya hay un informe que el estudiante puede abrir.
+ *
+ * Existe porque el chat no tenía forma de saberlo: el contenido del informe
+ * no vuelve al contexto del modelo a propósito, así que lo único que llegaba
+ * a la pantalla era el agente diciendo «tu informe está listo» sin nada que
+ * pulsar, y había que adivinar que existía una sección «Reporte» en el menú.
+ */
+export const REPORT_READY_EVENT = 'spark.report.ready';

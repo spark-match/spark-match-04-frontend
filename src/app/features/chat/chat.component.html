@@ -51,6 +51,24 @@
             [class.chat__text--streaming]="msg.streaming"
             [innerHTML]="msg.text | markdown"
           ></div>
+          @if (msg.reportId && !msg.streaming) {
+            <!-- El informe no viaja por el chat a propósito —son decenas de
+                 miles de caracteres—, así que sin esto lo único que quedaba
+                 era el agente diciendo que estaba listo y el estudiante
+                 buscándolo por el menú. -->
+            <a class="chat__report" routerLink="/results">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" width="16" height="16">
+                <path
+                  d="M6 4h9l4 4v12H6V4zM15 4v4h4M9 13h6m-6 3h4"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Ver mi reporte de orientación
+            </a>
+          }
           @if (!msg.streaming) {
             <span class="chat__time">{{ timeLabel(msg.timestamp) }}</span>
           }

@@ -115,6 +115,15 @@ export class ChatComponent implements OnInit, OnDestroy {
   readonly currentStep = signal<string | null>(null);
   /** Herramientas del turno en curso: búsquedas web, catálogo, subagentes. */
   readonly activities = signal<ChatActivity[]>([]);
+
+  /**
+   * El informe que se emitió en este turno, si se emitió alguno.
+   *
+   * Se lleva aparte de `activities` porque no es una actividad: no tiene
+   * principio y fin que enseñar, es un resultado que sobrevive al turno y al
+   * que hay que poder volver.
+   */
+  readonly informeDelTurno = signal<string | null>(null);
   /**
    * Hay un turno generándose que esta pestaña no está mirando.
    *
@@ -315,6 +324,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.sending.set(true);
     this.currentStep.set(INITIAL_STEP_LABEL);
     this.activities.set([]);
+    this.informeDelTurno.set(null);
     // Turno nuevo: los chips que lleguen buscan portador desde cero, o se
     // pegarian a la primera burbuja del turno ANTERIOR.
     this.turnoActual.set(null);
@@ -372,6 +382,7 @@ export class ChatComponent implements OnInit, OnDestroy {
           },
           onSubagentEnd: (toolCallId, ok, durationMs) =>
             this.patchActivity(toolCallId, { running: false, kind: 'subagent', ok, durationMs }),
+          onReportReady: (reportId) => this.informeDelTurno.set(reportId),
           onSnapshot: (messages) => {
             snapshot = messages;
           },
@@ -395,9 +406,13 @@ export class ChatComponent implements OnInit, OnDestroy {
       // snapshot, el estudiante se queda mirando su pregunta sin respuesta.
       const recovered = failed || answerIds.length ? null : this.recoverAnswer(snapshot);
       const carrier = answerIds[0] ?? recovered;
-      if (carrier) this.attachActivities(carrier);
+      if (carrier) {
+        this.attachActivities(carrier);
+        this.attachReport(carrier);
+      }
 
       this.activities.set([]);
+      this.informeDelTurno.set(null);
       // El indice del agente se escribe al procesar el turno, asi que la
       // lista del sidebar solo es correcta despues de esto: una conversacion
       // nueva no existe hasta su primer mensaje, y una vieja cambia de
@@ -512,6 +527,21 @@ export class ChatComponent implements OnInit, OnDestroy {
     if (!used.length) return;
     this.messages.update((msgs) =>
       msgs.map((msg) => (msg.id === id ? { ...msg, activities: used } : msg)),
+    );
+  }
+
+  /**
+   * Pega el enlace al informe emitido en la burbuja de este turno.
+   *
+   * Va en el mensaje y no en una barra suelta: el estudiante puede seguir
+   * conversando y volver mañana, y el enlace tiene que seguir donde se dijo
+   * que estaba el informe, no en la parte de abajo de la pantalla.
+   */
+  private attachReport(id: string): void {
+    const reportId = this.informeDelTurno();
+    if (!reportId) return;
+    this.messages.update((msgs) =>
+      msgs.map((msg) => (msg.id === id ? { ...msg, reportId } : msg)),
     );
   }
 

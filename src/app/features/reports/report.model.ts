@@ -108,9 +108,13 @@ export interface ReportContentCareer {
   /** Soles al año. */
   annual_cost: number;
   /**
-   * **0–1, NO 0–100.** El contrato viejo tenía `admissionRatePct` y la plantilla
-   * pintaba «{{ ... }}%» directo. Con este campo eso mostraría «0.13%» donde
-   * corresponde 13%. Se convierte al presentar, nunca al recibir.
+   * **0–100.** Es el porcentaje ya hecho, no una fracción: la columna del
+   * catálogo trae 60, 88, 33.
+   *
+   * El nombre dice «rate» y durante un tiempo los tres consumidores —este
+   * modelo, el PDF y esta pantalla— documentaron 0–1 y multiplicaban por
+   * cien, así que un 17% se enseñaba como 1700%. El dato nunca fue una
+   * fracción; lo que estaba mal era el contrato.
    */
   admission_rate: number;
   /** 0–100. */
