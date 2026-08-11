@@ -22,3 +22,22 @@ export function activityTimingLabel(activity: ChatActivity): string {
     ? ` · ${activity.durationMs} ms`
     : ` · ${(activity.durationMs / 1000).toFixed(1)} s`;
 }
+
+/**
+ * Si desplegar las llamadas de un grupo enseña algo.
+ *
+ * Cada viñeta del desplegable pinta dos cosas: con qué se llamó y cuánto
+ * tardó. Un turno REHIDRATADO no tiene ninguna de las dos — el historial no
+ * guarda duraciones (ver `activity-rehydration.ts`) y el asunto sólo sale si
+ * la lista blanca del agente lo autoriza —, así que había grupos enteros
+ * cuyo desplegable se abría a viñetas en blanco. Se veía en «Organizando el
+ * plan · 3 veces»: `write_todos` no publica asunto, y al recargar tampoco
+ * quedaba duración.
+ *
+ * Un desplegable que promete «el detalle de cada llamada» y no enseña nada es
+ * peor que no estar: el lector lo abre, no encuentra nada, y no sabe si es que
+ * falta un dato o es que la interfaz se rompió.
+ */
+export function hayDetalleQueEnsenar(activities: ChatActivity[]): boolean {
+  return activities.some((activity) => Boolean(activity.detail || activityTimingLabel(activity)));
+}

@@ -559,7 +559,12 @@ describe('ReportsComponent', () => {
 
       const primera = (f.nativeElement as HTMLElement).querySelector('.report__card');
       expect(primera?.textContent).toContain('Estimado a partir de carreras similares');
-      expect(primera?.textContent).toContain('monthly_income');
+      // En castellano y enumeradas. Antes esta línea afirmaba `monthly_income`
+      // —el nombre del campo, pintado en crudo— y por eso el fallo tenía un
+      // test que lo protegía: decía «Estimado a partir de carreras similares:
+      // monthly_income», que no le dice al estudiante QUÉ cifra está estimada.
+      expect(primera?.textContent).toContain('el ingreso mensual al egresar y el costo anual');
+      expect(primera?.textContent).not.toContain('monthly_income');
     });
 
     it('no ensucia las fichas cuyas cifras son todas medidas', () => {

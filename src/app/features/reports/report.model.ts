@@ -244,3 +244,38 @@ export function etiquetaDeProcedencia(fuente: string | null, fecha: string | nul
   const [anio, mes, dia] = fecha.split('-');
   return `${fuente} · datos del ${dia}/${mes}/${anio}`;
 }
+
+/**
+ * Cómo se llama cada cifra cuando hay que nombrarla en una frase.
+ *
+ * Las claves son los nombres de campo del informe, que es lo que viaja en
+ * `estimated`. Son nombres NUESTROS, en inglés y con guiones bajos, y hasta
+ * ahora se pintaban tal cual: la ficha decía «Estimado a partir de carreras
+ * similares: monthly_income». Al estudiante eso no le dice qué cifra está
+ * estimada — que es justo lo único que la frase existe para decir.
+ *
+ * La redacción es la misma que usa el PDF (`src/reports/cifras.py::FILAS` en
+ * el agente), en minúscula porque aquí van dentro de una oración.
+ */
+const NOMBRE_DE_LA_CIFRA: Record<string, string> = {
+  duration_years: 'la duración',
+  monthly_income: 'el ingreso mensual al egresar',
+  annual_cost: 'el costo anual',
+  admission_rate: 'la tasa de admisión',
+  match_score: 'la afinidad',
+};
+
+/**
+ * Las cifras estimadas de una ficha, en castellano y enumeradas.
+ *
+ * Un campo que no esté en el mapa sale tal cual: es preferible enseñar un
+ * nombre feo que callarse que una cifra está estimada. Si aparece uno nuevo,
+ * se ve en pantalla y se añade aquí.
+ */
+export function cifrasEstimadas(estimated: readonly string[]): string {
+  const nombres = estimated.map((campo) => NOMBRE_DE_LA_CIFRA[campo] ?? campo);
+  if (nombres.length <= 1) {
+    return nombres.join('');
+  }
+  return `${nombres.slice(0, -1).join(', ')} y ${nombres.at(-1)}`;
+}

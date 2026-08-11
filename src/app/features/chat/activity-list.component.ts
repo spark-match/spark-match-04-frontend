@@ -1,6 +1,6 @@
 import { Component, computed, input, signal } from '@angular/core';
 import { ActivityGroup } from './activity-grouping';
-import { activityTimingLabel } from './activity-timing';
+import { activityTimingLabel, hayDetalleQueEnsenar } from './activity-timing';
 import { resumenDeActividad } from './activity-summary';
 
 /**
@@ -59,4 +59,15 @@ export class ActivityListComponent {
   }
 
   activityTiming = activityTimingLabel;
+
+  /**
+   * Si merece la pena ofrecer el desplegable de un grupo.
+   *
+   * Agrupar varias llamadas no garantiza que haya nada que enseñar de cada
+   * una: ver `hayDetalleQueEnsenar`. Sin esta comprobación, «Organizando el
+   * plan · 3 veces» se abría a tres viñetas en blanco.
+   */
+  hayDetalle(group: ActivityGroup): boolean {
+    return hayDetalleQueEnsenar(group.calls);
+  }
 }
