@@ -2,9 +2,14 @@
   <header class="report__header">
     <div>
       <h1 class="font-display">Reporte de Orientación</h1>
-      <p class="report__profile">Perfil: {{ profile }}</p>
+      <p class="report__profile">Perfil: {{ profile() }}</p>
     </div>
-    <button type="button" class="report__export" [disabled]="!report()" (click)="exportPdf()">
+    <button
+      type="button"
+      class="report__export"
+      [disabled]="estado() !== 'listo' || descargando()"
+      (click)="exportPdf()"
+    >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
         <path
           d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"
@@ -14,80 +19,120 @@
           stroke-linejoin="round"
         />
       </svg>
-      Exportar a PDF
+      {{ descargando() ? 'Descargando...' : 'Exportar a PDF' }}
     </button>
   </header>
 
-  @if (loading()) {
-    <p class="report__loading">Generando tu reporte de orientación...</p>
-  } @else if (failed()) {
-    <!-- El rol de alerta del div de abajo hace que un lector de pantalla anuncie
-         el fallo en cuanto aparece: quien no ve la pantalla no tiene forma de
-         enterarse de que el spinner se convirtio en otra cosa. Escrito sin la
-         sintaxis del atributo a proposito, que Sonar la lee como HTML
-         comentado (Web:AvoidCommentedOutCodeCheck). -->
-    <div class="report__error" role="alert">
-      <p class="report__error-title">No pudimos generar tu reporte</p>
-      <p class="report__error-body">
-        Puede ser un problema temporal de conexión. Inténtalo de nuevo en unos segundos; si
-        sigue fallando, vuelve más tarde.
-      </p>
-      <button type="button" class="report__retry" (click)="load()">Reintentar</button>
-    </div>
-  } @else {
-    <div class="report__banner">
-      <span class="report__banner-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-5 9 5-9 5-9-5zm4 2.2V16l5 3 5-3v-4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      <p>
-        <span class="report__banner-eyebrow">Basado en tu perfil</span><br />
-        Se encontraron <strong>{{ careersFound }} carreras</strong> con alta compatibilidad · Datos:
-        {{ dataSource }}
-      </p>
-    </div>
+  @switch (estado()) {
+    @case ('cargando') {
+      <p class="report__loading">Buscando tu reporte de orientación...</p>
+    }
+    @case ('generando') {
+      <!-- Ahora esta frase es verdad. Antes se enseñaba con una sola peticion
+           en vuelo y sin nada detras que siguiera el progreso, asi que
+           anunciaba una generacion que no estaba ocurriendo. -->
+      <p class="report__loading">Generando tu reporte de orientación...</p>
+    }
+    @case ('sin-informe') {
+      <!-- El caso que antes no existia. Un estudiante que no ha pedido su
+           informe caia en la rama de error y leia "No pudimos generar tu
+           reporte", que le culpaba de un fallo que no habia ocurrido. -->
+      <div class="report__empty">
+        <p class="report__empty-title">Todavía no tienes un reporte</p>
+        <p class="report__empty-body">
+          El reporte lo prepara tu orientador durante la conversación. Pídeselo en el chat
+          —«genérame mi reporte de orientación»— y aparecerá aquí cuando esté listo.
+        </p>
+        <button type="button" class="report__retry" (click)="load()">Volver a buscar</button>
+      </div>
+    }
+    @case ('fallido') {
+      <!-- El rol de alerta del div de abajo hace que un lector de pantalla anuncie
+           el fallo en cuanto aparece: quien no ve la pantalla no tiene forma de
+           enterarse de que el spinner se convirtio en otra cosa. Escrito sin la
+           sintaxis del atributo a proposito, que Sonar la lee como HTML
+           comentado (Web:AvoidCommentedOutCodeCheck). -->
+      <div class="report__error" role="alert">
+        <p class="report__error-title">No pudimos generar tu reporte</p>
+        @if (motivoDelFallo()) {
+          <!-- El motivo SI se enseña: viene acotado a 500 caracteres desde el
+               backend y esta redactado para el estudiante, no es un traceback.
+               Suele ser accionable ("tu perfil aun no tiene codigo RIASEC"). -->
+          <p class="report__error-body">{{ motivoDelFallo() }}</p>
+        } @else {
+          <p class="report__error-body">
+            Puede ser un problema temporal de conexión. Inténtalo de nuevo en unos segundos; si
+            sigue fallando, vuelve más tarde.
+          </p>
+        }
+        <button type="button" class="report__retry" (click)="load()">Reintentar</button>
+      </div>
+    }
+    @case ('listo') {
+      <div class="report__banner">
+        <span class="report__banner-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-5 9 5-9 5-9-5zm4 2.2V16l5 3 5-3v-4.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <p>
+          <span class="report__banner-eyebrow">Basado en tu perfil</span><br />
+          Se encontraron <strong>{{ careersFound() }} carreras</strong> con alta compatibilidad · Datos:
+          {{ dataSource() }}
+        </p>
+      </div>
 
-    @for (career of careers; track career.id) {
-      <article class="report__card">
-        <div class="report__card-top">
-          <span class="report__rank" [class.report__rank--top]="career.isTopMatch">
-            @if (career.isTopMatch) {
-              <svg aria-label="Mejor coincidencia" viewBox="0 0 24 24" fill="none"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
-            } @else {
-              {{ '#' + career.rank }}
-            }
-          </span>
-          <div class="report__card-heading">
-            <h2>{{ career.title }}</h2>
-            <p>{{ career.institution }}</p>
+      @for (career of careers(); track career.career + career.institution; let i = $index) {
+        <article class="report__card">
+          <div class="report__card-top">
+            <span class="report__rank" [class.report__rank--top]="i === 0">
+              @if (i === 0) {
+                <svg aria-label="Mejor coincidencia" viewBox="0 0 24 24" fill="none"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+              } @else {
+                {{ '#' + (i + 1) }}
+              }
+            </span>
+            <div class="report__card-heading">
+              <h2>{{ career.career }}</h2>
+              <p>{{ career.institution }} · {{ career.location }}</p>
+            </div>
+            <span class="report__match"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M5 17 17 5m-7 0h7v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>{{ career.match_score }}% match</span>
           </div>
-          <span class="report__match"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M5 17 17 5m-7 0h7v7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>{{ career.matchPct }}% match</span>
-        </div>
 
-        <p class="report__insight">{{ career.insight }}</p>
+          <p class="report__insight">{{ career.insight }}</p>
 
-        <div class="report__metrics">
-          <div class="report__metric">
-            <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4l2.8 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Duración</span>
-            <strong>{{ career.metrics.durationYears }} años</strong>
-            <span class="report__metric-sub">años de carrera</span>
+          <div class="report__metrics">
+            <div class="report__metric">
+              <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4l2.8 1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Duración</span>
+              <strong>{{ career.duration_years }} años</strong>
+              <span class="report__metric-sub">años de carrera</span>
+            </div>
+            <div class="report__metric">
+              <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M5 19 19 5M7.5 7.5h.01m9 9h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="16.5" cy="16.5" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>Tasa de Admisión</span>
+              <!-- El contrato trae 0-1. Pintarlo directo mostraria "0.13%". -->
+              <strong>{{ admisionEnPorcentaje(career) }}%</strong>
+              <span class="report__metric-sub">de postulantes ingresan</span>
+            </div>
+            <div class="report__metric">
+              <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 9.5c-.5-.7-1.4-1.1-2.5-1.1-1.4 0-2.5.7-2.5 1.8 0 2.7 5 1.1 5 4 0 1.1-1.1 1.8-2.5 1.8-1.1 0-2-.4-2.5-1.1M12 7v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Ingreso Mensual Prom.</span>
+              <strong>S/. {{ career.monthly_income.toLocaleString('es-PE') }}</strong>
+              <span class="report__metric-sub">sueldo promedio</span>
+            </div>
+            <div class="report__metric">
+              <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M6 4h9l4 4v12H6V4zM15 4v4h4M9 13h6m-6 3h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Costo Anual</span>
+              <strong>S/. {{ career.annual_cost.toLocaleString('es-PE') }}</strong>
+              <span class="report__metric-sub">por año académico</span>
+            </div>
           </div>
-          <div class="report__metric">
-            <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M5 19 19 5M7.5 7.5h.01m9 9h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="16.5" cy="16.5" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>Tasa de Admisión</span>
-            <strong>{{ career.metrics.admissionRatePct }}%</strong>
-            <span class="report__metric-sub">de postulantes ingresan</span>
-          </div>
-          <div class="report__metric">
-            <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 9.5c-.5-.7-1.4-1.1-2.5-1.1-1.4 0-2.5.7-2.5 1.8 0 2.7 5 1.1 5 4 0 1.1-1.1 1.8-2.5 1.8-1.1 0-2-.4-2.5-1.1M12 7v10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Ingreso Mensual Prom.</span>
-            <strong>S/. {{ career.metrics.monthlyIncomeAvg.toLocaleString('es-PE') }}</strong>
-            <span class="report__metric-sub">sueldo promedio</span>
-          </div>
-          <div class="report__metric">
-            <span class="report__metric-label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="M6 4h9l4 4v12H6V4zM15 4v4h4M9 13h6m-6 3h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Costo Anual</span>
-            <strong>S/. {{ career.metrics.annualCostAvg.toLocaleString('es-PE') }}</strong>
-            <span class="report__metric-sub">por año académico</span>
-          </div>
-        </div>
 
-        <div class="report__card-footer"><span class="report__source">Fuente: {{ career.source }}</span></div>
-      </article>
+          @if (tieneEstimados(career)) {
+            <!-- Sin este aviso, un ingreso imputado es indistinguible de uno
+                 publicado por el MINEDU. El agente arrastra la lista hasta aqui
+                 justamente para poder decirlo. -->
+            <p class="report__estimated">
+              Estimado a partir de carreras similares: {{ career.estimated.join(', ') }}
+            </p>
+          }
+
+          <div class="report__card-footer"><span class="report__source">Fuente: {{ dataSource() }}</span></div>
+        </article>
+      }
     }
   }
 </div>

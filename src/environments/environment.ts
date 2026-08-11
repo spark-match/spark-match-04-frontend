@@ -3,6 +3,12 @@ export const environment = {
   // Mantenemos ambos nombres por ahora para no romper los servicios antiguos ni los nuevos
   apiUrl: 'http://localhost:8000/api',
   apiBaseUrl: 'http://localhost:8000/api',
+  // El contexto de informes es otro API Gateway en la nube; en local, con
+  // `useMocks` en true, no se llega a usar. Se declara igualmente para que la
+  // forma del objeto sea la misma en los tres ambientes: si falta aqui, el
+  // build de local compila y el de cloud-dev tambien, y la unica senal de que
+  // algo no cuadra aparece en tiempo de ejecucion.
+  reportsApiUrl: 'http://localhost:8000/api',
   // El deep-agent corriendo en local (`uv run python -m src.api.server`).
   agentUrl: 'http://localhost:8000',
   authStorageKey: 'spark-match.auth',
