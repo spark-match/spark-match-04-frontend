@@ -182,44 +182,9 @@ export class ChatService {
       if (detail) handlers.onToolDetail(toolCallId, detail);
     };
 
-    // Cuántas delegaciones hay abiertas ahora mismo, y qué mensajes empezaron
-    // dentro de una.
-    //
-    // El agente emite `spark.subagent.start`/`end` alrededor de cada `task`, y
-    // entre esos dos eventos todo el texto que llega lo escribe el subagente,
-    // no el coordinador. Es texto de trabajo —habla del estudiante en tercera
-    // persona, «el estudiante mencionó», «voy a emitir el informe para este
-    // estudiante»— y no está escrito para que nadie lo lea. Hasta ahora se
-    // pintaba como si fueran respuestas del orientador.
-    //
-    // Se apunta el id de cada mensaje silenciado en vez de mirar sólo el
-    // contador: el cierre del subagente y el del mensaje no llevan orden
-    // garantizado, y un `TEXT_MESSAGE_END` que llegara después del `end` de la
-    // delegación abriría una burbuja vacía.
-    let delegacionesAbiertas = 0;
-    const silenciados = new Set<string>();
-
-    const esDeUnSubagente = (event: AgUiEvent): boolean => {
-      const messageId = String(event.messageId ?? '');
-      if (event.type === 'TEXT_MESSAGE_START' && delegacionesAbiertas > 0) {
-        silenciados.add(messageId);
-        return true;
-      }
-      if (event.type === 'TEXT_MESSAGE_CONTENT') return silenciados.has(messageId);
-      if (event.type === 'TEXT_MESSAGE_END' && silenciados.has(messageId)) {
-        silenciados.delete(messageId);
-        return true;
-      }
-      return false;
-    };
+    const esDeUnSubagente = filtroDeSubagentes();
 
     for await (const event of this.agent.streamRun(input, signal)) {
-      if (event.type === 'CUSTOM') {
-        if (event.name === SUBAGENT_START_EVENT) delegacionesAbiertas++;
-        if (event.name === SUBAGENT_END_EVENT)
-          delegacionesAbiertas = Math.max(0, delegacionesAbiertas - 1);
-      }
-
       if (esDeUnSubagente(event)) continue;
 
       switch (event.type) {
@@ -300,6 +265,50 @@ export class ChatService {
  * que la interfaz lo asciende a «Evaluando tu perfil vocacional…» en vez de
  * pintar un segundo chip para lo mismo.
  */
+/**
+ * Reconoce la narración interna de un subagente, para no pintarla.
+ *
+ * El agente emite `spark.subagent.start` y `spark.subagent.end` alrededor de
+ * cada delegación, y entre esos dos eventos el texto que llega lo escribe el
+ * subagente, no el coordinador. Es texto de trabajo: habla del estudiante en
+ * tercera persona —«el estudiante mencionó», «voy a emitir el informe para
+ * este estudiante»— porque va dirigido a quien delegó. Se pintaba en el chat
+ * como si fueran respuestas del orientador.
+ *
+ * Devuelve una función con memoria en vez de recibir el estado por parámetro:
+ * lo que hay que recordar entre eventos —cuántas delegaciones siguen abiertas
+ * y qué mensajes se silenciaron— es asunto suyo y de nadie más.
+ *
+ * Se apunta el **id** de cada mensaje silenciado, y no basta el contador: el
+ * cierre de la delegación y el del mensaje no llevan orden garantizado, así
+ * que un `TEXT_MESSAGE_END` que llegara después abriría una burbuja vacía.
+ */
+function filtroDeSubagentes(): (event: AgUiEvent) => boolean {
+  let delegacionesAbiertas = 0;
+  const silenciados = new Set<string>();
+
+  return (event) => {
+    if (event.type === 'CUSTOM') {
+      if (event.name === SUBAGENT_START_EVENT) delegacionesAbiertas++;
+      if (event.name === SUBAGENT_END_EVENT)
+        delegacionesAbiertas = Math.max(0, delegacionesAbiertas - 1);
+      return false;
+    }
+
+    const messageId = String(event.messageId ?? '');
+    if (event.type === 'TEXT_MESSAGE_START' && delegacionesAbiertas > 0) {
+      silenciados.add(messageId);
+      return true;
+    }
+    if (event.type === 'TEXT_MESSAGE_CONTENT') return silenciados.has(messageId);
+    if (event.type === 'TEXT_MESSAGE_END' && silenciados.has(messageId)) {
+      silenciados.delete(messageId);
+      return true;
+    }
+    return false;
+  };
+}
+
 function handleCustomEvent(event: AgUiEvent, handlers: ChatTurnHandlers): void {
   const value = (event.value ?? {}) as Record<string, unknown>;
   const toolCallId = asText(value['toolCallId']);
