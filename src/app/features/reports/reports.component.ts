@@ -30,14 +30,14 @@ export type EstadoDeLaPantalla = 'cargando' | 'sin-informe' | 'generando' | 'lis
   styleUrl: './reports.component.scss',
 })
 export class ReportsComponent implements OnInit, OnDestroy {
-  private reportsService = inject(ReportsService);
+  private readonly reportsService = inject(ReportsService);
 
   readonly estado = signal<EstadoDeLaPantalla>('cargando');
   readonly informe = signal<Report | null>(null);
   readonly contenido = signal<ReportContent | null>(null);
   readonly descargando = signal(false);
 
-  private suscripciones = new Subscription();
+  private readonly suscripciones = new Subscription();
 
   readonly careers = computed<ReportContentCareer[]>(() => this.contenido()?.careers ?? []);
   readonly careersFound = computed(() => this.careers().length);
@@ -173,7 +173,7 @@ export class ReportsComponent implements OnInit, OnDestroy {
    */
   exportPdf(): void {
     const informe = this.informe();
-    if (informe === null || informe.status !== 'ready' || this.descargando()) {
+    if (informe?.status !== 'ready' || this.descargando()) {
       return;
     }
 

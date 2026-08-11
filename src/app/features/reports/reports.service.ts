@@ -55,8 +55,8 @@ const MAX_INTENTOS = Math.ceil(TOPE_DE_SONDEO_MS / INTERVALO_DE_SONDEO_MS);
 
 @Service()
 export class ReportsService {
-  private http = inject(HttpClient);
-  private base = `${environment.reportsApiUrl}/reports`;
+  private readonly http = inject(HttpClient);
+  private readonly base = `${environment.reportsApiUrl}/reports`;
 
   /**
    * El histórico del estudiante, tal como lo ordena el backend.
