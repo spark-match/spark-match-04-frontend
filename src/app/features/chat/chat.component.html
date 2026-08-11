@@ -38,7 +38,13 @@
         }
         <div class="chat__bubble">
           @if (msg.activities?.length) {
-            <app-activity-list [groups]="activityGroups(msg.activities)" />
+            <!-- `live` mientras el turno corre: plegar los chips a mitad de la
+                 generación escondería justo lo que hace llevadera la espera. Al
+                 cerrar el turno pasan a ser procedencia y ya sí se pliegan. -->
+            <app-activity-list
+              [groups]="activityGroups(msg.activities)"
+              [live]="enVivo(msg.id)"
+            />
           }
           <div
             class="chat__text prose"
@@ -52,7 +58,14 @@
       </div>
     }
 
-    @if (activities().length) {
+    <!-- Sólo mientras el turno no tiene todavía ninguna burbuja de respuesta.
+         En cuanto la hay, los chips viven DENTRO de ella y encima de su texto
+         (ver `sincronizarChipsEnVivo`), que es el orden que el estudiante
+         espera: primero qué hice, luego qué te digo. Pintarlos aquí en ese
+         caso los dejaría por debajo del texto ya escrito y partiría la
+         respuesta en dos. Aquí, sin texto debajo, «al final» y «encima de la
+         respuesta» son el mismo sitio. -->
+    @if (activities().length && !turnoActual()) {
       <div class="chat__bubble-row">
         <span class="chat__avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 4.9L19 9.5l-5.2 1.6L12 16l-1.8-4.9L5 9.5l5.2-1.6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
         <div class="chat__bubble">

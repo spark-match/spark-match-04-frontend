@@ -336,7 +336,7 @@ describe('ChatService', () => {
       expect(subagentsStarted).toEqual([
         {
           id: 'tc-9',
-          label: 'Buscando carreras que encajen contigo…',
+          label: 'Subagente especialista buscando carreras que encajen contigo…',
           reason: 'un especialista cruza ese perfil con el catálogo real del MINEDU',
         },
       ]);
@@ -355,7 +355,7 @@ describe('ChatService', () => {
 
       await service.sendTurn('t-1', 'hola', handlers);
 
-      expect(subagentsStarted[0].label).toBe('Consultando a un especialista…');
+      expect(subagentsStarted[0].label).toBe('Subagente especialista trabajando…');
       expect(subagentsStarted[0].label).not.toContain('especialista_secreto');
       // Y sin motivo: describir lo que hace un especialista que no se conoce
       // seria inventarselo.
@@ -396,7 +396,7 @@ describe('ChatService', () => {
       await service.sendTurn('t-1', 'hola', handlers);
 
       expect(subagentsStarted[0].id).toBe('');
-      expect(subagentsStarted[0].label).toBe('Consultando a un especialista…');
+      expect(subagentsStarted[0].label).toBe('Subagente especialista trabajando…');
       // Una duracion ilegible se ensena como nada, no como "NaN ms".
       expect(subagentsEnded[0].durationMs).toBe(0);
     });

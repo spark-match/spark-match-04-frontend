@@ -31,6 +31,54 @@
         [class.chat__activity--failed]="group.ok === false"
       >
         <span class="chat__activity-head">
+          <!-- Un icono por TIPO, no por herramienta. Lo que el estudiante
+               necesita distinguir de un vistazo no es cual de las quince
+               herramientas corrio, sino de donde sale lo que va a leer: de un
+               dato del catalogo, de otro agente razonando, o de la web de hoy
+               que no ha revisado nadie. Tres iconos, tres procedencias.
+
+               `aria-hidden` porque el texto de al lado ya lo dice: un lector
+               de pantalla que anuncie "cerebro" antes de "Subagente
+               especialista..." solo estorba. -->
+          <span class="chat__activity-icon" aria-hidden="true">
+            @switch (group.kind) {
+              @case ('subagent') {
+                <!-- Cerebro: detras hay otro agente razonando, no una consulta. -->
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M9.5 4a2.5 2.5 0 0 0-2.5 2.5A2.5 2.5 0 0 0 5 9c0 .9.5 1.7 1.2 2.1A2.5 2.5 0 0 0 5 13.5 2.5 2.5 0 0 0 7.5 16c0 1.4 1.1 2.5 2.5 2.5.6 0 1.1-.2 1.5-.5V4.5c-.4-.3-.9-.5-1.5-.5zM14.5 4a2.5 2.5 0 0 1 2.5 2.5A2.5 2.5 0 0 1 19 9c0 .9-.5 1.7-1.2 2.1A2.5 2.5 0 0 1 19 13.5 2.5 2.5 0 0 1 16.5 16c0 1.4-1.1 2.5-2.5 2.5-.6 0-1.1-.2-1.5-.5V4.5c.4-.3.9-.5 1.5-.5z"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linejoin="round"
+                  />
+                  <path d="M12 18.5V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+              }
+              @case ('search') {
+                <!-- Nube: esto salio de internet, no del dataset fechado del
+                     MINEDU. Es la unica procedencia que nadie ha revisado. -->
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M7 18h10.5a3.5 3.5 0 0 0 .3-7A5 5 0 0 0 8.1 9.4 4 4 0 0 0 7 18z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+              @default {
+                <!-- Llave inglesa: una herramienta del sistema. -->
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M15.7 4.3a4.5 4.5 0 0 0-5.9 5.6l-5.1 5.1a1.5 1.5 0 0 0 0 2.1l2.2 2.2a1.5 1.5 0 0 0 2.1 0l5.1-5.1a4.5 4.5 0 0 0 5.6-5.9l-2.6 2.6-2.5-.5-.5-2.5 2.6-2.6z"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+            }
+          </span>
           <span>{{ group.label }}</span>
           @if (group.calls.length === 1) {
             @if (group.calls[0].detail) {
