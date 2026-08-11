@@ -27,6 +27,12 @@ const LABELS: Record<string, string> = {
   // cobertura que hay al lado de este mapa.
   recommend_programs: 'Buscando los programas que mejor te encajan…',
   evaluate_riasec_profile: 'Evaluando tu perfil vocacional…',
+  // Vive dentro del subagente de report, así que hasta ahora no llegaba nunca
+  // aquí: en vivo sí se veía, pero al recargar la página los pasos de dentro
+  // de un especialista no estaban en el historial. Desde
+  // spark-match-08-deep-agent#105 sí, y sin etiqueta se anunciaba como
+  // «Usando una herramienta…» justo en el paso que produce el informe.
+  publish_orientation_report: 'Redactando tu informe de orientación…',
   search_memory: 'Repasando lo que conversamos…',
   // `manage_memory` y no `manage_prefs`: ese último es sólo el nombre de la
   // variable de Python en `factory.py` del agente. La herramienta la
