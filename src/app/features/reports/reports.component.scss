@@ -33,6 +33,67 @@
   }
 }
 
+// El histórico. Una fila de pestañas horizontales y no una lista vertical:
+// van justo debajo de una cabecera `sticky` y encima del informe, así que lo
+// que gasten de alto se lo quitan al documento. Con scroll lateral cuando no
+// caben, que es preferible a apilarlas y empujar el informe fuera de vista.
+.report__history {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.35rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.report__history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  flex: 0 0 auto;
+  // Un ancho fijo y no `auto`: con `auto`, las pestañas cambian de tamaño
+  // según lo largos que sean los nombres de las carreras, y una fila de
+  // rectángulos desiguales se lee como un fallo de maquetación.
+  width: 15rem;
+  max-width: 70vw;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card, var(--background));
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--teal-glow);
+  }
+}
+
+.report__history-item--activo {
+  border-color: var(--teal-deep);
+  // Doble marca, borde y fondo, a propósito: el borde solo se distingue mal
+  // del `:hover`, y cuál está abierto no puede depender de dónde esté el ratón.
+  background: oklch(0.62 0.13 175 / 0.1);
+}
+
+.report__history-date {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.report__history-careers {
+  font-size: 0.78rem;
+  color: var(--muted-foreground, oklch(0.5 0.02 240));
+  // Una sola línea: la altura de la fila no puede depender de cuántas carreras
+  // recomendó cada informe.
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 // El retrato del perfil. Vivía dentro de `.report__header`, que es `sticky`,
 // y son dos o tres párrafos: la franja fija crecía hasta media pantalla y se
 // quedaba encima de las fichas al bajar. Aquí ya es una tarjeta normal, que
@@ -165,7 +226,10 @@
   justify-content: center;
   flex: 0 0 auto;
 
-  svg { width: 21px; height: 21px; }
+  svg {
+    width: 21px;
+    height: 21px;
+  }
 }
 
 .report__banner-eyebrow {
@@ -206,7 +270,10 @@
   font-weight: 700;
   flex: 0 0 auto;
 
-  svg { width: 19px; height: 19px; }
+  svg {
+    width: 19px;
+    height: 19px;
+  }
 
   &--top {
     background: oklch(0.85 0.12 90);
@@ -245,7 +312,10 @@
   border-radius: 999px;
   white-space: nowrap;
 
-  svg { width: 14px; height: 14px; }
+  svg {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 .report__insight {
@@ -287,7 +357,10 @@
   font-size: 0.72rem;
   color: oklch(0.5 0.02 240);
 
-  svg { width: 15px; height: 15px; }
+  svg {
+    width: 15px;
+    height: 15px;
+  }
 }
 
 .report__metric-sub {
@@ -310,10 +383,20 @@
 }
 
 @media (max-width: 720px) {
-  .report__header { align-items: stretch; flex-direction: column; gap: 1rem; }
-  .report__export { justify-content: center; }
-  .report__card-top { flex-wrap: wrap; }
-  .report__match { margin-left: 43px; }
+  .report__header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .report__export {
+    justify-content: center;
+  }
+  .report__card-top {
+    flex-wrap: wrap;
+  }
+  .report__match {
+    margin-left: 43px;
+  }
   .report__metrics {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -355,11 +438,18 @@
 }
 
 @media (max-width: 420px) {
-  .report__metrics { grid-template-columns: 1fr; }
-  .report__banner { align-items: flex-start; }
+  .report__metrics {
+    grid-template-columns: 1fr;
+  }
+  .report__banner {
+    align-items: flex-start;
+  }
 }
 
 @media print {
   :host,
-  .report { height: auto; overflow: visible; }
+  .report {
+    height: auto;
+    overflow: visible;
+  }
 }

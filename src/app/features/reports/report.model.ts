@@ -165,6 +165,67 @@ export function esTerminal(estado: ReportStatus): boolean {
   return ESTADOS_TERMINALES.includes(estado);
 }
 
+const MESES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'setiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+
+/**
+ * Cuándo se pidió un informe, para poder distinguirlo de los demás.
+ *
+ * A mano y no con `DatePipe`: el formato en español necesita
+ * `registerLocaleData(localeEs)` en el arranque, y sin él Angular lanza en
+ * tiempo de ejecución. Traer el paquete de locale entero —con sus reglas de
+ * plurales y sus símbolos de moneda— para escribir «11 de agosto» es mucho
+ * bulto para una línea. Además así es una función pura y se prueba sola.
+ *
+ * Setiembre con e, que es como se escribe en Perú.
+ */
+export function fechaDelInforme(iso: string): string {
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) {
+    return '';
+  }
+  const hora = String(fecha.getHours()).padStart(2, '0');
+  const minuto = String(fecha.getMinutes()).padStart(2, '0');
+  return `${fecha.getDate()} de ${MESES[fecha.getMonth()]} de ${fecha.getFullYear()}, ${hora}:${minuto}`;
+}
+
+/**
+ * Qué se lee de un informe en la lista del histórico.
+ *
+ * Las carreras y no el identificador: dos informes de la misma semana se
+ * distinguen por lo que recomendaron, no por un UUID. `topCareers` puede venir
+ * a `null` —una fila en `pending` no sabe nada de sí misma—, y en ese caso lo
+ * que hay que decir es en qué punto va, no una lista vacía.
+ */
+export function resumenDelInforme(informe: Report): string {
+  if (informe.status === 'pending') {
+    return 'Generándose…';
+  }
+  if (informe.status === 'failed') {
+    return 'No se pudo generar';
+  }
+  const carreras = informe.topCareers ?? [];
+  if (carreras.length === 0) {
+    return 'Sin carreras registradas';
+  }
+  if (carreras.length <= 2) {
+    return carreras.join(' · ');
+  }
+  return `${carreras.slice(0, 2).join(' · ')} y ${carreras.length - 2} más`;
+}
+
 /**
  * La etiqueta de procedencia que se enseña en pantalla.
  *
@@ -173,10 +234,7 @@ export function esTerminal(estado: ReportStatus): boolean {
  * la alternativa —sacarle la fecha a un texto libre con una expresión regular—
  * se rompe en silencio el día que cambie la redacción.
  */
-export function etiquetaDeProcedencia(
-  fuente: string | null,
-  fecha: string | null,
-): string {
+export function etiquetaDeProcedencia(fuente: string | null, fecha: string | null): string {
   if (!fuente) {
     return '';
   }

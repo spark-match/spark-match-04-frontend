@@ -94,7 +94,9 @@ describe('ReportsService', () => {
       const pendiente = firstValueFrom(service.get('r-1'));
 
       http.expectNone(`${environment.reportsApiUrl}/reports/latest`);
-      http.expectOne(`${environment.reportsApiUrl}/reports/r-1`).flush(informeDeEjemplo({ id: 'r-1' }));
+      http
+        .expectOne(`${environment.reportsApiUrl}/reports/r-1`)
+        .flush(informeDeEjemplo({ id: 'r-1' }));
 
       expect((await pendiente).id).toBe('r-1');
       http.verify();
@@ -160,14 +162,14 @@ describe('ReportsService', () => {
       const todos = lastValueFrom(service.poll('r-1').pipe(toArray()));
 
       await vi.advanceTimersByTimeAsync(0);
-      http.expectOne(`${environment.reportsApiUrl}/reports/r-1`).flush(
-        informeDeEjemplo({ id: 'r-1', status: 'pending' }),
-      );
+      http
+        .expectOne(`${environment.reportsApiUrl}/reports/r-1`)
+        .flush(informeDeEjemplo({ id: 'r-1', status: 'pending' }));
 
       await vi.advanceTimersByTimeAsync(2000);
-      http.expectOne(`${environment.reportsApiUrl}/reports/r-1`).flush(
-        informeDeEjemplo({ id: 'r-1', status: 'ready' }),
-      );
+      http
+        .expectOne(`${environment.reportsApiUrl}/reports/r-1`)
+        .flush(informeDeEjemplo({ id: 'r-1', status: 'ready' }));
 
       const emitidos = await todos;
       expect(emitidos.map((r) => r.status)).toEqual(['pending', 'ready']);
@@ -178,9 +180,9 @@ describe('ReportsService', () => {
       const todos = lastValueFrom(service.poll('r-1').pipe(toArray()));
 
       await vi.advanceTimersByTimeAsync(0);
-      http.expectOne(`${environment.reportsApiUrl}/reports/r-1`).flush(
-        informeDeEjemplo({ id: 'r-1', status: 'failed', failureReason: 'sin RIASEC' }),
-      );
+      http
+        .expectOne(`${environment.reportsApiUrl}/reports/r-1`)
+        .flush(informeDeEjemplo({ id: 'r-1', status: 'failed', failureReason: 'sin RIASEC' }));
 
       const emitidos = await todos;
       expect(emitidos.map((r) => r.status)).toEqual(['failed']);
