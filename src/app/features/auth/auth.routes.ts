@@ -10,18 +10,18 @@ export const authRoutes: Routes = [
     path: 'login',
     loadComponent: () =>
       import('./pages/login.page').then((m) => m.LoginPage),
-    title: 'Iniciar sesión · Spark Match'
+    title: 'Inicio de sesión'
   },
   {
     path: 'register',
     loadComponent: () =>
       import('./pages/register.page').then((m) => m.RegisterPage),
-    title: 'Crear cuenta · Spark Match'
+    title: 'Crear cuenta'
   },
   {
     path: 'forgot-password',
     loadComponent: () =>
       import('./pages/forgot-password.page').then((m) => m.ForgotPasswordPage),
-    title: 'Recuperar contraseña · Spark Match'
+    title: 'Recuperar contraseña'
   }
 ];

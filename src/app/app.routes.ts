@@ -18,11 +18,13 @@ export const routes: Routes = [
       },
       {
         path: 'home',
+        title: 'Inicio',
         canActivate: [authGuard],
         loadComponent: () => import('./features/landing/landing.page').then((m) => m.LandingPage),
       },
       {
         path: 'filters',
+        title: 'Configura tu búsqueda',
         canActivate: [authGuard], // <-- Descomentado y protegido
         loadComponent: () =>
           import('./features/filters/filters.component').then((m) => m.FiltersComponent),
@@ -47,6 +49,7 @@ export const routes: Routes = [
       },
       {
         path: 'profile',
+        title: 'Mi perfil',
         canActivate: [authGuard], // <-- Protegido
         loadComponent: () => import('./features/profile/profile.page').then((m) => m.ProfilePage),
       },
@@ -54,6 +57,7 @@ export const routes: Routes = [
   },
   {
     path: '**',
+    title: 'Página no encontrada',
     loadComponent: () => import('./features/not-found/not-found.page').then((m) => m.NotFoundPage),
   },
 ];
