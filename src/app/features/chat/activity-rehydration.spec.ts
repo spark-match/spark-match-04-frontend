@@ -57,8 +57,8 @@ describe('actividadRehidratada', () => {
       ]);
 
       expect(chips.map((c) => c.label)).toEqual([
-        'Evaluando tu perfil vocacional…',
-        'Buscando carreras que encajen contigo…',
+        'Subagente especialista evaluando tu perfil vocacional…',
+        'Subagente especialista buscando carreras que encajen contigo…',
       ]);
       expect(chips.every((c) => c.kind === 'subagent')).toBe(true);
     });

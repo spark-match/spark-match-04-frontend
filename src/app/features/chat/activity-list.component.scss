@@ -62,6 +62,24 @@
   column-gap: 0.3rem;
 }
 
+// El icono de procedencia: llave inglesa (herramienta), cerebro (subagente),
+// nube (internet). Hereda el color del chip, así que el estado --en curso,
+// terminado, fallido-- lo tiñe igual que al texto sin reglas aparte.
+//
+// `align-self: center` y no la línea base del texto: un icono cuadrado alineado
+// por baseline queda visiblemente alto respecto a la minúscula de al lado.
+.chat__activity-icon {
+  align-self: center;
+  display: inline-flex;
+  flex-shrink: 0;
+
+  svg {
+    width: 13px;
+    height: 13px;
+    display: block;
+  }
+}
+
 // Los argumentos con los que se llamó. En redonda aunque el chip sea de un
 // subagente: es lo que el estudiante escribió o lo que el agente dedujo de
 // ello, no un título.
