@@ -92,7 +92,11 @@
         @if (group.reason) {
           <span class="chat__activity-reason">{{ group.reason }}</span>
         }
-        @if (group.calls.length > 1) {
+        <!-- El desplegable sólo si alguna llamada tiene algo escrito. Un turno
+             rehidratado no trae duraciones, y hay herramientas que no publican
+             asunto: entre las dos cosas, «Organizando el plan · 3 veces» se
+             abría a tres viñetas en blanco. -->
+        @if (group.calls.length > 1 && hayDetalle(group)) {
           <details class="chat__activity-calls">
             <summary>Ver el detalle de cada llamada</summary>
             <ul>
@@ -100,6 +104,11 @@
                 <li>
                   @if (call.detail) {
                     <span class="chat__activity-args">{{ call.detail }}</span>
+                  } @else if (!activityTiming(call)) {
+                    <!-- Esta suelta no tiene nada, pero sus hermanas sí, y una
+                         viñeta vacía en medio de la lista se lee como un fallo
+                         de la interfaz. -->
+                    <span class="chat__activity-args">sin detalle publicable</span>
                   }
                   <span class="chat__activity-timing">{{ activityTiming(call) }}</span>
                 </li>
