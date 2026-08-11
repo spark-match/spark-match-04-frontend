@@ -827,6 +827,43 @@ describe('ChatService', () => {
       expect((await history).messages[0].activities).toBeUndefined();
     });
 
+    // Sin esto el botón de ver el informe sólo existía mientras duraba el
+    // turno: al recargar la página desaparecía aunque el informe siguiera ahí,
+    // y el estudiante tenía que ir a buscarlo por el menú.
+    it('brings back the link to the report issued in that turn', async () => {
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http.expectOne(`${environment.agentUrl}/threads/t-1/messages`).flush({
+        thread_id: 't-1',
+        messages: [
+          { id: 'm1', role: 'user', content: 'genérame mi reporte' },
+          {
+            id: 'm2',
+            role: 'assistant',
+            content: 'listo',
+            report_id: '9f1c2b34-5678-4abc-9def-0123456789ab',
+          },
+        ],
+      });
+
+      const [pregunta, respuesta] = (await history).messages;
+      expect(respuesta.reportId).toBe('9f1c2b34-5678-4abc-9def-0123456789ab');
+      expect(pregunta.reportId).toBeUndefined();
+    });
+
+    it('leaves a turn that issued no report without the key', async () => {
+      // La plantilla pregunta por `msg.reportId`, así que una cadena vacía
+      // pintaría un botón hacia ninguna parte.
+      const history = firstValueFrom(service.loadHistory('t-1'));
+
+      http.expectOne(`${environment.agentUrl}/threads/t-1/messages`).flush({
+        thread_id: 't-1',
+        messages: [{ id: 'm1', role: 'assistant', content: 'hola', report_id: '' }],
+      });
+
+      expect((await history).messages[0].reportId).toBeUndefined();
+    });
+
     it('renames a conversation', async () => {
       const renombrada = firstValueFrom(service.renameThread('t-1', 'Becas y costos'));
 

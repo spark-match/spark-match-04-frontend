@@ -400,5 +400,9 @@ function toChatMessage(message: ThreadMessage): ChatMessage {
     // pregunta por `activities?.length`, y un `[]` seria un campo presente que
     // no significa nada.
     ...(activities.length ? { activities } : {}),
+    // El enlace al informe emitido en ese turno. En vivo lo pone
+    // `onReportReady` desde el evento `spark.report.ready`; aqui viene del
+    // historial, que es lo que hace que sobreviva a recargar la pagina.
+    ...(message.report_id ? { reportId: message.report_id } : {}),
   };
 }
