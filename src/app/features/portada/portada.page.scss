@@ -1,0 +1,490 @@
+/* La portada pública.
+ *
+ * No hereda del `AppLayoutComponent`, así que aquí se define también la barra
+ * de arriba y el pie. Es más CSS que en una pantalla de dentro, y es el precio
+ * de no enseñarle la navegación del producto a quien todavía no puede usarla.
+ *
+ * Las medidas grandes van con `clamp()` en vez de con media queries: son
+ * titulares y espaciados que tienen que encoger de forma continua, y una
+ * escalera de tres saltos se nota justo en los anchos intermedios, que son los
+ * de una tablet y los de media pantalla en un portátil. */
+
+$ancho: 1120px;
+
+.portada__barra {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  width: min(100%, #{$ancho});
+  margin-inline: auto;
+  padding: 1.1rem clamp(1rem, 4vw, 2rem);
+}
+
+.portada__marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--teal-deep);
+  text-decoration: none;
+}
+
+.portada__logo svg {
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+
+.portada__marca-nombre {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.portada__nav {
+  display: flex;
+  gap: 1.35rem;
+  margin-inline-start: auto;
+
+  a {
+    color: oklch(0.45 0.02 240);
+    font-size: 0.9rem;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--teal-deep);
+    }
+  }
+}
+
+.portada__acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* --- Botones ---
+ * Cuatro variantes y no una con modificadores de color sueltos: en esta página
+ * el mismo botón aparece sobre crema, sobre blanco y sobre el degradado oscuro
+ * del cierre, y un `--claro` con nombre se entiende al leer la plantilla. */
+
+.portada__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.portada__btn--grande {
+  padding: 0.85rem 1.6rem;
+  font-size: 1rem;
+}
+
+.portada__btn--solido {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-soft);
+
+  &:hover {
+    background: var(--teal-glow);
+  }
+}
+
+.portada__btn--borde {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+
+  &:hover {
+    border-color: var(--teal-glow);
+    color: var(--teal-deep);
+  }
+}
+
+.portada__btn--texto {
+  color: var(--foreground);
+
+  &:hover {
+    color: var(--teal-deep);
+  }
+}
+
+.portada__btn--claro {
+  background: var(--card);
+  color: var(--teal-deep);
+
+  &:hover {
+    background: oklch(0.95 0.02 175);
+  }
+}
+
+/* --- Estructura --- */
+
+.portada {
+  width: min(100%, #{$ancho});
+  margin-inline: auto;
+  padding: 0 clamp(1rem, 4vw, 2rem) 4rem;
+}
+
+.portada__titulo-seccion {
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  margin-bottom: 0.5rem;
+}
+
+.portada__bajada {
+  color: oklch(0.45 0.02 240);
+  max-width: 60ch;
+  margin: 0 0 2rem;
+}
+
+/* --- Hero --- */
+
+.hero {
+  padding: clamp(2rem, 6vw, 4.5rem) 0 clamp(2rem, 4vw, 3rem);
+  max-width: 46rem;
+}
+
+.hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: oklch(0.62 0.13 175 / 0.14);
+  color: var(--teal-deep);
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 1.4rem;
+}
+
+.hero__titulo {
+  font-size: clamp(2.3rem, 5.2vw, 3.6rem);
+  line-height: 1.03;
+  margin-bottom: 1.3rem;
+}
+
+.hero__lead {
+  font-size: clamp(1rem, 1.4vw, 1.13rem);
+  line-height: 1.6;
+  color: oklch(0.4 0.02 240);
+  margin-bottom: 2rem;
+}
+
+.hero__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.hero__nota {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  color: oklch(0.55 0.02 240);
+}
+
+/* --- La banda de cifras --- */
+
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-fg);
+  border-radius: var(--radius);
+  padding: 1.75rem 1rem;
+  margin-bottom: clamp(3rem, 7vw, 5rem);
+}
+
+.cifras__bloque {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.cifras__valor {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+}
+
+.cifras__etiqueta {
+  font-size: 0.82rem;
+  color: var(--sidebar-muted);
+  margin-top: 0.2rem;
+}
+
+/* --- Los cuatro pasos --- */
+
+.pasos {
+  margin-bottom: clamp(3rem, 7vw, 5rem);
+}
+
+.pasos__lista {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.pasos__paso {
+  /* El filete de arriba hace de línea de tiempo cuando los cuatro están en
+   * fila. Al apilarse en móvil deja de leerse así, pero sigue separando. */
+  border-top: 2px solid var(--border);
+  padding-top: 1rem;
+
+  h3 {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.4rem;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: oklch(0.45 0.02 240);
+  }
+}
+
+.pasos__numero {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--teal-glow);
+  margin-bottom: 0.5rem;
+}
+
+/* --- Qué te llevas --- */
+
+.promesas {
+  margin-bottom: clamp(2rem, 5vw, 3rem);
+}
+
+.promesas__lista {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.promesas__tarjeta {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card);
+
+  h3 {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: oklch(0.45 0.02 240);
+  }
+}
+
+.promesas__icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: oklch(0.62 0.13 175 / 0.14);
+  color: var(--teal-deep);
+  margin-bottom: 0.9rem;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* --- El aviso sobre los datos --- */
+
+.aviso {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  background: oklch(0.92 0.06 95 / 0.6);
+  border: 1px solid oklch(0.8 0.08 90);
+  border-radius: var(--radius);
+  padding: 1rem 1.15rem;
+  margin-bottom: clamp(3rem, 7vw, 5rem);
+
+  > svg {
+    width: 18px;
+    height: 18px;
+    color: oklch(0.5 0.1 80);
+    flex: 0 0 auto;
+    margin-top: 0.15rem;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: oklch(0.38 0.05 80);
+  }
+}
+
+/* --- Contacto ---
+ * Enlaces directos, no un formulario: ver `contacto.ts`. */
+
+.contacto {
+  margin-bottom: clamp(3rem, 7vw, 5rem);
+}
+
+.contacto__lista {
+  display: grid;
+  /* `auto-fill` y no `auto-fit`: con un solo canal abierto, `auto-fit` colapsa
+   * las pistas vacías y deja una tarjeta de 1056px con un icono y un correo
+   * dentro, que parece un error. Con `auto-fill` la tarjeta ocupa su pista y
+   * las demás esperan vacías a que haya WhatsApp o redes. */
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contacto__canal {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  text-decoration: none;
+  color: inherit;
+
+  &:hover {
+    border-color: var(--teal-glow);
+  }
+}
+
+.contacto__icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: oklch(0.62 0.13 175 / 0.14);
+  color: var(--teal-deep);
+
+  svg {
+    width: 19px;
+    height: 19px;
+  }
+}
+
+.contacto__texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.contacto__etiqueta {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.contacto__detalle {
+  font-size: 0.84rem;
+  color: oklch(0.5 0.02 240);
+  /* Un correo largo no puede ensanchar la tarjeta y arrastrar la rejilla. */
+  overflow-wrap: anywhere;
+}
+
+/* --- El cierre --- */
+
+.cierre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  text-align: center;
+  padding: clamp(2.5rem, 6vw, 4rem) 1.5rem;
+  border-radius: var(--radius);
+  background-image: var(--gradient-hero);
+  color: var(--sidebar-fg);
+}
+
+.cierre__titulo {
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  margin: 0;
+}
+
+/* --- El pie --- */
+
+.portada__pie {
+  width: min(100%, #{$ancho});
+  margin-inline: auto;
+  padding: 2rem clamp(1rem, 4vw, 2rem) 3rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.84rem;
+  color: oklch(0.5 0.02 240);
+
+  p {
+    margin: 0;
+  }
+}
+
+.portada__pie-nota {
+  margin-top: 0.4rem !important;
+  max-width: 70ch;
+}
+
+/* --- Adaptaciones ---
+ * Los pasos pasan a 2×2 antes que las tarjetas: cuatro columnas de texto se
+ * quedan sin ancho mucho antes que tres. */
+
+@media (max-width: 960px) {
+  .pasos__lista {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .portada__nav {
+    display: none;
+  }
+
+  .portada__acciones {
+    margin-inline-start: auto;
+  }
+
+  .promesas__lista {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .pasos__lista,
+  .cifras {
+    grid-template-columns: 1fr;
+  }
+
+  .cifras {
+    gap: 1.25rem;
+  }
+
+  .hero__acciones .portada__btn {
+    flex: 1 1 100%;
+  }
+}
