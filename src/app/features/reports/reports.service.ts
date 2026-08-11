@@ -1,123 +1,132 @@
 import { Service, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { Observable, of, timer } from 'rxjs';
+import { delay, map, switchMap, takeWhile } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { OrientationReport } from '../careers/career.model';
-import { OrientationFilters } from '../filters/filters.model';
+import {
+  Report,
+  ReportContent,
+  ReportList,
+  esTerminal,
+} from './report.model';
+import { informeDeEjemplo, contenidoDeEjemplo } from './reports.mock';
 
 /**
- * La fecha es la del snapshot que hay en disco (`snapshots/raw_20260613_021109.xlsx` en
- * spark-match-05-data-pipeline), no una fecha aproximada. Importa que sea exacta: el portal
- * del MINEDU devuelve HTTP 500 desde el 2026-07-12 y la etapa `ingest` del dvc.yaml esta
- * congelada, asi que este snapshot es, por ahora, el unico dato del producto y no se
- * refresca solo. Si algun dia vuelve a ingestarse, esta constante tiene que moverse con el.
+ * El informe de orientación contra el backend real (ADR-019, fase 6).
+ *
+ * **Este servicio NO dispara la generación, y eso es una decisión, no una
+ * carencia.** El informe lo genera siempre el agente dentro de un turno de
+ * chat (enmienda del 2026-08-09 a D4): el estudiante lo pide hablando, o pulsa
+ * un botón que *envía un mensaje al chat*. `POST /v1/reports` es el registro
+ * que hace el agente cuando empieza, no una entrada para el frontend.
+ *
+ * Se descartó que el backend llamara al agente y esperase: la generación son
+ * 10–20 s de LLM más el render del PDF, contra el techo de 29 s de API
+ * Gateway. Funcionaría hasta dejar de hacerlo, y fallaría justo en los
+ * informes más largos.
+ *
+ * Lo que sí hace esta clase: leer el histórico, seguir uno en curso hasta que
+ * termine, y traerse el documento y el PDF.
  */
-const SOURCE_LABEL = 'Ponte en Carrera (MINEDU) · datos del 13/06/2026';
 
 /**
- * Las tres fichas son FILAS REALES del `features.csv` de spark-match-05-data-pipeline,
- * no valores escritos a mano. Antes lo eran: hasta el 2026-08-08 esta funcion devolvia
- * Ingenieria de Sistemas/UNMSM con S/. 4.800 y 12% de admision, Ingenieria Biomedica/UNI
- * y Ciencia de Datos/PUCP, todas rotuladas "Fuente: Ponte en Carrera 2024". Se comprobo
- * contra el dataset: de las tres, DOS no existian en el (0 filas) y la tercera tenia otras
- * cifras (S/. 4.582 y 5% de admision). O sea que se atribuian al MINEDU numeros que el
- * MINEDU nunca publico.
+ * Cada cuánto se vuelve a preguntar por un informe en curso.
  *
- * Criterio de eleccion de las de ahora: las tres tienen los cuatro flags de imputacion en
- * False, es decir duracion, ingreso, costo y tasa de admision son valores medidos, no
- * estimados por el pipeline. Solo 370 de las 6.208 filas cumplen eso, y 129 estan en Lima.
- * Se descarto Ingenieria de Sistemas/UNMSM justamente por eso: su costo anual esta imputado.
- *
- * Lo que SIGUE sin respaldo es `matchPct`. La afinidad es la salida del motor de scoring
- * multicriterio, que todavia no existe conectado en ningun repositorio, asi que ese numero
- * es ilustrativo y el orden del Top-3 tambien. Se sustituye cuando exista el motor; hasta
- * entonces el resto de la tarjeta si es verificable contra el dataset.
- *
- * El costo anual de tres cifras no es un error: son universidades publicas y el dataset
- * recoge la tasa administrativa, no una matricula privada.
+ * 2 s y no menos: la generación son 10–20 s, así que bajar de aquí solo añade
+ * peticiones sin adelantar el resultado. Y no más, porque por encima de unos
+ * segundos la pantalla parece congelada.
  */
-function buildMockReport(filters: OrientationFilters | null): OrientationReport {
-  const budget = filters?.budget ?? 8000;
-  const region = filters?.region || 'Lima Metropolitana';
-  const institutionLabel =
-    filters?.institutionType === 'privada'
-      ? 'Privada'
-      : filters?.institutionType === 'publica'
-        ? 'Pública'
-        : 'Pública/Privada';
+const INTERVALO_DE_SONDEO_MS = 2000;
 
-  return {
-    id: 'mock-report-1',
-    profileSummary: `${region} · ${institutionLabel} · S/. ${budget.toLocaleString('es-PE')}/año · Generado hoy`,
-    filters,
-    generatedAt: new Date().toISOString(),
-    careers: [
-      {
-        id: 'career-1',
-        rank: 1,
-        isTopMatch: true,
-        title: 'Ingeniería de Sistemas',
-        institution: 'Universidad Nacional de Ingeniería',
-        matchPct: 94,
-        insight:
-          'Ingreso mensual más alto de las tres opciones. Admisión del 13%, así que es selectiva.',
-        metrics: {
-          durationYears: 5,
-          admissionRatePct: 13,
-          monthlyIncomeAvg: 4900,
-          annualCostAvg: 110,
-        },
-        source: SOURCE_LABEL,
-      },
-      {
-        id: 'career-2',
-        rank: 2,
-        isTopMatch: false,
-        title: 'Ingeniería Mecatrónica',
-        institution: 'Universidad Nacional de Ingeniería',
-        matchPct: 89,
-        insight:
-          'La más selectiva de las tres: solo entra el 7% de quienes postulan. Mismo costo anual.',
-        metrics: {
-          durationYears: 5,
-          admissionRatePct: 7,
-          monthlyIncomeAvg: 4195,
-          annualCostAvg: 110,
-        },
-        source: SOURCE_LABEL,
-      },
-      {
-        id: 'career-3',
-        rank: 3,
-        isTopMatch: false,
-        title: 'Ingeniería Informática',
-        institution: 'Universidad Nacional Federico Villarreal',
-        matchPct: 85,
-        insight: 'La más accesible del grupo, con un 28% de admisión, a cambio de menor ingreso.',
-        metrics: {
-          durationYears: 5,
-          admissionRatePct: 28,
-          monthlyIncomeAvg: 3678,
-          annualCostAvg: 156,
-        },
-        source: SOURCE_LABEL,
-      },
-    ],
-  };
-}
+/**
+ * Cuánto se sigue preguntando antes de rendirse.
+ *
+ * Existe porque un informe puede quedarse en `pending` para siempre: el ADR lo
+ * admite como riesgo aceptado (D4) — si el contenedor del agente reinicia a
+ * mitad de la generación, la fila se queda huérfana y nadie la cierra. Sin
+ * tope, esta pantalla sondearía indefinidamente contra una fila muerta.
+ *
+ * 3 minutos es holgado contra los 10–20 s del caso normal; lo que corta es el
+ * caso patológico, no el lento.
+ */
+const TOPE_DE_SONDEO_MS = 3 * 60 * 1000;
+
+const MAX_INTENTOS = Math.ceil(TOPE_DE_SONDEO_MS / INTERVALO_DE_SONDEO_MS);
 
 @Service()
 export class ReportsService {
   private http = inject(HttpClient);
-  private base = `${environment.apiUrl}/reports`;
+  private base = `${environment.reportsApiUrl}/reports`;
 
-  getReport(filters: OrientationFilters | null, sessionId?: string): Observable<OrientationReport> {
+  /**
+   * El histórico del estudiante, tal como lo ordena el backend.
+   *
+   * No se reordena aquí: el orden es parte del contrato del endpoint, y
+   * duplicar el criterio en el cliente es garantizar que algún día discrepen.
+   */
+  list(): Observable<Report[]> {
     if (environment.useMocks) {
-      return of(buildMockReport(filters)).pipe(delay(500));
+      return of([informeDeEjemplo()]).pipe(delay(300));
     }
-    const params = sessionId ? { sessionId } : undefined;
-    return this.http.get<OrientationReport>(`${this.base}/latest`, { params });
+    return this.http.get<ReportList>(this.base).pipe(map((res) => res.reports ?? []));
   }
 
+  get(reportId: string): Observable<Report> {
+    if (environment.useMocks) {
+      return of(informeDeEjemplo({ id: reportId })).pipe(delay(200));
+    }
+    return this.http.get<Report>(`${this.base}/${reportId}`);
+  }
+
+  /**
+   * El documento en sí.
+   *
+   * Llega como el JSON crudo de S3 — el backend lo sirve tal cual, sin el sobre
+   * `{success, data}`, para que el checksum de la fila siga describiendo lo que
+   * recibe el cliente. `apiEnvelopeInterceptor` lo deja pasar intacto porque no
+   * tiene la forma del sobre.
+   */
+  content(reportId: string): Observable<ReportContent> {
+    if (environment.useMocks) {
+      return of(contenidoDeEjemplo()).pipe(delay(300));
+    }
+    return this.http.get<ReportContent>(`${this.base}/${reportId}/content`);
+  }
+
+  /**
+   * El PDF, como bytes.
+   *
+   * `responseType: 'blob'` es obligatorio: sin él, `HttpClient` intenta parsear
+   * un PDF como JSON y falla con un error de parseo que no se parece en nada al
+   * problema real.
+   *
+   * Va por el backend con el JWT delante y no por una URL firmada de S3
+   * (ADR-019 D3). El `authInterceptor` pone la cabecera en todas las peticiones,
+   * así que no hay que hacer nada especial aquí.
+   */
+  downloadPdf(reportId: string): Observable<Blob> {
+    return this.http.get(`${this.base}/${reportId}/pdf`, { responseType: 'blob' });
+  }
+
+  /**
+   * Sigue un informe hasta que deje de moverse.
+   *
+   * Emite cada lectura, no solo la última, para que la pantalla pueda ir
+   * contando lo que pasa en vez de quedarse muda hasta el final.
+   *
+   * `takeWhile(..., true)` con el segundo argumento en `true` es lo que hace que
+   * la emisión terminal SÍ salga: sin él, el `ready` que cierra el ciclo se
+   * descartaría y la pantalla no llegaría a ver nunca el informe terminado.
+   */
+  poll(reportId: string): Observable<Report> {
+    return timer(0, INTERVALO_DE_SONDEO_MS).pipe(
+      switchMap((intento) =>
+        this.get(reportId).pipe(
+          map((informe) => ({ informe, agotado: intento >= MAX_INTENTOS })),
+        ),
+      ),
+      takeWhile(({ informe, agotado }) => !esTerminal(informe.status) && !agotado, true),
+      map(({ informe }) => informe),
+    );
+  }
 }

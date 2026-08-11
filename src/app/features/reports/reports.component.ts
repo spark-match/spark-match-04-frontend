@@ -1,7 +1,26 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { ReportsService } from './reports.service';
-import { FiltersService } from '../filters/filters.service';
-import { CareerMatch, OrientationReport } from '../careers/career.model';
+import {
+  Report,
+  ReportContent,
+  ReportContentCareer,
+  esTerminal,
+  etiquetaDeProcedencia,
+} from './report.model';
+
+/**
+ * Los cinco estados que puede tener esta pantalla.
+ *
+ * Antes eran tres booleanos sueltos (`loading`, `failed`, y `report` en null),
+ * que permiten combinaciones que no significan nada — cargando y fallido a la
+ * vez, por ejemplo. Con un estado único eso deja de ser representable.
+ *
+ * `sin-informe` es nuevo y es el caso que antes no existía: un estudiante que
+ * todavía no ha pedido ninguno. Antes caía en el mismo saco que un fallo, y se
+ * le decía «No pudimos generar tu reporte» a alguien que nunca lo pidió.
+ */
+export type EstadoDeLaPantalla = 'cargando' | 'sin-informe' | 'generando' | 'listo' | 'fallido';
 
 @Component({
   selector: 'app-reports',
@@ -10,88 +29,180 @@ import { CareerMatch, OrientationReport } from '../careers/career.model';
   templateUrl: './reports.component.html',
   styleUrl: './reports.component.scss',
 })
-export class ReportsComponent implements OnInit {
+export class ReportsComponent implements OnInit, OnDestroy {
   private reportsService = inject(ReportsService);
-  private filtersService = inject(FiltersService);
 
-  readonly loading = signal(true);
-  readonly report = signal<OrientationReport | null>(null);
-  readonly failed = signal(false);
+  readonly estado = signal<EstadoDeLaPantalla>('cargando');
+  readonly informe = signal<Report | null>(null);
+  readonly contenido = signal<ReportContent | null>(null);
+  readonly descargando = signal(false);
 
-  get careers(): CareerMatch[] {
-    return this.report()?.careers ?? [];
-  }
+  private suscripciones = new Subscription();
 
-  get careersFound(): number {
-    return this.careers.length;
-  }
-
-  get profile(): string {
-    return this.report()?.profileSummary ?? '';
-  }
+  readonly careers = computed<ReportContentCareer[]>(() => this.contenido()?.careers ?? []);
+  readonly careersFound = computed(() => this.careers().length);
+  readonly profile = computed(() => this.contenido()?.profile_summary ?? '');
 
   /**
-   * La fuente que se muestra en el banner sale del propio dato, no de la plantilla.
+   * La procedencia se compone de los dos campos de la FILA, no del contenido.
    *
-   * Estaba escrita a mano ahi -«Datos: Ponte en Carrera 2024»- y por eso sobrevivio a la
-   * correccion del 2026-08-08, que solo toco el `source` de cada ficha. Quedaron dos
-   * verdades distintas en la misma pantalla: las tarjetas citando la fecha real del
-   * snapshot y la cabecera citando una que no existe.
-   *
-   * Derivarla del reporte hace imposible esa deriva: si cambia la fuente del dato, cambia
-   * sola la del banner. Se toma de la primera ficha porque todas comparten la misma; el dia
-   * que haya varias fuentes esto tendra que agregarlas, y el test de abajo lo dira.
+   * Antes salía de `careers[0].source`, un campo por ficha que el contrato real
+   * no tiene. Y antes de eso estaba escrita a mano en la plantilla, que fue lo
+   * que dejó dos verdades distintas en la misma pantalla el 2026-08-08: las
+   * tarjetas citando la fecha real del snapshot y la cabecera citando otra que
+   * no existía. Derivarla de un solo sitio hace imposible esa deriva.
    */
-  get dataSource(): string {
-    return this.careers[0]?.source ?? '';
-  }
+  readonly dataSource = computed(() => {
+    const fila = this.informe();
+    return etiquetaDeProcedencia(fila?.datasetSource ?? null, fila?.datasetSnapshotDate ?? null);
+  });
+
+  /**
+   * El motivo del fallo, solo si el backend dio uno.
+   *
+   * Se enseña porque aquí sí es accionable —«tu perfil aún no tiene código
+   * RIASEC» le dice al estudiante qué hacer— a diferencia del detalle de un
+   * error de red, que solo lleva rutas internas.
+   */
+  readonly motivoDelFallo = computed(() => this.informe()?.failureReason ?? '');
 
   ngOnInit(): void {
     this.load();
   }
 
-  /**
-   * Carga —o recarga— el informe.
-   *
-   * La suscripción lleva rama de `error` a propósito. Hasta el 2026-08-09 solo
-   * tenía la de éxito, así que un fallo no bajaba nunca `loading` y la pantalla
-   * se quedaba en «Generando tu reporte de orientación...» indefinidamente, sin
-   * mensaje y sin salida: ni el usuario sabía que algo había ido mal ni podía
-   * hacer nada al respecto.
-   *
-   * Y no era un caso raro, era EL caso: en los entornos desplegados
-   * `useMocks` va en false (`environment.cloud-dev.ts`, `environment.production.ts`)
-   * y `GET /reports/latest` todavía no existe en el backend, así que la petición
-   * siempre terminaba en 404. El spinner eterno de la captura del usuario es
-   * exactamente esto.
-   *
-   * Es público porque lo llama el botón de reintentar de la plantilla.
-   */
-  load(): void {
-    this.loading.set(true);
-    this.failed.set(false);
-
-    const filters = this.filtersService.currentFilters();
-    this.reportsService.getReport(filters).subscribe({
-      next: (report) => {
-        this.report.set(report);
-        this.loading.set(false);
-      },
-      error: () => {
-        // El informe anterior se descarta: dejarlo en pantalla junto a un aviso
-        // de fallo haría creer que lo que se ve es el resultado del reintento.
-        //
-        // El detalle del error no se enseña. Puede traer rutas internas del
-        // backend, y a un estudiante de secundaria no le dice nada útil; lo que
-        // necesita saber es que falló y que puede volver a intentarlo.
-        this.report.set(null);
-        this.failed.set(true);
-        this.loading.set(false);
-      },
-    });
+  ngOnDestroy(): void {
+    // Sin esto, el sondeo sigue vivo despues de salir de la pantalla: cada
+    // dos segundos, una peticion mas, para siempre.
+    this.suscripciones.unsubscribe();
   }
 
+  /** Carga —o recarga— el informe más reciente. Público: lo llama el botón de reintentar. */
+  load(): void {
+    this.estado.set('cargando');
+    this.contenido.set(null);
+
+    this.suscripciones.add(
+      this.reportsService.list().subscribe({
+        next: (informes) => {
+          const ultimo = informes[0] ?? null;
+          this.informe.set(ultimo);
+          if (ultimo === null) {
+            this.estado.set('sin-informe');
+            return;
+          }
+          this.atender(ultimo);
+        },
+        error: () => this.estado.set('fallido'),
+      }),
+    );
+  }
+
+  /** Enruta según el estado de la fila: terminal se resuelve, `pending` se sigue. */
+  private atender(informe: Report): void {
+    if (informe.status === 'ready') {
+      this.cargarContenido(informe);
+      return;
+    }
+    if (informe.status === 'failed') {
+      this.estado.set('fallido');
+      return;
+    }
+    this.estado.set('generando');
+    this.seguir(informe.id);
+  }
+
+  /**
+   * Sondea hasta que el informe deje de moverse.
+   *
+   * El último valor que emite `poll` puede seguir siendo `pending`: es el caso
+   * de un informe huérfano, que el ADR admite como riesgo aceptado (D4) cuando
+   * el contenedor del agente reinicia a mitad. Ese caso sale por `fallido` y no
+   * se queda girando, porque una pantalla que sondea para siempre es la misma
+   * mentira que el spinner eterno que esto vino a arreglar.
+   */
+  private seguir(reportId: string): void {
+    this.suscripciones.add(
+      this.reportsService.poll(reportId).subscribe({
+        next: (informe) => {
+          this.informe.set(informe);
+          if (!esTerminal(informe.status)) {
+            return;
+          }
+          if (informe.status === 'ready') {
+            this.cargarContenido(informe);
+          } else {
+            this.estado.set('fallido');
+          }
+        },
+        error: () => this.estado.set('fallido'),
+        complete: () => {
+          // Se agoto el tope sin llegar a estado terminal.
+          if (this.estado() === 'generando') {
+            this.estado.set('fallido');
+          }
+        },
+      }),
+    );
+  }
+
+  private cargarContenido(informe: Report): void {
+    this.suscripciones.add(
+      this.reportsService.content(informe.id).subscribe({
+        next: (contenido) => {
+          this.contenido.set(contenido);
+          this.estado.set('listo');
+        },
+        // Una fila `ready` cuyo contenido no se puede traer es un fallo de
+        // verdad: el informe existe pero no hay forma de enseñarlo.
+        error: () => this.estado.set('fallido'),
+      }),
+    );
+  }
+
+  /**
+   * Descarga el PDF que renderizó el agente.
+   *
+   * Antes esto era `window.print()`, que imprime la PANTALLA: sale el menú del
+   * navegador, la maquetación de la web y ninguna de las decisiones tipográficas
+   * del informe. El PDF de verdad lo renderiza el agente con WeasyPrint y su
+   * propia hoja de estilos (ADR-019 D11), y es el que el estudiante puede
+   * enseñar en casa.
+   *
+   * Va por `Blob` + enlace temporal y no por `window.open`: la descarga necesita
+   * la cabecera `Authorization`, y una pestaña nueva no la lleva.
+   */
   exportPdf(): void {
-    window.print();
+    const informe = this.informe();
+    if (informe === null || informe.status !== 'ready' || this.descargando()) {
+      return;
+    }
+
+    this.descargando.set(true);
+    this.suscripciones.add(
+      this.reportsService.downloadPdf(informe.id).subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const enlace = document.createElement('a');
+          enlace.href = url;
+          enlace.download = `informe-de-orientacion-${informe.id}.pdf`;
+          enlace.click();
+          // Sin esto el blob se queda en memoria hasta que se recargue la
+          // pagina; con varias descargas seguidas, uno por cada una.
+          URL.revokeObjectURL(url);
+          this.descargando.set(false);
+        },
+        error: () => this.descargando.set(false),
+      }),
+    );
+  }
+
+  /** Porcentaje de admisión para pantalla: el contrato trae 0–1, aquí se ve 0–100. */
+  admisionEnPorcentaje(career: ReportContentCareer): number {
+    return Math.round(career.admission_rate * 100);
+  }
+
+  /** Si alguna cifra de esta ficha es la mediana de su familia y no un dato medido. */
+  tieneEstimados(career: ReportContentCareer): boolean {
+    return career.estimated.length > 0;
   }
 }
