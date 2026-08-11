@@ -89,7 +89,7 @@ describe('actividadRehidratada', () => {
 
     it('se cuelan entre el trabajo de verdad y sólo queda el trabajo', () => {
       // Es la forma real del historial de un turno con informe: el agente
-      // publica TODO lo que hizo, incluida su lista de tareas, y el orden es
+      // publica el turno entero, incluida su lista de tareas, y el orden es
       // el que se ve en pantalla. Antes salían seis chips de los que tres
       // decían «Organizando el plan…».
       const chips = actividadRehidratada([

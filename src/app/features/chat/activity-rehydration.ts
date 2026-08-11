@@ -32,7 +32,7 @@ import { ChatActivity, ThreadActivity } from './chat.model';
 /**
  * El historial trae más llamadas de las que se pintan.
  *
- * El agente publica TODO lo que hizo, incluidas las herramientas con las que se
+ * El agente publica el turno entero, incluidas las herramientas con las que se
  * organiza; cuáles de ellas merecen un chip lo decide `showsInActivity`, el
  * mismo criterio que aplica el turno en vivo. Filtrar aquí y no en el agente es
  * lo que deja que la decisión se pueda cambiar de opinión: el dato sigue
