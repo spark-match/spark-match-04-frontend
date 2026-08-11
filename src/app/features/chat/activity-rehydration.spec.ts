@@ -74,6 +74,42 @@ describe('actividadRehidratada', () => {
     });
   });
 
+  describe('trámites internos', () => {
+    it('la lista de tareas del agente no deja chip', () => {
+      expect(actividadRehidratada([llamada({ tool: 'write_todos' })])).toEqual([]);
+    });
+
+    it('el cuaderno de notas tampoco', () => {
+      const notas = ['write_file', 'edit_file', 'read_file', 'ls', 'glob', 'grep'].map((tool, i) =>
+        llamada({ id: `tc${i}`, tool }),
+      );
+
+      expect(actividadRehidratada(notas)).toEqual([]);
+    });
+
+    it('se cuelan entre el trabajo de verdad y sólo queda el trabajo', () => {
+      // Es la forma real del historial de un turno con informe: el agente
+      // publica TODO lo que hizo, incluida su lista de tareas, y el orden es
+      // el que se ve en pantalla. Antes salían seis chips de los que tres
+      // decían «Organizando el plan…».
+      const chips = actividadRehidratada([
+        { id: 'tc1', tool: 'task', ok: true, subagent: 'report' },
+        llamada({ id: 'tc2', tool: 'write_todos' }),
+        llamada({ id: 'tc3', tool: 'recommend_programs', subject: 'ICR' }),
+        llamada({ id: 'tc4', tool: 'write_todos' }),
+        llamada({ id: 'tc5', tool: 'publish_orientation_report' }),
+        llamada({ id: 'tc6', tool: 'write_todos' }),
+      ]);
+
+      expect(chips.map((c) => c.id)).toEqual(['tc1', 'tc3', 'tc5']);
+      expect(chips.map((c) => c.label)).toEqual([
+        'Subagente especialista redactando tu informe de orientación…',
+        'Buscando los programas que mejor te encajan…',
+        'Redactando tu informe de orientación…',
+      ]);
+    });
+  });
+
   describe('estado', () => {
     it('nada gira en una conversación vieja', () => {
       const chips = actividadRehidratada([llamada(), llamada({ id: 'tc2', ok: false })]);

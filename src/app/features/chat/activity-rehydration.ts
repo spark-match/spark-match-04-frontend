@@ -24,13 +24,22 @@
  * mentira. La duración sólo la conoce el turno en vivo, que la cronometra; el
  * historial no la guarda, y no se inventa.
  */
-import { toolKind, toolLabel } from '../../core/agent/tool-labels';
+import { showsInActivity, toolKind, toolLabel } from '../../core/agent/tool-labels';
 import { subjectDetail, toolReason } from '../../core/agent/tool-details';
 import { subagentLabel, subagentReason } from '../../core/agent/subagent-labels';
 import { ChatActivity, ThreadActivity } from './chat.model';
 
+/**
+ * El historial trae más llamadas de las que se pintan.
+ *
+ * El agente publica TODO lo que hizo, incluidas las herramientas con las que se
+ * organiza; cuáles de ellas merecen un chip lo decide `showsInActivity`, el
+ * mismo criterio que aplica el turno en vivo. Filtrar aquí y no en el agente es
+ * lo que deja que la decisión se pueda cambiar de opinión: el dato sigue
+ * guardado en las conversaciones viejas.
+ */
 export function actividadRehidratada(actividad: ThreadActivity[] | undefined): ChatActivity[] {
-  return (actividad ?? []).map(unChip);
+  return (actividad ?? []).filter((llamada) => showsInActivity(llamada.tool)).map(unChip);
 }
 
 function unChip(llamada: ThreadActivity): ChatActivity {

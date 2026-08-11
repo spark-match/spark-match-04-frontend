@@ -5,7 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AgUiClient } from '../../core/agent/ag-ui.client';
 import { stepLabel } from '../../core/agent/step-labels';
-import { toolKind, toolLabel } from '../../core/agent/tool-labels';
+import { showsInActivity, toolKind, toolLabel } from '../../core/agent/tool-labels';
 import { toolDetail, toolReason } from '../../core/agent/tool-details';
 import {
   REPORT_READY_EVENT,
@@ -172,6 +172,12 @@ export class ChatService {
     const toolNames = new Map<string, string>();
     const pendingArgs = new Map<string, string>();
 
+    // Las llamadas que se decidio no anunciar (`showsInActivity`). Se
+    // recuerdan por id porque los eventos siguientes no traen el nombre de la
+    // herramienta: sin esto, el ARGS de una de ellas se seguiria acumulando y
+    // su RESULT anunciaria el final de un chip que nunca empezo.
+    const sinChip = new Set<string>();
+
     const flushDetail = (toolCallId: string): void => {
       const rawArgs = pendingArgs.get(toolCallId);
       if (rawArgs === undefined) return;
@@ -200,6 +206,16 @@ export class ChatService {
           // toolCallName es el nombre de la funcion en el agente; toolLabel
           // lo traduce y nunca lo deja pasar crudo al navegador.
           const toolCallId = event.toolCallId ?? '';
+
+          // Las herramientas con las que el agente se organiza -- su lista de
+          // tareas, su cuaderno de notas -- no abren chip. Se anota el id y se
+          // corta aqui, que es el unico evento que dice de que herramienta se
+          // trata; el resto de su vida se ignora mas abajo.
+          if (!showsInActivity(event.toolCallName)) {
+            sinChip.add(toolCallId);
+            break;
+          }
+
           toolNames.set(toolCallId, event.toolCallName ?? '');
           handlers.onToolStart(
             toolCallId,
@@ -213,16 +229,19 @@ export class ChatService {
           // Trozo a trozo, sin intentar parsear: cada delta es un pedazo del
           // JSON y por si solo no es JSON valido.
           const toolCallId = event.toolCallId ?? '';
+          if (sinChip.has(toolCallId)) break;
           pendingArgs.set(toolCallId, (pendingArgs.get(toolCallId) ?? '') + (event.delta ?? ''));
           break;
         }
         case 'TOOL_CALL_END':
+          if (sinChip.has(event.toolCallId ?? '')) break;
           // END significa que el modelo termino de dictar los argumentos, asi
           // que aqui ya hay un JSON entero que leer. El chip sigue corriendo:
           // quien lo cierra es RESULT.
           flushDetail(event.toolCallId ?? '');
           break;
         case 'TOOL_CALL_RESULT':
+          if (sinChip.has(event.toolCallId ?? '')) break;
           // Tambien aqui, porque el camino de respaldo de ag_ui_langgraph
           // (`on_tool_end`) reconstruye la llamada sin emitir END: sin esto,
           // por ese camino el detalle no se veria nunca.
