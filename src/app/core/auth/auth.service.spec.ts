@@ -34,6 +34,52 @@ describe('AuthService', () => {
     });
   });
 
+  /*
+   * `isAdmin` decide si la interfaz enseña el panel de administración. Falla
+   * cerrado, y estas pruebas fijan exactamente eso, incluido el caso raro que
+   * de verdad ocurre: una sesión guardada en localStorage antes de que el
+   * backend empezara a devolver el rol.
+   *
+   * No es control de acceso. Quien decide es el servidor, con los 403 de
+   * /v1/users y /v1/audit. Esto solo evita enseñar puertas cerradas.
+   */
+  describe('isAdmin', () => {
+    /** Siembra una sesión en localStorage y construye el servicio leyéndola. */
+    function conSesion(user: Record<string, unknown>): AuthService {
+      localStorage.setItem('spark-match:token', 'un-token');
+      localStorage.setItem('spark-match:user', JSON.stringify(user));
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [provideHttpClient(), provideHttpClientTesting()],
+      });
+      return TestBed.inject(AuthService);
+    }
+
+    const BASE = { id: 'x', email: 'a@b.com', fullName: 'A B' };
+
+    it('es falso para un estudiante', () => {
+      const auth = conSesion({ ...BASE, role: 'student' });
+      expect(auth.user()?.role).toBe('student');
+      expect(auth.isAdmin()).toBe(false);
+    });
+
+    it('es verdadero solo cuando el rol es admin', () => {
+      expect(conSesion({ ...BASE, role: 'admin' }).isAdmin()).toBe(true);
+    });
+
+    it('es falso cuando la sesion guardada no trae rol', () => {
+      // El caso real: sesiones anteriores al despliegue del backend que envía
+      // el rol. Sin rol conocido, se esconde. Nunca al revés.
+      const auth = conSesion(BASE);
+      expect(auth.user()?.role).toBeUndefined();
+      expect(auth.isAdmin()).toBe(false);
+    });
+
+    it('es falso ante un rol desconocido', () => {
+      expect(conSesion({ ...BASE, role: 'superadmin' }).isAdmin()).toBe(false);
+    });
+  });
+
   describe('login', () => {
     it('persists the response and exposes the new user + token', async () => {
       const before = service.user();

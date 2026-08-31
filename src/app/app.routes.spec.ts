@@ -1,7 +1,18 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Route, provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
+
+/*
+ * Se comprueba por posición y no solo por contenido a propósito: en el primer
+ * nivel hay DOS rutas con `path: ''` --la portada pública y el layout de la
+ * aplicación-- y el router se queda con la primera que case. Si alguien las
+ * intercambia, `/` deja de enseñar la portada y no falla nada: enseña el layout
+ * con la barra lateral a alguien que a lo mejor ni tiene cuenta.
+ */
+function raiz(): Route[] {
+  return routes.filter((r) => r.path === '');
+}
 
 describe('app.routes', () => {
   beforeEach(() => {
@@ -10,50 +21,63 @@ describe('app.routes', () => {
     });
   });
 
-  it('registers 3 top-level routes (auth, layout, wildcard)', () => {
-    expect(routes.length).toBe(3);
-    expect(routes[0].path).toBe('auth');
-    expect(routes[1].path).toBe('');
-    expect(routes[2].path).toBe('**');
+  it('registra 4 rutas de primer nivel (auth, portada, layout, comodín)', () => {
+    expect(routes.map((r) => r.path)).toEqual(['auth', '', '', '**']);
   });
 
-  it('mounts AppLayoutComponent under the empty path', () => {
-    expect((routes[1] as { component: unknown }).component).toBeTruthy();
+  describe('la portada pública', () => {
+    it('va antes que el layout y solo se queda con la raíz', () => {
+      const [portada] = raiz();
+
+      expect(portada.pathMatch).toBe('full');
+      expect(portada.loadComponent).toBeTruthy();
+      // Sin componente propio: no cuelga del `AppLayoutComponent`, que es lo
+      // que la deja sin barra lateral.
+      expect(portada.component).toBeUndefined();
+    });
+
+    it('no está protegida', () => {
+      const [portada] = raiz();
+
+      expect(portada.canActivate).toBeUndefined();
+    });
   });
 
-  it('exposes the 6 protected feature children under the layout', () => {
-    const children = (routes[1] as { children: { path: string }[] }).children;
-    const paths = children.map((c) => c.path);
+  describe('el layout de la aplicación', () => {
+    it('monta AppLayoutComponent bajo la ruta vacía', () => {
+      const [, layout] = raiz();
 
-    expect(paths).toEqual(
-      expect.arrayContaining([
-        '',
-        'home',
-        'filters',
-        'assessment',
-        'careers',
-        'results',
-        'profile',
-      ]),
-    );
-    expect(paths.length).toBe(7);
-  });
+      expect(layout.component).toBeTruthy();
+    });
 
-  it('redirects the empty child to /home with full match', () => {
-    const empty = (routes[1] as { children: { path: string; redirectTo?: string; pathMatch?: string }[] })
-      .children.find((c) => c.path === '')!;
+    it('expone las 6 secciones del producto', () => {
+      const [, layout] = raiz();
+      const paths = (layout.children ?? []).map((c) => c.path);
 
-    expect(empty.redirectTo).toBe('/home');
-    expect(empty.pathMatch).toBe('full');
-  });
+      expect(paths).toEqual(
+        expect.arrayContaining(['home', 'filters', 'assessment', 'careers', 'results', 'profile']),
+      );
+      expect(paths.length).toBe(6);
+    });
 
-  it('protects the 5 gated features with authGuard', () => {
-    const children = (routes[1] as { children: { path: string; canActivate?: unknown[] }[] }).children;
-    const protectedPaths = ['home', 'filters', 'assessment', 'careers', 'results', 'profile'];
+    /*
+     * Antes había un séptimo hijo, `{ path: '', redirectTo: '/home' }`, que era
+     * quien atendía la raíz. Ya no: la raíz la atiende la portada, y dejar el
+     * redirect aquí no haría nada visible --nunca se llega-- pero sí haría
+     * dudar de cuál de los dos manda.
+     */
+    it('ya no redirige la raíz, porque no le llega', () => {
+      const [, layout] = raiz();
 
-    for (const path of protectedPaths) {
-      const child = children.find((c) => c.path === path)!;
-      expect(child.canActivate, `${path} should have canActivate`).toBeTruthy();
-    }
+      expect((layout.children ?? []).some((c) => c.path === '')).toBe(false);
+    });
+
+    it('protege las 6 secciones con authGuard', () => {
+      const [, layout] = raiz();
+
+      for (const child of layout.children ?? []) {
+        expect(child.canActivate, `${child.path} debería llevar canActivate`).toBeTruthy();
+      }
+    });
   });
 });

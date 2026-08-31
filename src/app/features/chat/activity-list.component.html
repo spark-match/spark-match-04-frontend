@@ -1,0 +1,122 @@
+@if (plegable()) {
+  <!-- Plegado, la altura queda acotada por construcción: una línea con lo que
+       hizo y cuántos pasos fueron. Por eso ya no hace falta la caja con scroll
+       de 11rem que antes recortaba los chips. -->
+  <button
+    type="button"
+    class="chat__activity-summary"
+    [class.chat__activity-summary--open]="desplegado()"
+    [class.chat__activity-summary--failed]="resumen()?.ok === false"
+    [attr.aria-expanded]="desplegado()"
+    (click)="alternar()"
+  >
+    <span class="chat__activity-summary-dot" aria-hidden="true"></span>
+    <span>{{ resumen()?.titulo }}</span>
+    <span class="chat__activity-count">· {{ resumen()?.pasos }} pasos</span>
+    <span class="chat__activity-summary-more">{{ desplegado() ? 'Ocultar' : 'Ver detalle' }}</span>
+  </button>
+}
+
+@if (!plegable() || desplegado()) {
+  <ul
+    class="chat__activities"
+    [class.chat__activities--done]="!live()"
+    [attr.aria-live]="live() ? 'polite' : null"
+  >
+    @for (group of groups(); track group.key) {
+      <li
+        [class.chat__activity--running]="group.running"
+        [class.chat__activity--subagent]="group.kind === 'subagent'"
+        [class.chat__activity--search]="group.kind === 'search'"
+        [class.chat__activity--failed]="group.ok === false"
+      >
+        <span class="chat__activity-head">
+          <!-- Un icono por TIPO, no por herramienta. Lo que el estudiante
+               necesita distinguir de un vistazo no es cual de las quince
+               herramientas corrio, sino de donde sale lo que va a leer: de un
+               dato del catalogo, de otro agente razonando, o de la web de hoy
+               que no ha revisado nadie. Tres iconos, tres procedencias.
+
+               `aria-hidden` porque el texto de al lado ya lo dice: un lector
+               de pantalla que anuncie "cerebro" antes de "Subagente
+               especialista..." solo estorba. -->
+          <span class="chat__activity-icon" aria-hidden="true">
+            @switch (group.kind) {
+              @case ('subagent') {
+                <!-- Cerebro: detras hay otro agente razonando, no una consulta. -->
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M9.5 4a2.5 2.5 0 0 0-2.5 2.5A2.5 2.5 0 0 0 5 9c0 .9.5 1.7 1.2 2.1A2.5 2.5 0 0 0 5 13.5 2.5 2.5 0 0 0 7.5 16c0 1.4 1.1 2.5 2.5 2.5.6 0 1.1-.2 1.5-.5V4.5c-.4-.3-.9-.5-1.5-.5zM14.5 4a2.5 2.5 0 0 1 2.5 2.5A2.5 2.5 0 0 1 19 9c0 .9-.5 1.7-1.2 2.1A2.5 2.5 0 0 1 19 13.5 2.5 2.5 0 0 1 16.5 16c0 1.4-1.1 2.5-2.5 2.5-.6 0-1.1-.2-1.5-.5V4.5c.4-.3.9-.5 1.5-.5z"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linejoin="round"
+                  />
+                  <path d="M12 18.5V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+              }
+              @case ('search') {
+                <!-- Nube: esto salio de internet, no del dataset fechado del
+                     MINEDU. Es la unica procedencia que nadie ha revisado. -->
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M7 18h10.5a3.5 3.5 0 0 0 .3-7A5 5 0 0 0 8.1 9.4 4 4 0 0 0 7 18z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+              @default {
+                <!-- Llave inglesa: una herramienta del sistema. -->
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M15.7 4.3a4.5 4.5 0 0 0-5.9 5.6l-5.1 5.1a1.5 1.5 0 0 0 0 2.1l2.2 2.2a1.5 1.5 0 0 0 2.1 0l5.1-5.1a4.5 4.5 0 0 0 5.6-5.9l-2.6 2.6-2.5-.5-.5-2.5 2.6-2.6z"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              }
+            }
+          </span>
+          <span>{{ group.label }}</span>
+          @if (group.calls.length === 1) {
+            @if (group.calls[0].detail) {
+              <span class="chat__activity-args">{{ group.calls[0].detail }}</span>
+            }
+            <span class="chat__activity-timing">{{ activityTiming(group.calls[0]) }}</span>
+          } @else {
+            <span class="chat__activity-count">· {{ group.calls.length }} veces</span>
+          }
+        </span>
+        @if (group.reason) {
+          <span class="chat__activity-reason">{{ group.reason }}</span>
+        }
+        <!-- El desplegable sólo si alguna llamada tiene algo escrito. Un turno
+             rehidratado no trae duraciones, y hay herramientas que no publican
+             asunto: entre las dos cosas, «Organizando el plan · 3 veces» se
+             abría a tres viñetas en blanco. -->
+        @if (group.calls.length > 1 && hayDetalle(group)) {
+          <details class="chat__activity-calls">
+            <summary>Ver el detalle de cada llamada</summary>
+            <ul>
+              @for (call of group.calls; track call.id) {
+                <li>
+                  @if (call.detail) {
+                    <span class="chat__activity-args">{{ call.detail }}</span>
+                  } @else if (!activityTiming(call)) {
+                    <!-- Esta suelta no tiene nada, pero sus hermanas sí, y una
+                         viñeta vacía en medio de la lista se lee como un fallo
+                         de la interfaz. -->
+                    <span class="chat__activity-args">sin detalle publicable</span>
+                  }
+                  <span class="chat__activity-timing">{{ activityTiming(call) }}</span>
+                </li>
+              }
+            </ul>
+          </details>
+        }
+      </li>
+    }
+  </ul>
+}

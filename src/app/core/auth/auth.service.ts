@@ -30,6 +30,23 @@ export class AuthService {
   // Mantenemos el computed para que el guard funcione correctamente al llamarlo auth.isAuthenticated()
   readonly isAuthenticated = computed(() => this._token() !== null);
 
+  /**
+   * Falla cerrado a propósito: solo es admin quien trae `role === 'admin'`.
+   *
+   * Sin sesión, con el rol ausente o con cualquier otro valor, la respuesta es
+   * `false`. La ausencia se da de verdad en dos casos: una sesión guardada en
+   * `localStorage` antes de que el backend enviara el rol, y el hueco entre
+   * desplegar este frontend y desplegar el backend que lo incluye. En los dos
+   * conviene esconder de más y no de menos.
+   *
+   * Y hay que decirlo claro: esto NO es control de acceso. Quien decide es el
+   * servidor, que devuelve 403 en `/v1/users` y `/v1/audit` a quien no es
+   * admin. Esto solo evita enseñar puertas que al abrirlas dan 403. Cualquiera
+   * puede editar su `localStorage` y poner `"role":"admin"`; lo único que
+   * conseguirá es ver un panel cuyas llamadas siguen fallando.
+   */
+  readonly isAdmin = computed(() => this._user()?.role === 'admin');
+
   login(payload: LoginPayload): Observable<LoginResponse> {
     if (environment.useMocks) {
       const response = this.buildMockLoginResponse({
@@ -85,6 +102,11 @@ export class AuthService {
         id: crypto.randomUUID(),
         fullName: partial.fullName ?? 'Usuario Spark Match',
         email: partial.email,
+        // `student` porque es lo que produce el alta real desde la migración
+        // 005. Que el mock local sea admin daría una experiencia de desarrollo
+        // que ningún usuario tiene, y escondería justo el camino que hay que
+        // ver a diario.
+        role: partial.role ?? 'student',
         age: partial.age ?? 17,
         region: partial.region ?? 'Lima Metropolitana',
         interestArea: partial.interestArea ?? 'Tecnología e innovación',
@@ -117,6 +139,7 @@ export class AuthService {
         id: 'mock-id',
         fullName: 'Estudiante Explorador',
         email: 'estudiante@sparkmatch.pe',
+        role: 'student',
         age: 17,
         region: 'Lima Metropolitana',
         interestArea: 'Tecnología e innovación',

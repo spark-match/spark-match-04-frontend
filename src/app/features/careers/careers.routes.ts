@@ -5,7 +5,7 @@ export const careersRoutes: Routes = [
     path: '',
     loadComponent: () =>
       import('./pages/careers-list.page').then((m) => m.CareersListPage),
-    title: 'Carreras · Spark Match'
+    title: 'Carreras'
   },
   {
     path: ':id',

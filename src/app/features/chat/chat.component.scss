@@ -3,6 +3,40 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  // Ancla del botón de «bajar al último», que flota sobre el composer.
+  position: relative;
+}
+
+// Flota sobre el composer en vez de ocupar sitio en la columna: si empujara el
+// layout, aparecer y desaparecer movería los mensajes bajo el cursor del
+// lector — y aparece justo cuando está leyendo con atención.
+.chat__to-latest {
+  position: absolute;
+  bottom: 5.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 4px 14px oklch(0 0 0 / 0.13);
+  font-size: 0.78rem;
+  cursor: pointer;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    border-color: var(--teal-glow);
+    color: var(--teal-deep);
+  }
 }
 
 .chat__header {
@@ -141,6 +175,40 @@
 .chat__time {
   font-size: 0.7rem;
   color: oklch(0.6 0.02 240);
+}
+
+// El enlace al informe recién emitido. Dentro de la burbuja y no en una barra
+// aparte: es la respuesta a lo que el estudiante acaba de pedir, y ahí sigue
+// mañana cuando vuelva a la conversación.
+.chat__report {
+  // `flex` y no `inline-flex`: en línea, la hora que va justo detrás en el
+  // DOM se le pegaba al costado y las dos cosas se leían como una sola. Un
+  // contenedor flex es de bloque, así que la hora cae debajo sola. El
+  // `width: fit-content` evita que el botón se estire hasta el borde de la
+  // burbuja al dejar de ser en línea.
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.45rem;
+  align-self: flex-start;
+  margin-top: 0.85rem;
+  margin-bottom: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--teal-glow);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
 }
 
 .chat__bubble--typing {
@@ -393,6 +461,15 @@
   background: currentColor;
   animation: chat-typing 1s infinite;
 }
+
+// Los chips de actividad (herramientas, delegaciones) se movieron a
+// ActivityListComponent — ver activity-list.component.scss — porque este
+// mismo bloque se pintaba dos veces en chat.component.html (la lista «en
+// vivo» y la que queda pegada a la respuesta) y SonarCloud lo marcaba como
+// código duplicado en cuanto creció con el desplegable de llamadas
+// agrupadas. `@keyframes chat-typing`, más arriba en este fichero, se queda
+// aquí: Angular no la encapsula por componente, así que sigue siendo
+// visible para el componente hijo sin duplicarla.
 
 .chat__error {
   display: flex;
