@@ -1,14 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 
 import { Router, RouterLink } from '@angular/router';
-import {
-  FormField,
-  email,
-  form,
-  minLength,
-  required,
-  submit,
-} from '@angular/forms/signals';
+import { FormField, email, form, minLength, required, submit } from '@angular/forms/signals';
 import { firstValueFrom } from 'rxjs';
 import { AuthShellComponent } from '../../../shared/ui/auth-shell/auth-shell.component';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -62,11 +55,7 @@ interface LoginModel {
             </p>
           }
 
-          <button
-            type="submit"
-            class="auth-card__submit"
-            [disabled]="submitting()"
-          >
+          <button type="submit" class="auth-card__submit" [disabled]="submitting()">
             {{ submitting() ? 'Ingresando...' : 'Ingresar →' }}
           </button>
         </form>
@@ -105,7 +94,10 @@ export class LoginPage {
         await firstValueFrom(
           this.authService.login({ email: value.email, password: value.password }),
         );
-        await this.router.navigate(['/']);
+        // `/home` y no `/`: la raíz es la portada pública desde que existe, y
+        // acabar de entrar para aterrizar en la página que te invita a crear
+        // una cuenta se lee como que el acceso no funcionó.
+        await this.router.navigate(['/home']);
         return [];
       } catch {
         this.submitting.set(false);

@@ -37,11 +37,21 @@
   width: 24px;
   height: 24px;
 
-  svg { width: 24px; height: 24px; }
+  svg {
+    width: 24px;
+    height: 24px;
+  }
 }
 
-.sidebar__mlops-title { display: flex; align-items: center; gap: 0.4rem; }
-.sidebar__mlops-title svg { width: 15px; height: 15px; }
+.sidebar__mlops-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.sidebar__mlops-title svg {
+  width: 15px;
+  height: 15px;
+}
 
 .sidebar__brand-name {
   flex: 1;
@@ -132,6 +142,160 @@
   &:hover {
     background: oklch(1 0 0 / 0.06);
   }
+}
+
+// El lápiz va superpuesto sobre la fila y no al lado: en columna le quitaría
+// ancho al título, que es lo que hay que poder leer.
+.sidebar__recent-row {
+  position: relative;
+
+  // `focus-within` y no `focus-visible` en cada botón: son dos, y lo que hay
+  // que enseñar es el grupo entero en cuanto el foco entra en cualquiera de
+  // ellos. Si no, al tabular del lápiz a la papelera el grupo parpadearía.
+  &:hover .sidebar__recent-actions,
+  .sidebar__recent-actions:focus-within {
+    opacity: 1;
+  }
+}
+
+// Los dos botones van superpuestos sobre la fila y no al lado: en columna le
+// quitarían ancho al título, que es lo que hay que poder leer.
+//
+// Pero superpuestos SIN fondo se posaban encima de las letras — la papelera
+// caía a mitad de «¿Qué carreras de ingeniería…» y se leían las dos cosas
+// mezcladas. Los títulos de conversación ocupan el ancho entero casi siempre,
+// así que ese choque no era el caso raro: era el normal.
+//
+// La solución es darles suelo. El degradado de la izquierda hace que el
+// título se desvanezca por debajo en vez de cortarse de golpe, que es lo que
+// deja claro que hay texto detrás y no un título más corto.
+.sidebar__recent-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0 0.35rem 0 1.5rem;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: linear-gradient(
+    to right,
+    oklch(0 0 0 / 0) 0,
+    var(--sidebar-bg) 1.4rem,
+    var(--sidebar-bg) 100%
+  );
+  // Ocultos hasta que hagan falta, pero nunca `display: none`: tienen que
+  // seguir en el orden de tabulación para quien no usa ratón.
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+// Con la fila resaltada por el hover, el degradado tiene que resaltar igual o
+// se recorta un rectángulo más oscuro alrededor de los botones.
+.sidebar__recent-row:hover .sidebar__recent-actions {
+  background: linear-gradient(
+    to right,
+    oklch(0 0 0 / 0) 0,
+    color-mix(in oklch, var(--sidebar-bg), oklch(1 0 0 / 0.06)) 1.4rem,
+    color-mix(in oklch, var(--sidebar-bg), oklch(1 0 0 / 0.06)) 100%
+  );
+}
+
+.sidebar__recent-rename,
+.sidebar__recent-delete {
+  display: grid;
+  place-items: center;
+  padding: 0.25rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--sidebar-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--sidebar-fg);
+    background: oklch(1 0 0 / 0.1);
+  }
+}
+
+// La papelera es la única de las dos que no se puede deshacer, y se dice con
+// el color antes de pulsarla. El mismo `--danger` que ya usan los avisos.
+.sidebar__recent-delete:hover {
+  color: var(--danger, oklch(0.72 0.17 25));
+}
+
+// Tapa la hora mientras se escribe. Es a propósito: la hora no se puede
+// editar y competir por el sitio con el nombre sólo estorba.
+.sidebar__recent-input {
+  width: 100%;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid oklch(1 0 0 / 0.3);
+  border-radius: var(--radius);
+  background: oklch(1 0 0 / 0.08);
+  color: var(--sidebar-fg);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+// Ocupa el sitio de la fila que va a borrar, así que la pregunta lleva dentro
+// el nombre: ahí ya no se ve.
+//
+// Es un `fieldset`, que trae de fábrica borde, margen y un hueco en el borde
+// para el `legend`. Se quita todo: lo que se aprovecha es su semántica de
+// grupo, no su aspecto.
+.sidebar__recent-confirm {
+  margin: 0;
+  padding: 0.4rem 0.7rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: oklch(1 0 0 / 0.08);
+}
+
+// `display: block` explícito: el `legend` tiene una colocación propia dentro
+// del `fieldset` y, dejado como viene, arrastra a los botones a su lado con
+// ancho cero. Esto lo devuelve a comportarse como un hijo normal.
+.sidebar__recent-confirm-text {
+  display: block;
+  width: 100%;
+  padding: 0;
+  font-size: 0.78rem;
+  color: var(--sidebar-fg);
+}
+
+.sidebar__recent-confirm-actions {
+  display: flex;
+  gap: 0.35rem;
+  padding-top: 0.35rem;
+}
+
+.sidebar__recent-confirm-yes,
+.sidebar__recent-confirm-no {
+  padding: 0.2rem 0.5rem;
+  border: 0;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.sidebar__recent-confirm-yes {
+  background: var(--danger, oklch(0.72 0.17 25));
+  color: oklch(1 0 0);
+}
+
+// Cancelar queda en segundo plano a propósito, pero sigue siendo un botón de
+// verdad y no un enlace: es la salida, y tiene que poder pulsarse sin puntería.
+.sidebar__recent-confirm-no {
+  background: oklch(1 0 0 / 0.12);
+  color: var(--sidebar-fg);
+}
+
+.sidebar__recent-error {
+  margin: 0.2rem 0 0;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  color: var(--danger, oklch(0.72 0.17 25));
 }
 
 .sidebar__recent-empty {
@@ -313,7 +477,10 @@
 }
 
 @media (max-width: 860px) {
-  :host { width: 100%; height: auto; }
+  :host {
+    width: 100%;
+    height: auto;
+  }
 
   .sidebar,
   .sidebar.collapsed {
@@ -328,20 +495,41 @@
     overflow-y: hidden;
   }
 
-  .sidebar__brand { margin: 0; flex: 0 0 auto; }
+  .sidebar__brand {
+    margin: 0;
+    flex: 0 0 auto;
+  }
   .sidebar__brand-name,
   .sidebar__collapse-btn,
   .sidebar__recent,
   .sidebar__new-chat,
   .sidebar__admin,
   .sidebar__spacer,
-  .sidebar__user-info { display: none; }
+  .sidebar__user-info {
+    display: none;
+  }
 
-  .sidebar__nav { flex-direction: row; margin: 0; gap: 0.25rem; }
-  .sidebar__nav-item { flex: 0 0 auto; padding: 0.5rem 0.6rem; }
-  .sidebar__nav-item span { display: none; }
-  .sidebar__user { margin: 0 0 0 auto; padding: 0; border: 0; flex: 0 0 auto; }
-  .sidebar__logout { padding: 0.35rem; }
+  .sidebar__nav {
+    flex-direction: row;
+    margin: 0;
+    gap: 0.25rem;
+  }
+  .sidebar__nav-item {
+    flex: 0 0 auto;
+    padding: 0.5rem 0.6rem;
+  }
+  .sidebar__nav-item span {
+    display: none;
+  }
+  .sidebar__user {
+    margin: 0 0 0 auto;
+    padding: 0;
+    border: 0;
+    flex: 0 0 auto;
+  }
+  .sidebar__logout {
+    padding: 0.35rem;
+  }
 }
 
 @keyframes sidebar-section-in {

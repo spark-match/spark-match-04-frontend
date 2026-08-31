@@ -9,7 +9,11 @@
   height: 100%;
   min-height: 0;
   margin-inline: auto;
-  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 4vw, 3rem) 4rem;
+  // Sin espacio arriba a propósito: se lo queda `.report__header`. Estando
+  // aquí, quedaba una franja por encima de la cabecera fija que la cabecera
+  // no podía pintar, y el informe se veía pasar por ella al bajar — el título
+  // parecía flotar sobre un trozo de párrafo recortado.
+  padding: 0 clamp(1rem, 4vw, 3rem) 4rem;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
@@ -21,21 +25,151 @@
   z-index: 1;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
+  // El espacio superior que antes ponía `.report` va aquí, para que forme
+  // parte de la caja que se queda fija y su fondo lo tape. Es lo que hace que
+  // el informe pase POR DEBAJO en vez de asomar por encima.
+  padding-block: clamp(1.5rem, 4vw, 2.5rem) 1rem;
   background: var(--background);
+  // Una línea donde termina lo fijo. Sin ella, el texto que se desliza por
+  // debajo aparece y desaparece sin borde que lo explique, y se lee como un
+  // recorte.
+  border-bottom: 1px solid var(--border);
 
   h1 {
     font-size: 2rem;
-    margin-bottom: 0.25rem;
+    margin: 0;
   }
 }
 
-.report__profile {
-  color: oklch(0.55 0.02 240);
-  font-size: 0.85rem;
-  margin: 0;
+// El histórico. Una fila de pestañas horizontales y no una lista vertical:
+// van justo debajo de una cabecera `sticky` y encima del informe, así que lo
+// que gasten de alto se lo quitan al documento. Con scroll lateral cuando no
+// caben, que es preferible a apilarlas y empujar el informe fuera de vista.
+.report__history {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  // Sitio para que la tarjeta se levante en `:hover` sin que el `overflow`
+  // del carrusel le recorte la sombra.
+  padding: 0.2rem 0.2rem 0.5rem;
+  margin-inline: -0.2rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  // Que al arrastrar quede una pestaña encuadrada y no a medias. `proximity`
+  // y no `mandatory`: con pocas pestañas, forzar el encaje pelea con quien
+  // sólo quiere asomarse al final de la fila.
+  scroll-snap-type: x proximity;
+}
+
+.report__history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  // Un ancho fijo y no `auto`: con `auto`, las pestañas cambian de tamaño
+  // según lo largos que sean los nombres de las carreras, y una fila de
+  // rectángulos desiguales se lee como un fallo de maquetación.
+  width: 15rem;
+  max-width: 70vw;
+  // El borde izquierdo es el que se tiñe al seleccionar, así que se reserva
+  // su grosor desde el principio: si apareciera al activarse, el texto de la
+  // pestaña se desplazaría 2px cada vez que cambias de informe.
+  padding: 0.7rem 0.9rem 0.7rem calc(0.9rem - 2px);
+  border: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius);
+  background: var(--card, var(--background));
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    border-color: var(--teal-glow);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-1px);
+  }
+
+  // El teclado se mueve por esta fila igual que el ratón, y sin esto el foco
+  // sólo se veía por el anillo del navegador sobre un fondo del mismo color.
+  &:focus-visible {
+    outline: 2px solid var(--teal-deep);
+    outline-offset: 2px;
+  }
+}
+
+.report__history-item--activo {
+  // Tres marcas y no una: el borde suelto se confunde con el `:hover`, y cuál
+  // informe está abierto no puede depender de dónde esté el ratón. La barra
+  // izquierda es la que se ve de un vistazo en una fila con scroll.
+  border-color: var(--teal-deep);
+  border-left-color: var(--teal-deep);
+  background: oklch(0.62 0.13 175 / 0.1);
+
+  &:hover {
+    transform: none;
+  }
+}
+
+.report__history-date {
+  font-size: 0.8rem;
+  font-weight: 600;
+  // Las fechas van una debajo de otra en una fila: con cifras de ancho
+  // variable, los minutos bailan de pestaña a pestaña.
+  font-variant-numeric: tabular-nums;
+}
+
+.report__history-careers {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: oklch(0.48 0.02 240);
+  // Una sola línea: la altura de la fila no puede depender de cuántas carreras
+  // recomendó cada informe.
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+// El retrato del perfil. Vivía dentro de `.report__header`, que es `sticky`,
+// y son dos o tres párrafos: la franja fija crecía hasta media pantalla y se
+// quedaba encima de las fichas al bajar. Aquí ya es una tarjeta normal, que
+// scrollea con el resto.
+.report__profile-card {
+  margin-bottom: 1.5rem;
+  padding: 1.4rem 1.6rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card, var(--background));
+}
+
+.report__profile-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.report__profile-text {
+  // Medida de lectura: un párrafo de veinte líneas ocupando los 1120px enteros
+  // se lee mal aunque el contenido sea bueno.
+  max-width: 68ch;
+  margin: 0 0 0.85rem;
+  color: var(--muted-foreground, oklch(0.45 0.02 240));
+  font-size: 0.95rem;
+  line-height: 1.65;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .report__export {
@@ -52,14 +186,59 @@
   cursor: pointer;
   white-space: nowrap;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--teal-glow);
+  }
+
+  // Sin informe no hay nada que exportar. `:hover` va excluido arriba a
+  // proposito: sin eso el boton sigue cambiando de color al pasar por encima y
+  // se lee como pulsable cuando no lo es.
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 }
 
 .report__loading {
   color: oklch(0.55 0.02 240);
   font-size: 0.9rem;
+}
+
+.report__error {
+  max-width: 34rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
+.report__error-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  margin: 0 0 0.35rem;
+}
+
+.report__error-body {
+  margin: 0 0 1.1rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: oklch(0.5 0.02 240);
+}
+
+.report__retry {
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--teal-glow);
+  }
 }
 
 .report__banner {
@@ -93,7 +272,10 @@
   justify-content: center;
   flex: 0 0 auto;
 
-  svg { width: 21px; height: 21px; }
+  svg {
+    width: 21px;
+    height: 21px;
+  }
 }
 
 .report__banner-eyebrow {
@@ -134,7 +316,10 @@
   font-weight: 700;
   flex: 0 0 auto;
 
-  svg { width: 19px; height: 19px; }
+  svg {
+    width: 19px;
+    height: 19px;
+  }
 
   &--top {
     background: oklch(0.85 0.12 90);
@@ -173,7 +358,10 @@
   border-radius: 999px;
   white-space: nowrap;
 
-  svg { width: 14px; height: 14px; }
+  svg {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 .report__insight {
@@ -215,7 +403,10 @@
   font-size: 0.72rem;
   color: oklch(0.5 0.02 240);
 
-  svg { width: 15px; height: 15px; }
+  svg {
+    width: 15px;
+    height: 15px;
+  }
 }
 
 .report__metric-sub {
@@ -238,21 +429,73 @@
 }
 
 @media (max-width: 720px) {
-  .report__header { align-items: stretch; flex-direction: column; gap: 1rem; }
-  .report__export { justify-content: center; }
-  .report__card-top { flex-wrap: wrap; }
-  .report__match { margin-left: 43px; }
+  .report__header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .report__export {
+    justify-content: center;
+  }
+  .report__card-top {
+    flex-wrap: wrap;
+  }
+  .report__match {
+    margin-left: 43px;
+  }
   .report__metrics {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
+/* Mismo cuerpo que .report__error a proposito: es el mismo tipo de tarjeta de
+   aviso, pero NO es un error. Un estudiante que todavia no ha pedido su
+   informe no ha hecho nada mal, y antes se le pintaba en la caja de fallo. */
+.report__empty {
+  max-width: 34rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
+.report__empty-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  margin: 0 0 0.35rem;
+}
+
+.report__empty-body {
+  margin: 0 0 1.1rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: oklch(0.5 0.02 240);
+}
+
+/* El aviso de cifra imputada. Discreto pero legible: si desaparece, el informe
+   presenta una mediana de familia como si fuera un dato medido del programa. */
+.report__estimated {
+  margin: 0.75rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: oklch(0.5 0.02 240);
+  font-style: italic;
+}
+
 @media (max-width: 420px) {
-  .report__metrics { grid-template-columns: 1fr; }
-  .report__banner { align-items: flex-start; }
+  .report__metrics {
+    grid-template-columns: 1fr;
+  }
+  .report__banner {
+    align-items: flex-start;
+  }
 }
 
 @media print {
   :host,
-  .report { height: auto; overflow: visible; }
+  .report {
+    height: auto;
+    overflow: visible;
+  }
 }
