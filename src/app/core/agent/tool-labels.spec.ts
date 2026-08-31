@@ -82,7 +82,7 @@ describe('toolLabel', () => {
  *
  * La lista se mantiene A MANO porque el frontend no puede leer el `__all__`
  * del agente: son dos repos y dos despliegues. Copiada de
- * `spark-match-08-deep-agent/src/tools/__init__.py`. Si el agente añade una
+ * `spark-match-07-deep-agent/src/tools/__init__.py`. Si el agente añade una
  * herramienta y nadie toca esto, el test no se entera; lo que sí atrapa es lo
  * contrario, que es el caso que se dio: alguien añade la herramienta a las dos
  * listas y se olvida de la etiqueta.

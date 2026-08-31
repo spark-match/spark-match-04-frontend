@@ -9,7 +9,7 @@ import { PERU_REGIONS } from '../../shared/data/peru-regions';
 
 /**
  * Forma de las preferencias en el perfil del agente
- * (`StudentProfile` en spark-match-08-deep-agent).
+ * (`StudentProfile` en spark-match-07-deep-agent).
  *
  * Los nombres son los de las columnas del dataset, no los de esta pantalla, y
  * el cruce va INVERTIDO respecto a lo que sugiere el nombre local:
