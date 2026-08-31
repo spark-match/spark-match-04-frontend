@@ -12,15 +12,26 @@
  */
 
 /**
- * El backend solo devuelve id, email y fullName. `age`, `region` e
+ * El backend devuelve id, email, fullName y `role`. `age`, `region` e
  * `interestArea` se capturan en el formulario de registro pero todavia no se
  * persisten ni se devuelven: quedan opcionales hasta que exista el endpoint de
  * perfil extendido.
+ *
+ * `role` es OPCIONAL aqui aunque el backend lo declare obligatorio, y la razon
+ * importa: en `localStorage` puede haber sesiones guardadas antes de que el
+ * backend empezara a enviarlo. Si el tipo lo exigiera, esas sesiones romperian
+ * al deserializarse.
+ *
+ * Que sea opcional obliga a decidir que significa su ausencia, y la respuesta
+ * esta en `AuthService.isAdmin`: ausencia significa NO admin. Nunca al reves.
  */
+export type UserRole = 'admin' | 'student';
+
 export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
+  role?: UserRole;
   age?: number;
   region?: string;
   interestArea?: string;
@@ -59,4 +70,5 @@ export interface RegisterResponse {
   email: string;
   fullName: string;
   createdAt: string;
+  role?: UserRole;
 }

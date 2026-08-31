@@ -14,6 +14,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { AuthShellComponent } from '../../../shared/ui/auth-shell/auth-shell.component';
 import { AuthService } from '../../../core/auth/auth.service';
+import { PERU_REGION_NAMES } from '../../../shared/data/peru-regions';
 
 interface RegisterModel {
   fullName: string;
@@ -146,9 +147,15 @@ export class RegisterPage {
 
   readonly submitting = signal(false);
 
-  // TODO: reemplazar por el catálogo real de regiones que exponga el backend
-  // (mismo catálogo que expone FiltersService.getRegions())
-  regions = ['Lima Metropolitana', 'Arequipa', 'La Libertad', 'Piura', 'Cusco', 'Junín'];
+  /**
+   * Los 25 departamentos, de la única fuente compartida.
+   *
+   * Aquí había seis escritos a mano. Como la región es obligatoria para
+   * completar el alta, eso dejaba fuera del registro a los otros 19 —Loreto,
+   * Puno, Piura y compañía—. Y una de las seis, «Lima Metropolitana», ni
+   * siquiera existe en el dataset, que dice «Lima».
+   */
+  regions = PERU_REGION_NAMES;
 
   readonly registerModel = signal<RegisterModel>({
     fullName: '',
