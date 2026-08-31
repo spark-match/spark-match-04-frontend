@@ -35,7 +35,7 @@ import { switchMap, take, takeWhile } from 'rxjs/operators';
  * sin un sueldo y sin un costo, y con recursos de Harvard.
  *
  * Ya sí los tiene — 6208 carreras en universidades e institutos de los 25
- * departamentos (`spark-match-08-deep-agent#71`) — así que el texto de ahora
+ * departamentos (`spark-match-07-deep-agent#71`) — así que el texto de ahora
  * dice lo que hay y lo dice en concreto.
  *
  * Lo que NO vuelve es la promesa de sueldos. Están en el dataset, pero el
@@ -189,7 +189,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.detenerSondeo();
     // Sin esto, salir de la pantalla a mitad de respuesta deja los tokens
     // llegando a un lector que ya no existe. Ojo: desde
-    // `spark-match-08-deep-agent#89` esto ya NO corta el turno en el
+    // `spark-match-07-deep-agent#89` esto ya NO corta el turno en el
     // agente, que termina solo — por eso al volver hay algo que sondear.
     this.abort?.abort();
   }
