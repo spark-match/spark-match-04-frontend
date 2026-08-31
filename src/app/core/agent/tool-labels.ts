@@ -21,7 +21,7 @@ const LABELS: Record<string, string> = {
   // distintos y el estudiante tiene que poder distinguirlos.
   search_programs: 'Buscando carreras en universidades e institutos…',
   calculate_affinity: 'Calculando tu afinidad…',
-  // Llegó con el motor multicriterio (spark-match-08-deep-agent#81) y se
+  // Llegó con el motor multicriterio (spark-match-07-deep-agent#81) y se
   // quedó sin etiqueta hasta el 2026-08-09: la herramienta que más trabajo
   // hace se anunciaba como «Usando una herramienta…». De ahí el test de
   // cobertura que hay al lado de este mapa.
@@ -30,7 +30,7 @@ const LABELS: Record<string, string> = {
   // Vive dentro del subagente de report, así que hasta ahora no llegaba nunca
   // aquí: en vivo sí se veía, pero al recargar la página los pasos de dentro
   // de un especialista no estaban en el historial. Desde
-  // spark-match-08-deep-agent#105 sí, y sin etiqueta se anunciaba como
+  // spark-match-07-deep-agent#105 sí, y sin etiqueta se anunciaba como
   // «Usando una herramienta…» justo en el paso que produce el informe.
   publish_orientation_report: 'Redactando tu informe de orientación…',
   search_memory: 'Repasando lo que conversamos…',
