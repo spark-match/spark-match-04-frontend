@@ -192,9 +192,9 @@ src/
 ## 🔗 Repos relacionados
 
 - [`01-devops`](https://github.com/spark-match/spark-match-01-devops) — Reusables CI/CD + governance
-- [`02-infrastructure`](https://github.com/spark-match/spark-match-02-infrastructure) — Terraform (VPC, Aurora, etc.)
+- [`02-infrastructure`](https://github.com/spark-match/spark-match-02-infrastructure) — Terraform (VPC, RDS PostgreSQL, ECS, CloudFront)
 - [`03-backend`](https://github.com/spark-match/spark-match-03-backend) — SAM (Lambdas, API Gateway)
-- [`08-deep-agent`](https://github.com/spark-match/spark-match-07-deep-agent) — AI Advisor (AgentCore)
+- [`07-deep-agent`](https://github.com/spark-match/spark-match-07-deep-agent) — Agente conversacional (LangGraph + AG-UI + Bedrock, en ECS Fargate)
 
 ## Despliegue
 
