@@ -415,7 +415,7 @@ function readSnapshotMessages(messages: unknown): AgUiSnapshotMessage[] {
  * La respuesta del endpoint, traducida a lo que pinta la pantalla.
  *
  * `running` por defecto en false: un agente anterior a
- * `spark-match-08-deep-agent#88` no manda el campo, y ausencia no es «hay un
+ * `spark-match-07-deep-agent#88` no manda el campo, y ausencia no es «hay un
  * turno corriendo» — dar por cierto lo contrario dejaria la pantalla clavada
  * en «respondiendo» contra un agente que nunca va a decir que termino.
  */
