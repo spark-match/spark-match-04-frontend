@@ -736,7 +736,7 @@ describe('ChatComponent', () => {
   /**
    * Un turno que sigue vivo en el agente y que esta pestaña no lanzó.
    *
-   * Desde `spark-match-08-deep-agent#89` cerrar la pestaña ya no mata el
+   * Desde `spark-match-07-deep-agent#89` cerrar la pestaña ya no mata el
    * turno, así que volver a entrar puede pillarlo a medias. Sin esperarlo, la
    * pantalla enseñaría la pregunta sin nada debajo y el estudiante la
    * repetiría — llevándose un 409.

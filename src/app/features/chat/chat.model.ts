@@ -67,7 +67,7 @@ export interface ThreadMessage {
   /**
    * Las herramientas del turno, sólo en el mensaje que lo cierra.
    *
-   * La manda el agente desde `spark-match-08-deep-agent#86`. Sin esto, al
+   * La manda el agente desde `spark-match-07-deep-agent#86`. Sin esto, al
    * recargar la página la respuesta se quedaba sin procedencia: las mismas
    * cifras, y ninguna pista de si salieron del catálogo del MINEDU, de una
    * búsqueda en internet o de un especialista.
@@ -78,7 +78,7 @@ export interface ThreadMessage {
    *
    * `snake_case` porque así viaja, igual que `thread_id`; se traduce a
    * `reportId` al entrar. La manda el agente desde
-   * `spark-match-08-deep-agent#104`: hasta entonces el id sólo llegaba por el
+   * `spark-match-07-deep-agent#104`: hasta entonces el id sólo llegaba por el
    * evento en vivo `spark.report.ready`, así que al recargar la página el
    * botón de ver el informe desaparecía aunque el informe siguiera ahí.
    */
@@ -92,7 +92,7 @@ export interface ThreadMessagesResponse {
   /**
    * Hay un turno generándose ahora mismo en esta conversación.
    *
-   * Lo manda el agente desde `spark-match-08-deep-agent#88`. Desde que el
+   * Lo manda el agente desde `spark-match-07-deep-agent#88`. Desde que el
    * turno sobrevive a que cierres la pestaña (#89), volver a entrar puede
    * pillarlo a medias: sin este campo el estudiante vería su pregunta sin
    * respuesta, la repetiría, y se llevaría un 409.

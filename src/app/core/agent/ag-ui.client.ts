@@ -155,7 +155,7 @@ export async function* readSseEvents(body: ReadableStream<Uint8Array>): AsyncGen
     // Esto ya NO corta el turno. Antes sí: el agente conducía el turno desde
     // la propia respuesta HTTP, así que soltar el lector lo mataba e irse de
     // la pantalla te dejaba sin respuesta. Desde
-    // `spark-match-08-deep-agent#89` el turno vive en una tarea de fondo y
+    // `spark-match-07-deep-agent#89` el turno vive en una tarea de fondo y
     // termina igual — por eso hay un `running` que sondear al volver.
     reader.cancel().catch(() => undefined);
     reader.releaseLock();
