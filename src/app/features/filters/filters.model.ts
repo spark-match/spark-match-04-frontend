@@ -16,7 +16,7 @@ export interface RegionOption {
  * Preferencias de búsqueda del estudiante. Ninguna es obligatoria.
  *
  * Desde el 2026-08-09 estas cuatro forman parte del perfil que el agente
- * mantiene por conversación (`StudentProfile` en spark-match-08-deep-agent),
+ * mantiene por conversación (`StudentProfile` en spark-match-07-deep-agent),
  * igual que el código RIASEC. Esta pantalla dejó de ser una puerta y pasó a
  * ser una vista editable de lo mismo: quien prefiera contarlo hablando puede
  * ir directo al chat.

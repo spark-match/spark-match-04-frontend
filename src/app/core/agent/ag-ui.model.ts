@@ -1,7 +1,7 @@
 /**
  * Los eventos del protocolo AG-UI que esta app consume.
  *
- * El agente (`spark-match-08-deep-agent`) responde a `POST /ag-ui` con un
+ * El agente (`spark-match-07-deep-agent`) responde a `POST /ag-ui` con un
  * stream SSE de eventos tipados. Emite mas tipos de los que hay aqui: se
  * declaran solo los que la UI usa, y el cliente ignora el resto en vez de
  * romperse, para que agregar uno nuevo del lado del agente nunca tumbe al

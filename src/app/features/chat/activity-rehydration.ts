@@ -5,7 +5,7 @@
  * cifras, y ninguna pista de si salieron del catálogo del MINEDU, de una
  * búsqueda en internet o de un especialista — que es justo lo que decide
  * cuánto fiarse de ellas. El agente ya manda esa información en el historial
- * (`spark-match-08-deep-agent#86`); lo que faltaba era traducirla.
+ * (`spark-match-07-deep-agent#86`); lo que faltaba era traducirla.
  *
  * ## Traducir, no reimplementar
  *
