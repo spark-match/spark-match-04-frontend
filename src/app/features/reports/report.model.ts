@@ -18,7 +18,7 @@
  * - `ReportContent` es el DOCUMENTO (`GET /v1/reports/{id}/content`), el JSON que
  *   el agente subió a S3 y que el backend devuelve tal cual. Viaja en snake_case
  *   porque el agente lo serializa con `model_dump(mode="json")` sin alias
- *   (`08-deep-agent/src/models/report.py`).
+ *   (`07-deep-agent/src/models/report.py`).
  *
  * **Por qué se respeta el snake_case en vez de normalizarlo a camelCase.** El
  * backend es un proxy de bytes para este endpoint: sirve el fichero tal como salió
